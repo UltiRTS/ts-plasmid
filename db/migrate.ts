@@ -1,25 +1,20 @@
 import "reflect-metadata"
-import { DataSource, UsingJoinColumnIsNotAllowedError } from "typeorm"
+import {AppDataSource} from './datasource';
+
 import { Confirmation } from "./models/confirmation"
 import { User } from "./models/user"
-
-const AppDataSource = new DataSource({
-    type: 'sqlite',
-    database: './app.db',
-    entities: [
-        User,
-        Confirmation
-    ],
-    synchronize: true
-})
 
 
 const main = async () => {
     await AppDataSource.initialize();
 
     const user = new User();
+    const password = 'test';
+    const {salt, hash} = User.saltNhash(password)
+
     user.username = 'test';
-    user.password = 'test';
+    user.hash = hash;
+    user.salt = salt;
     user.accessLevel = 0;
     user.exp = 0;
     user.sanity = 0;

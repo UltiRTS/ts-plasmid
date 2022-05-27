@@ -7,7 +7,6 @@ export class User extends DBUser {
         super();
         this.id = user.id;
         this.username = user.username;
-        this.password = user.password;
         this.accessLevel = user.accessLevel;
         this.exp = user.exp;
         this.sanity = user.sanity;

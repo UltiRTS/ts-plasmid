@@ -5,7 +5,7 @@ import {EventEmitter} from "events";
 export interface IncommingMsg {
     action: string,
     seq: number,
-    parameter: {[key: string]: any}
+    parameters: {[key: string]: any}
 }
 
 export interface Notification {

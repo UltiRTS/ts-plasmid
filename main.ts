@@ -1,3 +1,4 @@
+import "reflect-metadata"
 import { randomInt } from "crypto";
 import { Worker, parentPort, threadId } from "worker_threads";
 import { Network, IncommingMsg } from "./lib/network";
@@ -19,10 +20,14 @@ for(let i=0; i<4; i++) {
     worker.on('message', (msg) => {
         console.log(msg);
     })
+
+    workers.push(worker)
 }
 
-network.on('message', (clientID: string, msg: IncommingMsg) => {
+network.on('message', (clientId: String, msg: IncommingMsg) => {
     let worker = workers[randomInt(0, workers.length)];
+
+    console.log(`msg from ${clientId}`);
 
     switch(msg.action) {
         case 'LOGIN': {
