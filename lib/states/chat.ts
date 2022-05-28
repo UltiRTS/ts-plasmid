@@ -1,0 +1,26 @@
+import {ChatRoom as DBChatRoom, Chat } from '../../db/models/chat';
+import { User } from './user';
+
+export class ChatRoom extends DBChatRoom {
+    lastMessage: Chat
+    members: string[]
+
+    constructor(chatRoom: DBChatRoom) {
+        super()
+        this.id = chatRoom.id
+        this.chats = [];
+        this.roomName = chatRoom.roomName;
+        this.password = chatRoom.password;
+
+        this.lastMessage = new Chat();
+    }
+    
+
+    say(chat: Chat) {
+        this.lastMessage = chat;
+    }
+
+    join(user: User) {
+        this.members.push(user.username);
+    }
+}

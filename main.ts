@@ -6,6 +6,8 @@ import { State } from "./lib/state";
 import { Receipt } from "./worker";
 import {User} from './lib/states/user';
 import {User as DBUser} from './db/models/user';
+import { ChatRoom as DBChatRoom } from "./db/models/chat";
+import { ChatRoom } from "./lib/states/chat";
 
 const state: State = new State();
 const workers: Worker[] = [];
@@ -51,6 +53,31 @@ for(let i=0; i<4; i++) {
                 }
                 break;
             }
+            case 'JOINCHAT': {
+                if(msg.status) {
+                    if(msg.payload.type === 'CREATE') {
+                        const chatRoom: DBChatRoom = msg.payload.chatRoom;
+                        const stateChatRoom = new ChatRoom(chatRoom);
+                        const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                        if(user!==null) {
+                            stateChatRoom.join(user);
+                            state.addChat(stateChatRoom);
+                        }
+                        console.log(stateChatRoom)
+                    } else if(msg.payload.type === 'JOIN') {
+                        const chatRoom: ChatRoom = msg.payload.chatRoom;
+                        const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                        if(user !== null) {
+                            chatRoom.join(user);
+                            state.assignChat(chatRoom.roomName, chatRoom);
+                        }
+                        console.log(chatRoom)
+                    }
+                } else {
+                    console.log('join chat failed', msg)
+                }
+                break;
+            }
         }
     })
 
@@ -90,8 +117,23 @@ network.on('message', (clientId: string, msg: IncommingMsg) => {
 
     seq2respond[msg.seq] = clientId;
 
+    // need filter for permission
+
     switch(msg.action) {
         case 'LOGIN': {
+            worker.postMessage(msg);
+            seq2respond[msg.seq] = clientId;
+            break;
+        }
+        case 'JOINCHAT': {
+            msg.payload = {
+                chat: state.getChat(msg.parameters.chatName)
+            }
+            worker.postMessage(msg);
+            seq2respond[msg.seq] = clientId;
+            break;
+        }
+        case 'SAYCHAT': {
             worker.postMessage(msg);
             seq2respond[msg.seq] = clientId;
             break;

@@ -3,6 +3,7 @@ import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import {User} from './db/models/user';
+import { ChatRoom } from "./db/models/chat";
 
 let dbInitialized = false;
 
@@ -88,6 +89,57 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     toParent(receipt)
                 }
             }
+        }
+        case 'JOINCHAT': {
+            const {chat} = msg.payload;
+            const {chatName, password} = msg.parameters;
+            if(chat === null) {
+                const chatRoom = new ChatRoom()
+                chatRoom.password = password
+                chatRoom.chats = []
+                chatRoom.roomName = chatName
+
+                await AppDataSource.manager.transaction(async (txEntityManager) => {
+                    await txEntityManager.save(chatRoom)
+                })
+
+                parentPort?.postMessage({
+                    receiptOf: 'JOINCHAT',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'chat created',
+                    payload: {
+                        chatRoom,
+                        type: 'CREATE'
+                    } 
+                })
+            } else {
+                if(password === chat.password) {
+                    const receipt: Receipt = {
+                        receiptOf: 'JOINCHAT',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'chat joined',
+                        payload: {
+                            chatRoom: chat,
+                            type: 'JOIN'
+                        }
+                    }
+
+                    toParent(receipt)
+                } else {
+                    const receipt: Receipt = {
+                        receiptOf: 'JOINCHAT',
+                        status: false,
+                        seq: msg.seq,
+                        message: 'wrong password',
+                        payload: {}
+                    }
+
+                    toParent(receipt)
+                }
+            }
+            break;
         }
     }
 })

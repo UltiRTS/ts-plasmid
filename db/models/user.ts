@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm"
 import { Confirmation } from "./confirmation"
+import { Chat } from "./chat"
 import crypto from 'crypto'
 
 @Entity()
@@ -30,6 +31,10 @@ export class User {
 
     @OneToMany(() => Confirmation, (confirmation) => confirmation.user)
     confirmations: Confirmation[]
+
+    @OneToMany(() => Chat, (chat) => chat.author)
+    chats: Chat[]
+
 
     static saltNhash(password: string) {
         const salt = crypto.randomBytes(16).toString('hex'); 
