@@ -21,12 +21,16 @@ program
                 action: 'LOGIN',
                 parameters: {
                     username: username,
-                    seq: randomInt(1, 10000),
                     password: password
-                }
+                },
+                seq: randomInt(1, 10000),
             }))
             console.log('request sent')
         })
+        ws.on('message', (data) => {
+            console.log(JSON.parse(data))
+            ws.close()
+        });
     });
 
 program

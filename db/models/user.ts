@@ -16,16 +16,16 @@ export class User {
     @Column()
     salt: string
 
-    @Column()
+    @Column('int', {default: 0})
     accessLevel: number
 
-    @Column()
+    @Column('int', {default: 0})
     exp: number
 
-    @Column()
+    @Column('int', {default: 0})
     sanity: number
 
-    @Column()
+    @Column('boolean', {default: false})
     blocked: boolean
 
     @OneToMany(() => Confirmation, (confirmation) => confirmation.user)

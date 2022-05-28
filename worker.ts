@@ -4,7 +4,9 @@ import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import {User} from './db/models/user';
 
-interface Receipt {
+let dbInitialized = false;
+
+export interface Receipt {
     receiptOf: string
     seq: number
     status: boolean
@@ -16,8 +18,18 @@ function toParent(receipt: Receipt) {
     parentPort?.postMessage(receipt)
 }
 
+AppDataSource.initialize().then(() => {
+    dbInitialized = true;
+}).catch(e=> {
+    console.log(e)
+})
+
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
+    if(!dbInitialized) {
+        console.log("DB not initialized");
+        return;
+    }
 
     switch(msg.action) {
         case 'LOGIN': {
@@ -45,7 +57,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     status: true,
                     seq: msg.seq,
                     message: 'register successfully',
-                    payload: {}
+                    payload: {
+                        user: user
+                    }
                 }
 
                 toParent(receipt)
@@ -56,7 +70,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                         status: true,
                         seq: msg.seq,
                         message: 'login successfully',
-                        payload: {}
+                        payload: {
+                            user: user
+                        }
                     }
 
                     toParent(receipt)

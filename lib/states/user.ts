@@ -11,6 +11,9 @@ export class User extends DBUser {
         this.exp = user.exp;
         this.sanity = user.sanity;
         this.blocked = user.blocked;
+        // clear sensitive fields
+        this.hash = "";
+        this.salt = "";
     }
 
     getState() {

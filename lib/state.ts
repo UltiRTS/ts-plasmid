@@ -8,8 +8,12 @@ export class State {
         release: () => void
     }};
 
+    usersMutex: Mutex;
+
     constructor() {
         this.users = {};
+
+        this.usersMutex = new Mutex();
     }
 
     async lockUser(username: string) {
@@ -31,6 +35,25 @@ export class State {
             entity: user,
             release: () => {}
         }
+    }
+
+    async addUser(user: User) {
+        const release = await this.usersMutex.acquire()
+        this.users[user.username] = {
+            mutex: new Mutex(),
+            entity: user,
+            release: () => {}
+        }
+
+        release();
+    }
+
+    // may be problematic 
+    async removeUser(username: string) {
+        const release = await this.usersMutex.acquire()
+        delete this.users[username];
+
+        release();
     }
 
     dump() {
