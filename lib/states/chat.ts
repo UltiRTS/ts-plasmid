@@ -13,6 +13,7 @@ export class ChatRoom extends DBChatRoom {
         this.password = chatRoom.password;
 
         this.lastMessage = new Chat();
+        this.members = []
     }
     
 

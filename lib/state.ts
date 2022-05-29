@@ -2,6 +2,11 @@ import {User} from "./states/user";
 import {ChatRoom} from './states/chat';
 import {Mutex} from 'async-mutex';
 
+export interface StateDumped {
+    user: User
+    chats: ChatRoom[]
+}
+
 export class State {
     users: { [username: string]: {
         mutex: Mutex,
@@ -17,6 +22,7 @@ export class State {
 
     constructor() {
         this.users = {};
+        this.chats = {};
     }
 
     async addChat(chat: ChatRoom) {
@@ -95,6 +101,13 @@ export class State {
     }
 
     dump(username: string) {
+        if(!this.users[username]) return null;
 
+        const res: StateDumped = {
+            user: this.users[username].entity,
+            chats: Object.values(this.chats).map(chat => chat.entity)
+        };
+
+        return res
     }
 }

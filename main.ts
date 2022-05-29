@@ -51,10 +51,12 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
+
                 break;
             }
             case 'JOINCHAT': {
                 if(msg.status) {
+                    console.log(msg)
                     if(msg.payload.type === 'CREATE') {
                         const chatRoom: DBChatRoom = msg.payload.chatRoom;
                         const stateChatRoom = new ChatRoom(chatRoom);
@@ -63,15 +65,18 @@ for(let i=0; i<4; i++) {
                             stateChatRoom.join(user);
                             state.addChat(stateChatRoom);
                         }
-                        console.log(stateChatRoom)
                     } else if(msg.payload.type === 'JOIN') {
-                        const chatRoom: ChatRoom = msg.payload.chatRoom;
+                        const chatRoom: DBChatRoom = msg.payload.chatRoom;
+                        const stateChatRoom = state.getChat(chatRoom.roomName);
+                        if(stateChatRoom === null) {
+                            break;
+                        }
+
                         const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                         if(user !== null) {
-                            chatRoom.join(user);
-                            state.assignChat(chatRoom.roomName, chatRoom);
+                            stateChatRoom.join(user);
+                            state.assignChat(stateChatRoom.roomName, stateChatRoom);
                         }
-                        console.log(chatRoom)
                     }
                 } else {
                     console.log('join chat failed', msg)
@@ -79,6 +84,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
         }
+        delete seq2respond[msg.seq];
     })
 
     workers.push(worker)

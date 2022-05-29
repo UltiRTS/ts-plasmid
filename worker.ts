@@ -89,6 +89,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     toParent(receipt)
                 }
             }
+            break;
         }
         case 'JOINCHAT': {
             const {chat} = msg.payload;
