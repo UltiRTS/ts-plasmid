@@ -3,7 +3,9 @@ import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import {User} from './db/models/user';
-import { ChatRoom } from "./db/models/chat";
+import { Chat, ChatRoom } from "./db/models/chat";
+import {User as StateUser} from './lib/states/user';
+import {ChatRoom as StateChatRoom} from './lib/states/chat';
 
 let dbInitialized = false;
 
@@ -100,6 +102,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 chatRoom.chats = []
                 chatRoom.roomName = chatName
 
+                // can't change to async due to may happen conflicts
                 await AppDataSource.manager.transaction(async (txEntityManager) => {
                     await txEntityManager.save(chatRoom)
                 })
@@ -138,6 +141,56 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
 
                     toParent(receipt)
+                }
+            }
+            break;
+        }
+        case 'SAYCHAT': {
+            const chat: StateChatRoom = msg.payload.chat;
+            const user: StateUser = msg.payload.user;
+            const {message} = msg.parameters;
+
+            if(chat === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SAYCHAT',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'chat not found',
+                })
+            } else {
+                if(user === null) {
+                    parentPort?.postMessage({
+                        receiptOf: 'SAYCHAT',
+                        status: false,
+                        seq: msg.seq,
+                        message: 'user not found',
+                    })
+                } else {
+                    const chatMessage = new Chat()
+                    chatMessage.author = user
+                    chatMessage.createAt = new Date()
+                    chatMessage.room = chat
+                    chatMessage.message = message
+
+
+                    AppDataSource.manager.transaction(async (txEntityManager) => {
+                        txEntityManager.save(chatMessage).then((chat) => {
+                            console.log(`save successfully ${chat}`);
+                        }).catch((e) => {
+                            console.log(`chat save failed with ${e}`)
+                        })
+                    })
+                    chat.lastMessage = chatMessage
+
+                    parentPort?.postMessage({
+                        receiptOf: 'SAYCHAT',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'chat message sent',
+                        payload: {
+                            chat
+                        }
+                    })
                 }
             }
             break;

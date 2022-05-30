@@ -72,6 +72,19 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'saychat': {
+                let room = cmd[1];
+                let message = cmd[2];
+                
+                ws.send(JSON.stringify({
+                    action: 'SAYCHAT',
+                    parameters: {
+                        chatName: room,
+                        message
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+            }
         }
     }
 

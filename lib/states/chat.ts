@@ -22,6 +22,8 @@ export class ChatRoom extends DBChatRoom {
     }
 
     join(user: User) {
+        if(this.members.includes(user.username)) return;
+
         this.members.push(user.username);
     }
 }

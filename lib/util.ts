@@ -1,9 +1,28 @@
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
+const CMD_PARAMETERS = {
+    'LOGIN': ['username', 'password'],
+    'REGISTER': ['username', 'password'],
+    'JOINCHAT': ['chatName', 'password'],
+    'SAYCHAT': ['chatName', 'message'],
+}
+
+
 export function randomString(length: number) {
     let result = "";
     for (let i = 0; i < length; i++) {
         result += charSet[Math.floor(Math.random() * charSet.length)];
     }
     return result;
+}
+
+export function fullfillParameters(cmd: keyof typeof CMD_PARAMETERS, parameters: object) {
+    if(!(cmd in CMD_PARAMETERS)) return false;
+
+    const neededParams: string[] = CMD_PARAMETERS[cmd];
+    for(const param of neededParams) {
+        if(!(param in parameters)) return false;
+    }
+
+    return true;
 }

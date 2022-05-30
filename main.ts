@@ -40,14 +40,12 @@ for(let i=0; i<4; i++) {
                     network.emit('postMessage', seq2respond[msg.seq], {
                         action: 'LOGIN',
                         seq: msg.seq,
-                        status: true,
-                        message: 'login successfully',
+                        state: state.dump(stateUser.username)
                     })
                 } else {
                     network.emit('postMessage', seq2respond[msg.seq], {
-                        action: 'LOGIN',
+                        action: 'NOTIFY',
                         seq: msg.seq,
-                        status: false,
                         message: msg.message,
                     })
                 }
@@ -56,7 +54,6 @@ for(let i=0; i<4; i++) {
             }
             case 'JOINCHAT': {
                 if(msg.status) {
-                    console.log(msg)
                     if(msg.payload.type === 'CREATE') {
                         const chatRoom: DBChatRoom = msg.payload.chatRoom;
                         const stateChatRoom = new ChatRoom(chatRoom);
@@ -64,11 +61,23 @@ for(let i=0; i<4; i++) {
                         if(user!==null) {
                             stateChatRoom.join(user);
                             state.addChat(stateChatRoom);
+                            console.log(stateChatRoom)
+
+                            network.emit('postMessage', seq2respond[msg.seq], {
+                                action: 'JOINCHAT',
+                                seq: msg.seq,
+                                state: state.dump(user.username)
+                            })
                         }
                     } else if(msg.payload.type === 'JOIN') {
                         const chatRoom: DBChatRoom = msg.payload.chatRoom;
                         const stateChatRoom = state.getChat(chatRoom.roomName);
                         if(stateChatRoom === null) {
+                            network.emit('postMessage', seq2respond[msg.seq], {
+                                action: 'NOTIFY',
+                                seq: msg.seq,
+                                message: 'Chat room may be dismissed',
+                            })
                             break;
                         }
 
@@ -76,10 +85,41 @@ for(let i=0; i<4; i++) {
                         if(user !== null) {
                             stateChatRoom.join(user);
                             state.assignChat(stateChatRoom.roomName, stateChatRoom);
+                            console.log(stateChatRoom)
+                            network.emit('postMessage', seq2respond[msg.seq], {
+                                action: 'JOINCHAT',
+                                seq: msg.seq,
+                                state: state.dump(user.username)
+                            })
                         }
                     }
                 } else {
-                    console.log('join chat failed', msg)
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                break;
+            }
+            case 'SAYCHAT': {
+                if(msg.status) {
+                    const chat: ChatRoom = msg.payload.chat;
+                    state.assignChat(chat.roomName, chat);
+                    console.log(chat)
+                    console.log(chat.lastMessage)
+
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'SAYCHAT',
+                        seq: msg.seq,
+                        state: state.dump(clientID2username[seq2respond[msg.seq]])
+                    })
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
                 }
                 break;
             }
@@ -140,6 +180,10 @@ network.on('message', (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'SAYCHAT': {
+            msg.payload = {
+                chat: state.getChat(msg.parameters.chatName),
+                user: state.getUser(clientID2username[clientId])
+            }
             worker.postMessage(msg);
             seq2respond[msg.seq] = clientId;
             break;
