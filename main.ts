@@ -12,7 +12,7 @@ import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
 
 const state: State = new State();
 const workers: Worker[] = [];
-const network: Network = new Network(8080);
+const network: Network = new Network(8081);
 // clientID -> username
 const clientID2username: Record<string, string> = {};
 const username2clientID: Record<string, string> = {};
