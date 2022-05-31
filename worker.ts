@@ -3,7 +3,7 @@ import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import {User} from './db/models/user';
-import { Chat, ChatRoom } from "./db/models/chat";
+import { Chat as DBChat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import {User as StateUser} from './lib/states/user';
 import {ChatRoom as StateChatRoom} from './lib/states/chat';
 
@@ -97,7 +97,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             const {chat} = msg.payload;
             const {chatName, password} = msg.parameters;
             if(chat === null) {
-                const chatRoom = new ChatRoom()
+                const chatRoom = new DBChatRoom()
                 chatRoom.password = password
                 chatRoom.chats = []
                 chatRoom.roomName = chatName
@@ -156,6 +156,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     status: false,
                     seq: msg.seq,
                     message: 'chat not found',
+                    payload: {
+                        chat
+                    }
                 })
             } else {
                 if(user === null) {
@@ -164,9 +167,12 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                         status: false,
                         seq: msg.seq,
                         message: 'user not found',
+                        payload: {
+                            chat
+                        }
                     })
                 } else {
-                    const chatMessage = new Chat()
+                    const chatMessage = new DBChat()
                     chatMessage.author = user
                     chatMessage.createAt = new Date()
                     chatMessage.room = chat
@@ -180,13 +186,57 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                             console.log(`chat save failed with ${e}`)
                         })
                     })
-                    chat.lastMessage = chatMessage
+                    chat.lastMessage = {
+                        author: chatMessage.author.username,
+                        content: chatMessage.message,
+                        time: chatMessage.createAt
+                    }
 
                     parentPort?.postMessage({
                         receiptOf: 'SAYCHAT',
                         status: true,
                         seq: msg.seq,
                         message: 'chat message sent',
+                        payload: {
+                            chat
+                        }
+                    })
+                }
+            }
+            break;
+        }
+        case 'LEAVECHAT': {
+            const chat: StateChatRoom = msg.payload.chat;
+            const user: StateUser = msg.payload.user;
+
+            if(chat === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'LEAVECHAT',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'chat not found',
+                    payload: {
+                        chat
+                    }
+                })
+            } else {
+                if(user === null) {
+                    parentPort?.postMessage({
+                        receiptOf: 'LEAVECHAT',
+                        status: false,
+                        seq: msg.seq,
+                        message: 'user not found',
+                        payload: {
+                            chat
+                        }
+                    })
+                } else {
+                    chat.members = chat.members.filter((member) => member !== user.username)
+                    parentPort?.postMessage({
+                        receiptOf: 'LEAVECHAT',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'chat left',
                         payload: {
                             chat
                         }

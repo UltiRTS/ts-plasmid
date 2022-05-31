@@ -1,6 +1,6 @@
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-const CMD_PARAMETERS = {
+export const CMD_PARAMETERS = {
     'LOGIN': ['username', 'password'],
     'REGISTER': ['username', 'password'],
     'JOINCHAT': ['chatName', 'password'],

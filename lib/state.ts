@@ -47,9 +47,7 @@ export class State {
     }
 
     async assignChat(roomName: string, chat: ChatRoom) {
-        const release = await this.chats[roomName].mutex.acquire();
         this.chats[roomName].entity = chat;
-        release();
     }
 
     async removeChat(roomName: string) {

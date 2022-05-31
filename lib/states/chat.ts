@@ -2,7 +2,7 @@ import {ChatRoom as DBChatRoom, Chat } from '../../db/models/chat';
 import { User } from './user';
 
 export class ChatRoom extends DBChatRoom {
-    lastMessage: Chat
+    lastMessage: {author: string, content: string, time: Date};
     members: string[]
 
     constructor(chatRoom: DBChatRoom) {
@@ -12,18 +12,27 @@ export class ChatRoom extends DBChatRoom {
         this.roomName = chatRoom.roomName;
         this.password = chatRoom.password;
 
-        this.lastMessage = new Chat();
+        this.lastMessage = {author: '', content: '', time: new Date()};
         this.members = []
     }
     
 
     say(chat: Chat) {
-        this.lastMessage = chat;
+        this.lastMessage = {
+            author: chat.author.username,
+            content: chat.message,
+            time: chat.createAt
+        }
     }
 
     join(user: User) {
         if(this.members.includes(user.username)) return;
 
         this.members.push(user.username);
+    }
+    leave(user: User) {
+        if(!this.members.includes(user.username)) return;
+
+        this.members.splice(this.members.indexOf(user.username), 1);
     }
 }
