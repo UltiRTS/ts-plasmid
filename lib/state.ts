@@ -1,10 +1,16 @@
 import {User} from "./states/user";
 import {ChatRoom} from './states/chat';
+import { GameRoom } from './states/room';
 import {Mutex} from 'async-mutex';
 
 export interface StateDumped {
     user: User
-    chats: ChatRoom[]
+    chats: string[]
+    games: {
+        title: string,
+        hoster: string,
+        mapId: number,
+    }[]
 }
 
 export class State {
@@ -20,9 +26,17 @@ export class State {
         release: () => void
     }}
 
+    rooms: { [roomName: string]: {
+        mutex: Mutex,
+        entity: GameRoom,
+        release: () => void
+    }}
+
+
     constructor() {
         this.users = {};
         this.chats = {};
+        this.rooms = {};
     }
 
     async addChat(chat: ChatRoom) {
@@ -98,12 +112,50 @@ export class State {
         delete this.users[username];
     }
 
+    addGame(game: GameRoom) {
+        this.rooms[game.title] = {
+            mutex: new Mutex(),
+            entity: game,
+            release: () => {}
+        }
+    }
+
+    assignGame(roomName: string, game: GameRoom) {
+        this.rooms[roomName].entity = game;
+    }
+
+    async lockGame(roomName: string) {
+        if(!this.rooms[roomName]) return true;
+
+        this.rooms[roomName].release 
+            = await this.rooms[roomName].mutex.acquire();
+    } 
+
+    releaseGame(roomName: string) {
+        if(!this.rooms[roomName]) return;
+
+        this.rooms[roomName].release();
+    }
+
+    getGame(roomName: string) {
+        if(!this.rooms[roomName]) return null;
+
+        return this.rooms[roomName].entity;
+    }
+
     dump(username: string) {
         if(!this.users[username]) return null;
 
         const res: StateDumped = {
             user: this.users[username].entity,
-            chats: Object.values(this.chats).map(chat => chat.entity)
+            chats: Object.values(this.chats).map(chat => chat.entity.roomName),
+            games: Object.values(this.rooms).map(room => {
+                return {
+                    title: room.entity.title,
+                    hoster: room.entity.hoster,
+                    mapId: room.entity.mapId,
+                }
+            })
         };
 
         return res

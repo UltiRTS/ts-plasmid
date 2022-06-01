@@ -1,8 +1,13 @@
 
 import {User as DBUser} from '../../db/models/user';
+import { GameRoom } from './room';
+import { ChatRoom } from './chat';
 
 
 export class User extends DBUser {
+    chatRooms: ChatRoom[] = []
+    game: GameRoom | null = null;
+
     constructor(user: DBUser) {
         super();
         this.id = user.id;
@@ -25,5 +30,21 @@ export class User extends DBUser {
             sanity: this.sanity,
             blocked: this.blocked
         }
+    }
+
+    joinChat(chat: ChatRoom) {
+        this.chatRooms.push(chat);
+    }
+
+    leaveChat(chat: ChatRoom) {
+        this.chatRooms = this.chatRooms.filter(c => c !== chat);
+    }
+
+    joinGame(game: GameRoom) {
+        this.game = game;
+    }
+
+    leaveGame() {
+        this.game = null;
     }
 }

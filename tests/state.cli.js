@@ -85,6 +85,69 @@ const main = async () => {
                     seq: randomInt(0, 1000000)
                 }))
             }
+            case 'joingame': {
+                let gameName = cmd[1];
+                let password = cmd[2];
+                let mapId = parseInt(cmd[3]);
+
+                ws.send(JSON.stringify({
+                    action: 'JOINGAME',
+                    parameters: {
+                        gameName,
+                        password,
+                        mapId
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'setai': {
+                let game = cmd[1]
+                let ai = cmd[2]
+                let team = cmd[3]
+
+                ws.send(JSON.stringify({
+                    action: 'SETAI',
+                    parameters: {
+                       gameName: game,
+                       AI: ai,
+                       team: team,
+                       type: 'AI'
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'delai': {
+                let game = cmd[1]
+                let ai = cmd[2]
+
+                ws.send(JSON.stringify({
+                    action: 'DELAI',
+                    parameters: {
+                        gameName: game,
+                        AI: ai
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'setteam': {
+                let game = cmd[1]
+                let player = cmd[2]
+                let team = cmd[3]
+
+                ws.send(JSON.stringify({
+                    action: 'SETTEAM',
+                    parameters: {
+                        gameName: game,
+                        player: player,
+                        team: team
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

@@ -6,6 +6,7 @@ import {User} from './db/models/user';
 import { Chat as DBChat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import {User as StateUser} from './lib/states/user';
 import {ChatRoom as StateChatRoom} from './lib/states/chat';
+import {GameRoom} from './lib/states/room';
 
 let dbInitialized = false;
 
@@ -243,6 +244,212 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     })
                 }
             }
+            break;
+        }
+        case 'JOINGAME': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+            if(user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'JOINGAME',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user not found',
+                    payload: {}
+                })
+                break;
+            }
+            if(game === null) {
+                const {gameName, mapId, password} = msg.parameters;
+                const {roomID, autohost} = msg.payload;
+                const gameRoom = 
+                    new GameRoom(gameName, user.username, parseInt(mapId), roomID, password, autohost)
+
+                parentPort?.postMessage({
+                    receiptOf: 'JOINGAME',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'game created',
+                    payload: {
+                        game: gameRoom,
+                        type: 'CREATE'
+                    }
+                })
+            } else {
+                game.players[user.username] = {
+                    isSpec: false,
+                    team: 'A',
+                    hasmap: false,
+                }
+
+                parentPort?.postMessage({
+                    receiptOf: 'JOINGAME',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'game joined',
+                    payload: {
+                        game: game,
+                        type: 'JOIN'
+                    }
+                })
+            }
+            break;
+        }
+        case 'SETAI': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETAI',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const {AI, team, type} = msg.parameters;
+
+            if(game.hoster === user.username) {
+                if(type === 'AI') game.ais[AI] = team
+                else if(type === 'Chicken') game.chickens[AI] = team
+
+                parentPort?.postMessage({
+                    receiptOf: 'SETAI',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'AI or chicken set',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                const poll = AI + team;
+                if(!game.polls[poll]) game.polls[poll] = new Set()
+
+                game.polls[poll].add(user.username)
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    if(type === 'AI') game.ais[AI] = team
+                    else if(type === 'Chicken') game.chickens[AI] = team
+
+                    delete game.polls[poll]
+                }
+                parentPort?.postMessage({
+                    receiptOf: 'SETAI',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'AI or chicken set',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
+            break;
+        }
+        case 'DELAI': {
+            const game: GameRoom = msg.payload.game;
+            const user: User = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'DELAI',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const {AI} = msg.parameters;
+            if(game.hoster === user.username) {
+                delete game.ais[AI]
+                parentPort?.postMessage({
+                    receiptOf: 'DELAI',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'AI deleted',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                const poll = 'DEL ' + AI;
+
+                if(!game.polls[poll]) game.polls[poll] = new Set()
+                game.polls[poll].add(user.username)
+
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    delete game.ais[AI]
+                    delete game.polls[poll]
+                }
+
+                parentPort?.postMessage({
+                    receiptOf: 'DELAI',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'poll added',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
+            break;
+        }
+        case 'SETTEAM': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETTEAM',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const {player, team} = msg.parameters;
+            if(user.username === game.hoster || player === user.username) {
+                const poll = 'SETTEAM ' + player + team;
+                if(game.polls[poll]) delete game.polls[poll]
+
+                game.players[player].team = team
+                parentPort?.postMessage({
+                    receiptOf: 'SETTEAM',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'team set',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                const poll = 'SETTEAM ' + player + team;
+                if(!game.polls[poll]) game.polls[poll] = new Set()
+                game.polls[poll].add(user.username)
+
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    game.players[player].team = team
+                    delete game.polls[poll]
+                }
+                parentPort?.postMessage({
+                    receiptOf: 'SETTEAM',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'set team poll added',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
             break;
         }
     }

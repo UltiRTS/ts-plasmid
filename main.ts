@@ -9,6 +9,7 @@ import {User as DBUser} from './db/models/user';
 import { ChatRoom as DBChatRoom } from "./db/models/chat";
 import { ChatRoom } from "./lib/states/chat";
 import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
+import { GameRoom } from "./lib/states/room";
 
 const state: State = new State();
 const workers: Worker[] = [];
@@ -19,6 +20,11 @@ const username2clientID: Record<string, string> = {};
 // seq -> clientID
 const seq2respond: Record<number, string> = {};
 let seqCount = 0
+// this should be used as battlePort of games 
+// that need to be dispatched into autohosts
+let autohostLoad: {[key:string]: number} = {
+    '127.0.0.1': 2000 
+}
 
 for(let i=0; i<4; i++) {
     let worker = new Worker('./worker.js');
@@ -63,6 +69,10 @@ for(let i=0; i<4; i++) {
                         const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                         if(user!==null) {
                             stateChatRoom.join(user);
+                            // may be problematic due to race
+                            user.joinChat(stateChatRoom);
+                            state.assignUser(user.username, user);
+
                             await state.addChat(stateChatRoom);
                             console.log(stateChatRoom)
 
@@ -88,6 +98,9 @@ for(let i=0; i<4; i++) {
                         const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                         if(user !== null) {
                             stateChatRoom.join(user);
+                            user.joinChat(stateChatRoom);
+                            state.assignUser(user.username, user);
+
                             await state.assignChat(stateChatRoom.roomName, stateChatRoom);
                             console.log(stateChatRoom)
                             network.emit('postMessage', seq2respond[msg.seq], {
@@ -150,6 +163,127 @@ for(let i=0; i<4; i++) {
                     })
                 }
                 state.releaseChat(chat.roomName);
+                break;
+            }
+            case 'JOINGAME': {
+                const game: GameRoom = msg.payload.game;
+                console.log(game);
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be logged out',
+                    })
+                    break;
+                }
+
+                const actionType: string = msg.payload.type;
+
+                if(msg.status) {
+                    if(actionType === 'CREATE') {
+                        state.addGame(game);
+                        user.joinGame(game);
+                        state.assignUser(user.username, user);
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'JOINGAME',
+                            seq: msg.seq,
+                            state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        })
+                    } else if(actionType === 'JOIN') {
+                        state.assignGame(game.title, game);
+                        user.joinGame(game);
+                        state.assignUser(user.username, user);
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'JOINGAME',
+                            seq: msg.seq,
+                            state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        })
+                    } else {
+                        console.log('unknown action type')
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'NOTIFY',
+                            seq: msg.seq,
+                            message: 'Something wrong happend: Unknown action type',
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                state.releaseGame(game.title);
+                break;
+            }
+            case 'SETAI': {
+                const game: GameRoom = msg.payload.game;
+                console.log(game)
+                const members = Object.keys(game.players); 
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'SETAI',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                state.releaseGame(game.title);
+                break;
+            }
+            case 'DELAI': {
+                const game: GameRoom = msg.payload.game;
+                console.log(game)
+                const members = Object.keys(game.players);
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'DELAI',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                state.releaseGame(game.title);
+                break;
+            }
+            case 'SETTEAM': {
+                const game: GameRoom = msg.payload.game;
+                console.log(game)
+                const members = Object.keys(game.players);
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'SETTEAM',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                state.releaseGame(game.title);
                 break;
             }
         }
@@ -243,6 +377,87 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
                 user: state.getUser(clientID2username[clientId])
             }
             worker.postMessage(msg);
+            break;
+        }
+        case 'JOINGAME': {
+            const game = state.getGame(msg.parameters.gameName);
+            if(!(game === null)) {
+                await state.lockGame(game.title);
+
+                msg.payload = {
+                    game: game,
+                    user: state.getUser(clientID2username[clientId]),
+                }
+            } else {
+                const autohosts = Object.keys(autohostLoad);
+                if(autohosts.length < 0) {
+                    network.emit('postMessage', clientId, {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'No autohost available',
+                    })
+
+                    delete seq2respond[msg.seq];
+                    return;
+                }
+
+                const autohost = autohosts[randomInt(0, autohosts.length)];
+
+                msg.payload = {
+                    game: game,
+                    user: state.getUser(clientID2username[clientId]),
+                    autohost: autohost,
+                    roomID: autohostLoad[autohost]
+                }
+
+                autohostLoad[autohost]++;
+            }
+
+            worker.postMessage(msg);
+            break;
+        }
+        case 'SETAI': {
+            const game = state.getGame(msg.parameters.gameName);
+            const user = state.getUser(clientID2username[clientId]);
+            
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+            worker.postMessage(msg);
+
+            break;
+        }
+        case 'DELAI': {
+            const game = state.getGame(msg.parameters.gameName);
+            const user = state.getUser(clientID2username[clientId]);
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+
+            break;
+        }
+        case 'SETTEAM': {
+            const game = state.getGame(msg.parameters.gameName);
+            const user = state.getUser(clientID2username[clientId]);
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+
             break;
         }
     }
