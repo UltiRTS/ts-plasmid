@@ -10,7 +10,7 @@ const main = async () => {
     })
     let opened = false;
 
-    const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket('ws://localhost:8081');
     ws.on('open', () => {
         opened = true;
     })
@@ -84,6 +84,7 @@ const main = async () => {
                     },
                     seq: randomInt(0, 1000000)
                 }))
+                break;
             }
             case 'joingame': {
                 let gameName = cmd[1];

@@ -70,7 +70,7 @@ for(let i=0; i<4; i++) {
                         if(user!==null) {
                             stateChatRoom.join(user);
                             // may be problematic due to race
-                            user.joinChat(stateChatRoom);
+                            user.assignChat(stateChatRoom);
                             state.assignUser(user.username, user);
 
                             await state.addChat(stateChatRoom);
@@ -98,7 +98,7 @@ for(let i=0; i<4; i++) {
                         const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                         if(user !== null) {
                             stateChatRoom.join(user);
-                            user.joinChat(stateChatRoom);
+                            user.assignChat(stateChatRoom);
                             state.assignUser(user.username, user);
 
                             await state.assignChat(stateChatRoom.roomName, stateChatRoom);
@@ -122,8 +122,18 @@ for(let i=0; i<4; i++) {
             }
             case 'SAYCHAT': {
                 const chat: ChatRoom = msg.payload.chat;
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
                 if(msg.status) {
                     await state.assignChat(chat.roomName, chat);
+                    user.assignChat(chat);
                     console.log(chat)
                     console.log(chat.lastMessage)
 
@@ -183,7 +193,7 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     if(actionType === 'CREATE') {
                         state.addGame(game);
-                        user.joinGame(game);
+                        user.assignGame(game);
                         state.assignUser(user.username, user);
                         network.emit('postMessage', seq2respond[msg.seq], {
                             action: 'JOINGAME',
@@ -192,7 +202,7 @@ for(let i=0; i<4; i++) {
                         })
                     } else if(actionType === 'JOIN') {
                         state.assignGame(game.title, game);
-                        user.joinGame(game);
+                        user.assignGame(game);
                         state.assignUser(user.username, user);
                         network.emit('postMessage', seq2respond[msg.seq], {
                             action: 'JOINGAME',
@@ -219,10 +229,20 @@ for(let i=0; i<4; i++) {
             }
             case 'SETAI': {
                 const game: GameRoom = msg.payload.game;
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
                 console.log(game)
                 const members = Object.keys(game.players); 
                 if(msg.status) {
                     state.assignGame(game.title, game);
+                    user.assignGame(game);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETAI',
@@ -242,10 +262,20 @@ for(let i=0; i<4; i++) {
             }
             case 'DELAI': {
                 const game: GameRoom = msg.payload.game;
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
                 console.log(game)
                 const members = Object.keys(game.players);
                 if(msg.status) {
                     state.assignGame(game.title, game);
+                    user.assignGame(game);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'DELAI',
@@ -265,10 +295,20 @@ for(let i=0; i<4; i++) {
             }
             case 'SETTEAM': {
                 const game: GameRoom = msg.payload.game;
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
                 console.log(game)
                 const members = Object.keys(game.players);
                 if(msg.status) {
                     state.assignGame(game.title, game);
+                    user.assignGame(game);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETTEAM',
