@@ -5,6 +5,10 @@ export const CMD_PARAMETERS = {
     'REGISTER': ['username', 'password'],
     'JOINCHAT': ['chatName', 'password'],
     'SAYCHAT': ['chatName', 'message'],
+    'JOINGAME': ['gameName', 'mapId', 'password'],
+    'SETAI': ['gameName', 'AI', 'team', 'type'],
+    'DELAI': ['gameName', 'AI', 'type'],
+    'SETTEAM': ['gameName', 'player', 'team'],
 }
 
 

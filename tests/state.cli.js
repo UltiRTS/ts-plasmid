@@ -89,7 +89,7 @@ const main = async () => {
             case 'joingame': {
                 let gameName = cmd[1];
                 let password = cmd[2];
-                let mapId = parseInt(cmd[3]);
+                let mapId = parseInt(cmd[3]) || 0;
 
                 ws.send(JSON.stringify({
                     action: 'JOINGAME',
@@ -104,8 +104,9 @@ const main = async () => {
             }
             case 'setai': {
                 let game = cmd[1]
-                let ai = cmd[2]
-                let team = cmd[3]
+                let type = cmd[2]
+                let ai = cmd[3]
+                let team = cmd[4]
 
                 ws.send(JSON.stringify({
                     action: 'SETAI',
@@ -113,7 +114,7 @@ const main = async () => {
                        gameName: game,
                        AI: ai,
                        team: team,
-                       type: 'AI'
+                       type: type
                     },
                     seq: randomInt(0, 1000000)
                 }))
@@ -121,13 +122,15 @@ const main = async () => {
             }
             case 'delai': {
                 let game = cmd[1]
-                let ai = cmd[2]
+                let type = cmd[2]
+                let ai = cmd[3]
 
                 ws.send(JSON.stringify({
                     action: 'DELAI',
                     parameters: {
                         gameName: game,
-                        AI: ai
+                        AI: ai,
+                        type: type
                     },
                     seq: randomInt(0, 1000000)
                 }))
@@ -146,6 +149,14 @@ const main = async () => {
                         team: team
                     },
                     seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'fault': {
+                ws.send(JSON.stringify({
+                    action: 'FAULT',
+                    parameters: {
+                    }
                 }))
                 break;
             }

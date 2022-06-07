@@ -239,10 +239,11 @@ for(let i=0; i<4; i++) {
                     break;
                 }
                 console.log(game)
-                const members = Object.keys(game.players); 
                 if(msg.status) {
                     state.assignGame(game.title, game);
                     user.assignGame(game);
+
+                    const members = Object.keys(game.players); 
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETAI',
@@ -257,7 +258,7 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseGame(game.title);
+                if(game) state.releaseGame(game.title);
                 break;
             }
             case 'DELAI': {
@@ -272,10 +273,11 @@ for(let i=0; i<4; i++) {
                     break;
                 }
                 console.log(game)
-                const members = Object.keys(game.players);
                 if(msg.status) {
                     state.assignGame(game.title, game);
                     user.assignGame(game);
+
+                    const members = Object.keys(game.players);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'DELAI',
@@ -290,7 +292,7 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseGame(game.title);
+                if(game) state.releaseGame(game.title);
                 break;
             }
             case 'SETTEAM': {
@@ -323,7 +325,7 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseGame(game.title);
+                if(game) state.releaseGame(game.title);
                 break;
             }
         }
@@ -351,7 +353,8 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
         return;
     }
 
-    if(msg.action in CMD_PARAMETERS && !(fullfillParameters(msg.action as keyof typeof CMD_PARAMETERS, msg.parameters))) {
+    if(!(msg.action in CMD_PARAMETERS) 
+        || !(fullfillParameters(msg.action as keyof typeof CMD_PARAMETERS, msg.parameters))) {
         network.emit('postMessage', clientId, {
             action: 'NOTIFY',
             seq: msg.seq,

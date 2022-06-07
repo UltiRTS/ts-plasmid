@@ -305,7 +305,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     status: false,
                     seq: msg.seq,
                     message: 'user or game not found',
-                    payload: {}
+                    payload: {
+                        game
+                    }
                 })
                 break;
             }
@@ -359,14 +361,18 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     status: false,
                     seq: msg.seq,
                     message: 'user or game not found',
-                    payload: {}
+                    payload: {
+                        game
+                    }
                 })
                 break;
             }
 
-            const {AI} = msg.parameters;
+            const {AI, type} = msg.parameters;
             if(game.hoster === user.username) {
-                delete game.ais[AI]
+                if(type === 'AI') delete game.ais[AI]
+                else if(type === 'Chicken') delete game.chickens[AI]
+
                 parentPort?.postMessage({
                     receiptOf: 'DELAI',
                     status: true,
@@ -377,13 +383,14 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             } else {
-                const poll = 'DEL ' + AI;
+                const poll = 'DEL ' + type + AI;
 
                 if(!game.polls[poll]) game.polls[poll] = new Set()
                 game.polls[poll].add(user.username)
 
                 if(game.polls[poll].size > Object.keys(game.players).length / 2) {
-                    delete game.ais[AI]
+                    if(type === 'AI') delete game.ais[AI]
+                    else if(type === 'Chicken') delete game.chickens[AI]
                     delete game.polls[poll]
                 }
 
@@ -410,7 +417,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     status: false,
                     seq: msg.seq,
                     message: 'user or game not found',
-                    payload: {}
+                    payload: {
+                        game
+                    }
                 })
                 break;
             }
