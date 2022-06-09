@@ -36,6 +36,14 @@ export class Network extends EventEmitter {
             ws.on('message', (msg) => {
                 this.emit('message', clientID, JSON.parse(msg.toString()));
             })
+
+            ws.on('close', (ws: WebSocket, code: number) => {
+                this.emit('clean', clientID);
+                delete this.clients[clientID];
+
+                console.log(`Client ${clientID} disconnected with code ${code}`);
+            })
+
         })
 
         this.on('postMessage', (clientID: string, msg: Object) => {

@@ -5,6 +5,7 @@ export class ChatRoom extends DBChatRoom {
     lastMessage: {author: string, content: string, time: Date};
     members: string[]
 
+    constructor(chatRoom?: DBChatRoom);
     constructor(chatRoom: DBChatRoom) {
         super()
         this.id = chatRoom.id
@@ -14,6 +15,10 @@ export class ChatRoom extends DBChatRoom {
 
         this.lastMessage = {author: '', content: '', time: new Date()};
         this.members = []
+    }
+
+    empty() {
+        return this.members.length === 0
     }
     
 

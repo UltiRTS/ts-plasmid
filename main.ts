@@ -6,7 +6,7 @@ import { State } from "./lib/state";
 import { Receipt } from "./worker";
 import {User} from './lib/states/user';
 import {User as DBUser} from './db/models/user';
-import { ChatRoom as DBChatRoom } from "./db/models/chat";
+import { Chat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import { ChatRoom } from "./lib/states/chat";
 import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
 import { GameRoom } from "./lib/states/room";
@@ -121,7 +121,8 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'SAYCHAT': {
-                const chat: ChatRoom = msg.payload.chat;
+                console.log(msg.payload.chat);
+                const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -155,7 +156,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'LEAVECHAT': {
-                const chat: ChatRoom = msg.payload.chat;
+                const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
                 if(msg.status) {
                     await state.assignChat(chat.roomName, chat);
                     console.log(chat)
@@ -176,8 +177,10 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'JOINGAME': {
-                const game: GameRoom = msg.payload.game;
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+
                 console.log(game);
+                console.log(typeof game)
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -228,7 +231,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'SETAI': {
-                const game: GameRoom = msg.payload.game;
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -262,7 +265,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'DELAI': {
-                const game: GameRoom = msg.payload.game;
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -296,7 +299,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'SETTEAM': {
-                const game: GameRoom = msg.payload.game;
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -383,13 +386,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
     // record in mem only if message have seq, right cmd and sufficient parameters
     seq2respond[msg.seq] = clientId;
 
-    // need filter for permission
+
+    if(msg.action === 'LOGIN') {
+        worker.postMessage(msg);
+        return;
+    }
+    if(!clientID2username[clientId]) {
+        network.emit('postMessage', clientId, {
+            action: 'NOTIFY',
+            seq: msg.seq,
+            message: 'please login to access',
+        })
+        return
+    }
 
     switch(msg.action) {
-        case 'LOGIN': {
-            worker.postMessage(msg);
-            break;
-        }
         case 'JOINCHAT': {
             const chat = state.getChat(msg.parameters.chatName);
             if(!(chat === null)) await state.lockChat(chat.roomName);
@@ -502,6 +513,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             worker.postMessage(msg);
 
             break;
+        }
+    }
+})
+
+network.on('clean', (clientID: string) => {
+    const user = state.getUser(clientID2username[clientID])
+    if(user) state.garbageCollect(user)
+
+    delete clientID2username[clientID];
+    if(user) delete username2clientID[user?.username];
+
+    // needs optimization, cur: O(n)
+    for(const seq in seq2respond) {
+        if(seq2respond[seq] === clientID) {
+            delete seq2respond[seq];
         }
     }
 })

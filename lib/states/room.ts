@@ -14,6 +14,7 @@ export class GameRoom {
   responsibleAutohost: string = '127.0.0.1';
   aiHosters: string[] = [];
 
+  constructor(title?: string, hoster?: string, mapId?: number, ID?: number, password?: string, autohost?: string);
   constructor(title: string, hoster: string, mapId: number, ID: number, password: string, autohost: string) {
     this.hoster = hoster;
     this.aiHosters = [hoster];
@@ -34,6 +35,10 @@ export class GameRoom {
       }
       return result;
     }
+  }
+
+  empty() {
+    return Object.keys(this.players).length === 0
   }
 
   setRoomNotes(notes: string) {

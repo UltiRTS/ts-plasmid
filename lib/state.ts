@@ -2,6 +2,7 @@ import {User} from "./states/user";
 import {ChatRoom} from './states/chat';
 import { GameRoom } from './states/room';
 import {Mutex} from 'async-mutex';
+import { time } from "console";
 
 export interface StateDumped {
     user: User
@@ -141,6 +142,41 @@ export class State {
         if(!this.rooms[roomName]) return null;
 
         return this.rooms[roomName].entity;
+    }
+
+    async garbageCollect(user: User) {
+        if(this.users[user.username]) {
+            const release = await this.users[user.username].mutex.acquire()
+            const u = this.users[user.username];
+            const game = u.entity.game
+            const chatRooms = u.entity.chatRooms;
+
+            if(game) {
+                const release = await this.rooms[game?.title].mutex.acquire();
+                this.rooms[game?.title].entity.removePlayer(user.username);
+                // console.log(`gc ${user.username} in game: ${game?.title}`);
+
+                if(this.rooms[game?.title].entity.empty()) 
+                    delete this.rooms[game?.title];
+
+                release()
+            }
+            for(const roomName in chatRooms) {
+                if(this.chats[roomName]) {
+                    const release = await this.chats[roomName].mutex.acquire();
+                    this.chats[roomName].entity.leave(user);
+                    // console.log(`gc ${user.username} in room: ${roomName}`);
+
+                    if(this.chats[roomName].entity.empty()) 
+                        delete this.chats[roomName];
+
+                    release()
+                }
+            }
+
+            release()
+            delete this.users[user.username];
+        }
     }
 
     dump(username: string) {
