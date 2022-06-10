@@ -331,6 +331,39 @@ for(let i=0; i<4; i++) {
                 if(game) state.releaseGame(game.title);
                 break;
             }
+            case 'SETMAP': {
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
+                console.log(game)
+                const members = Object.keys(game.players);
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    user.assignGame(game);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'SETMAP',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                if(game) state.releaseGame(game.title);
+                break;
+            }
         }
         delete seq2respond[msg.seq];
     })
@@ -388,7 +421,15 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
 
 
     if(msg.action === 'LOGIN') {
-        worker.postMessage(msg);
+        if(!(msg.parameters.username in username2clientID)) worker.postMessage(msg);
+        else {
+            network.emit('postMessage', clientId, {
+                action: 'NOTIFY',
+                seq: msg.seq,
+                message: 'user already loggged in'
+            })
+            delete seq2respond[msg.seq]
+        }
         return;
     }
     if(!clientID2username[clientId]) {
@@ -500,6 +541,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'SETTEAM': {
+            const game = state.getGame(msg.parameters.gameName);
+            const user = state.getUser(clientID2username[clientId]);
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+
+            break;
+        }
+        case 'SETMAP': {
             const game = state.getGame(msg.parameters.gameName);
             const user = state.getUser(clientID2username[clientId]);
 

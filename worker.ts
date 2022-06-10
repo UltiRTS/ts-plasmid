@@ -461,5 +461,62 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+        case 'SETMAP': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETTEAM',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+
+            const {mapId} = msg.parameters;
+
+            if(user.username === game.hoster) {
+                const poll = 'SETMAP ' + mapId;
+                if(game.polls[poll]) delete game.polls[poll];
+
+                game.mapId = mapId;
+
+                parentPort?.postMessage({
+                    receiptOf: 'SETMAP',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'map set',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                const poll = 'SETMAP ' + mapId;
+
+                if(!game.polls[poll]) game.polls[poll] = new Set()
+                game.polls[poll].add(user.username)
+
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    game.mapId = mapId 
+                    delete game.polls[poll]
+                }
+                parentPort?.postMessage({
+                    receiptOf: 'SETMAP',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'set map poll added',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
+            break;
+        }
     }
 })

@@ -9,6 +9,7 @@ export const CMD_PARAMETERS = {
     'SETAI': ['gameName', 'AI', 'team', 'type'],
     'DELAI': ['gameName', 'AI', 'type'],
     'SETTEAM': ['gameName', 'player', 'team'],
+    'SETMAP': ['gameName', 'mapId'],
 }
 
 

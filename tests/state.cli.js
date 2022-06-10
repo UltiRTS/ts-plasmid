@@ -152,6 +152,20 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'setmap': {
+                let game = cmd[1]
+                let mapId = parseInt(cmd[2])
+
+                ws.send(JSON.stringify({
+                    action: 'SETMAP',
+                    parameters: {
+                        gameName: game,
+                        mapId: mapId
+                    },
+                    seq: randomInt(0, 10000000)
+                }))
+                break;
+            }
             case 'fault': {
                 ws.send(JSON.stringify({
                     action: 'FAULT',
