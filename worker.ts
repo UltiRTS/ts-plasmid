@@ -518,5 +518,42 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+
+        case 'STARTGAME': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'STARTGAME',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+            const poll = 'STARTGAME';
+            let start = false;
+            if(!game.polls[poll]) game.polls[poll] = new Set()
+            game.polls[poll].add(user.username)
+            start = game.polls[poll].size === Object.keys(game.players).length
+            if(start) {
+                delete game.polls[poll]
+            }
+
+            parentPort?.postMessage({
+                receiptOf: 'STARTGAME',
+                status: true,
+                seq: msg.seq,
+                message: 'start game poll added',
+                payload: {
+                    game,
+                    start
+                }
+            })
+        }
     }
 })

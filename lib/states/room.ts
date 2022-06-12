@@ -1,3 +1,13 @@
+export interface GameConf {
+    id: number
+    title: string
+    mgr: string
+    aiHosters: number[]
+    mapId: number
+    team: {[key: string]: any}
+    [key: string]: any
+}
+
 export class GameRoom {
   roomNotes: string = '';
   title: string = '';
@@ -11,7 +21,7 @@ export class GameRoom {
   engineToken: string = '';
   password: string = '';
   isStarted: boolean = false;
-  responsibleAutohost: string = '127.0.0.1';
+  responsibleAutohost: string = '::ffff:127.0.0.1';
   aiHosters: string[] = [];
 
   constructor(title?: string, hoster?: string, mapId?: number, ID?: number, password?: string, autohost?: string);
@@ -200,7 +210,14 @@ export class GameRoom {
     // this.isStarted=true;
     this.polls = {};
 
-    const engineLaunchObj: {[key: string]: any} = {};
+    const engineLaunchObj: GameConf = {
+      id: this.id,
+      title: this.title,
+      mgr: this.responsibleAutohost,
+      team: {},
+      mapId: this.mapId,
+      aiHosters: []
+    };
     engineLaunchObj['id']=this.id;
     engineLaunchObj['title']=this.title;
     engineLaunchObj['mgr']=this.responsibleAutohost;

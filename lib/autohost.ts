@@ -1,5 +1,16 @@
 import { EventEmitter } from "stream";
 import { WebSocketServer, WebSocket } from "ws";
+import { GameConf } from "./states/room";
+
+interface AutohostResponse {
+    action: string
+    parameters: {
+        info?: string
+        title?: string
+        status?: boolean
+        [key: string]: any
+    }
+}
 
 
 export class AutohostManager extends EventEmitter {
@@ -9,7 +20,7 @@ export class AutohostManager extends EventEmitter {
         ws: WebSocket,
         workload: number
     }} = {}
-    hostedGames: {[key: string]: {title: string, hosted: false}}
+    hostedGames: {[key: string]: {hosted: boolean, error: string}} = {}
 
     constructor(allowedAutohost?: string[], 
         config?: {
@@ -19,23 +30,66 @@ export class AutohostManager extends EventEmitter {
     ) {
         super()
 
-        this.allowedAutohosts = allowedAutohost || [];
+        if(allowedAutohost) this.allowedAutohosts = allowedAutohost;
+        console.log(`autohosts allowed: ${this.allowedAutohosts.join(', ')}`)
         this.server = new WebSocketServer({
             port: config?.port || 9000
         })
 
+        this.server.on('error', (err) => {
+            console.log(err)
+        })
+
         this.server.on('connection',(ws, req) => {
+
+            this.emit('conn', ws, req)
+
+            console.log(`autohost ${req.socket.remoteAddress} connected`)
+
+
             const autohostIP = req.socket.remoteAddress
-            if(autohostIP && autohostIP in this.allowedAutohosts) {
-                this.clients[autohostIP] = {
-                    ws,
-                    workload: 0
-                };
-            } else ws.terminate()
+            if(autohostIP) this.clients[autohostIP] = {
+                ws,
+                workload: 0
+            };
+            // if(autohostIP && autohostIP in this.allowedAutohosts) {
+            // } else {
+            //     ws.terminate()
+            //     console.log(`autohost ${autohostIP} not allowed`)
+            // }
 
             ws.on('message', (data, _) => {
                 // parse messages from autohost
+                const msg = JSON.parse(data.toString()) as AutohostResponse
 
+                switch(msg.action) {
+                    case 'serverStarted': {
+                        if(msg.parameters.title) {
+                            this.hostedGames[msg.parameters.title].hosted = true
+                            this.emit('gameStarted', msg.parameters.title)
+                        } 
+                        break;
+                    }
+                    case 'serverEnding': {
+                        if(msg.parameters.title) {
+                            this.hostedGames[msg.parameters.title].hosted = false
+                            this.emit('gameEnded', msg.parameters.title)
+                        }
+                        break;
+                    }
+                    case 'info': {
+                        console.log(msg.parameters.info)
+                        break;
+                    }
+                    default: {
+                        console.log(`autohost ${autohostIP} sent unknown message: ${msg.action}`)
+                    }
+                }
+
+            })
+
+            ws.on('error', (err) => {
+                console.log(err)
             })
 
             ws.on('close', (code, buffer) => {
@@ -45,7 +99,25 @@ export class AutohostManager extends EventEmitter {
         })
     }
 
-    start(gameConf: {[key: string]: any}) {}
+    start(gameConf: GameConf) {
+        this.hostedGames[gameConf.title] = {
+            hosted: false,
+            error: ''
+        }
+
+        if(gameConf.mgr in this.clients) {
+            this.clients[gameConf.mgr].workload += 1
+            this.clients[gameConf.mgr].ws.send(JSON.stringify({
+                action: 'startGame', 
+                parameters: gameConf
+            }))
+            console.log(`autohost ${gameConf.mgr} started game ${gameConf.title}`)
+        } else {
+            this.hostedGames[gameConf.title].error = 'Manager not connected'
+            console.log(`autohost ${gameConf.mgr} not found`)
+        }
+
+    }
     midJoin() {}
 
     loadBalance() {

@@ -10,10 +10,17 @@ import { Chat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import { ChatRoom } from "./lib/states/chat";
 import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
 import { GameRoom } from "./lib/states/room";
+import { AutohostManager } from "./lib/autohost";
+import { BlobOptions } from "buffer";
+import { IncomingMessage } from "http";
 
 const state: State = new State();
 const workers: Worker[] = [];
 const network: Network = new Network(8081);
+const autohostMgr: AutohostManager = new AutohostManager(['127.0.0.1, ::ffff:127.0.0.1'], {
+    port: 5000
+})
+
 // clientID -> username
 const clientID2username: Record<string, string> = {};
 const username2clientID: Record<string, string> = {};
@@ -22,9 +29,7 @@ const seq2respond: Record<number, string> = {};
 let seqCount = 0
 // this should be used as battlePort of games 
 // that need to be dispatched into autohosts
-let autohostLoad: {[key:string]: number} = {
-    '127.0.0.1': 2000 
-}
+let autohostLoad: {[key:string]: number} = {}
 
 for(let i=0; i<4; i++) {
     let worker = new Worker('./worker.js');
@@ -364,6 +369,44 @@ for(let i=0; i<4; i++) {
                 if(game) state.releaseGame(game.title);
                 break;
             }
+            case 'STARTGAME': {
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                const start: boolean = msg.payload.start;
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
+
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    user.assignGame(game);
+
+                    const members = Object.keys(game.players);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'STARTGAME',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                    if(start) {
+                        autohostMgr.start(game.configureToStart())
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                if(game) state.releaseGame(game.title);
+                break;
+            }
         }
         delete seq2respond[msg.seq];
     })
@@ -496,6 +539,7 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
                     return;
                 }
 
+                // TODO: use AutohostManager to load balance
                 const autohost = autohosts[randomInt(0, autohosts.length)];
 
                 msg.payload = {
@@ -570,6 +614,20 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
 
             break;
         }
+        case 'STARTGAME': {
+            const user = state.getUser(clientID2username[clientId]);
+            const game = user?.game
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+            break;
+        }
     }
 })
 
@@ -586,4 +644,8 @@ network.on('clean', (clientID: string) => {
             delete seq2respond[seq];
         }
     }
+})
+
+autohostMgr.on('conn', (ws: WebSocket, req: IncomingMessage) => {
+    if(req.socket.remoteAddress) autohostLoad[req.socket.remoteAddress] = 0;
 })

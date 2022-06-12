@@ -174,6 +174,15 @@ const main = async () => {
                 }))
                 break;
             }
+
+            case 'startgame': {
+                ws.send(JSON.stringify({
+                    action: 'STARTGAME',
+                    parameters: {},
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

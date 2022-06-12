@@ -6,7 +6,8 @@
   "scripts": {
     "watch": "tsc -w",
     "start": "tsc && node main.js",
-    "migrate": "tsc && node db/migrate.js"
+    "migrate": "tsc && node db/migrate.js",
+    "autohost": "tsc && node tests/autohost.test.js"
   },
   "author": "",
   "license": "ISC",
