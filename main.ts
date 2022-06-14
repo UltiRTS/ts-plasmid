@@ -165,6 +165,10 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     await state.assignChat(chat.roomName, chat);
                     console.log(chat)
+                    
+                    if(chat.empty()) {
+                        await state.removeChat(chat.roomName)
+                    }
 
                     network.emit('postMessage', seq2respond[msg.seq], {
                         action: 'LEAVECHAT',

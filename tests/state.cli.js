@@ -72,6 +72,18 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'leavechat': {
+                let room = cmd[1];
+                
+                ws.send(JSON.stringify({
+                    action: 'LEAVECHAT',
+                    parameters: {
+                        chatName: room
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
             case 'saychat': {
                 let room = cmd[1];
                 let message = cmd[2];
