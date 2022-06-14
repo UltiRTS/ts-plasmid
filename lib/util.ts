@@ -4,6 +4,7 @@ export const CMD_PARAMETERS = {
     'LOGIN': ['username', 'password'],
     'REGISTER': ['username', 'password'],
     'JOINCHAT': ['chatName', 'password'],
+    'LEAVECHAT': ['chatName'],
     'SAYCHAT': ['chatName', 'message'],
     'JOINGAME': ['gameName', 'mapId', 'password'],
     'SETAI': ['gameName', 'AI', 'team', 'type'],
