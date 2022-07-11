@@ -161,8 +161,8 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'LEAVECHAT': {
-                const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
                 if(msg.status) {
+                    const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
                     await state.assignChat(chat.roomName, chat);
                     console.log(chat)
                     
@@ -175,6 +175,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         state: state.dump(clientID2username[seq2respond[msg.seq]])
                     })
+                    state.releaseChat(chat.roomName);
                 } else {
                     network.emit('postMessage', seq2respond[msg.seq], {
                         action: 'NOTIFY',
@@ -182,7 +183,6 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseChat(chat.roomName);
                 break;
             }
             case 'JOINGAME': {
