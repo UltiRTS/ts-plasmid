@@ -16,7 +16,14 @@ const main = async () => {
     })
 
     ws.on('message', (data) => {
-        console.log(JSON.parse(data))
+        const jsonData = JSON.parse(data);
+        console.log(jsonData)
+        switch(jsonData.action) {
+            case 'LEAVECHAT': {
+                console.log(jsonData.state.user.chatRooms);
+                break;
+            }
+        }
     });
 
     ws.on('close', () => {

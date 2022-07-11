@@ -163,6 +163,9 @@ for(let i=0; i<4; i++) {
             case 'LEAVECHAT': {
                 if(msg.status) {
                     const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
+                    const user: User = Object.assign(new User(msg.payload.user), msg.payload.user);
+
+                    await state.assignUser(user.username, user);
                     await state.assignChat(chat.roomName, chat);
                     console.log(chat)
                     

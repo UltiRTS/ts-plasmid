@@ -233,13 +233,15 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     })
                 } else {
                     chat.members = chat.members.filter((member) => member !== user.username)
+                    delete user.chatRooms[chat.roomName]
                     parentPort?.postMessage({
                         receiptOf: 'LEAVECHAT',
                         status: true,
                         seq: msg.seq,
                         message: 'chat left',
                         payload: {
-                            chat
+                            chat,
+                            user
                         }
                     })
                 }
