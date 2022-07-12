@@ -13,6 +13,7 @@ export const CMD_PARAMETERS = {
     'SETMAP': ['gameName', 'mapId'],
     'STARTGAME': [],
     'HASMAP': ['gameName'],
+    'SETSPEC': ['gameName', 'player'],
 }
 
 

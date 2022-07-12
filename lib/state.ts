@@ -1,7 +1,7 @@
 import {User} from "./states/user";
 import {ChatRoom} from './states/chat';
 import { GameRoom } from './states/room';
-import {Mutex} from 'async-mutex';
+import {Mutex, withTimeout, MutexInterface} from 'async-mutex';
 import { time } from "console";
 
 export interface StateDumped {
@@ -22,7 +22,8 @@ export class State {
     }};
 
     chats: { [roomName: string]: {
-        mutex: Mutex,
+        // mutex: Mutex,
+        mutex: MutexInterface,
         entity: ChatRoom,
         release: () => void
     }}
@@ -42,7 +43,7 @@ export class State {
 
     async addChat(chat: ChatRoom) {
         this.chats[chat.roomName] = {
-            mutex: new Mutex(),
+            mutex: withTimeout(new Mutex(),100, new Error('timeout')),
             entity: chat,
             release: () => {}
         }
@@ -51,8 +52,12 @@ export class State {
     async lockChat(roomName: string) {
         if(!this.chats[roomName]) return true;
 
-        this.chats[roomName].release 
-            = await this.chats[roomName].mutex.acquire();
+        try {
+            this.chats[roomName].release 
+                = await this.chats[roomName].mutex.acquire();
+        } catch(e) {
+            console.log(e);
+        }
     }
 
     releaseChat(roomName: string) {

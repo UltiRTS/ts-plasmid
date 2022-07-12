@@ -463,6 +463,71 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+        case 'SETSPEC': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETSPEC',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+
+            const {player} = msg.parameters;
+            const poll = 'SETSPEC ' + player;
+
+            if(player == game.hoster) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETSPEC',
+                    status: false,
+                    seq: msg.seq,
+                    message: "can't set hoster ast spect",
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+            if(user.username === game.hoster || player === user.username) {
+                game.players[player].isSpec = true
+                delete game.polls[poll]
+                parentPort?.postMessage({
+                    receiptOf: 'SETSPEC',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'player set as spec',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                if(!game.polls[poll]) game.polls[poll] = new Set()
+                game.polls[poll].add(user.username)
+
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    game.players[player].isSpec = true
+                    delete game.polls[poll]
+                }
+                parentPort?.postMessage({
+                    receiptOf: 'SETSPEC',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'set spec poll added',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
+            break;
+        }
         case 'SETMAP': {
             const game: GameRoom = msg.payload.game;
             const user: StateUser = msg.payload.user;

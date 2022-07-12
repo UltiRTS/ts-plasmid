@@ -197,7 +197,6 @@ const main = async () => {
                 }))
                 break;
             }
-
             case 'startgame': {
                 ws.send(JSON.stringify({
                     action: 'STARTGAME',
@@ -212,6 +211,19 @@ const main = async () => {
                     action: 'HASMAP',
                     parameters: {
                         gameName
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'setspec': {
+                const gameName = cmd[1];
+                const player = cmd[2];
+                ws.send(JSON.stringify({
+                    action: 'SETSPEC',
+                    parameters: {
+                        gameName,
+                        player
                     },
                     seq: randomInt(0, 1000000)
                 }))

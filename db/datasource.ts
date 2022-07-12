@@ -12,5 +12,5 @@ export const AppDataSource = new DataSource({
         Chat,
         ChatRoom
     ],
-    synchronize: true
+    synchronize: false
 })
