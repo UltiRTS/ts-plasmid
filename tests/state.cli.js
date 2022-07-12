@@ -23,6 +23,10 @@ const main = async () => {
                 console.log(jsonData.state.user.chatRooms);
                 break;
             }
+            case 'SETAI': {
+                console.log(jsonData.state.user.game);
+                break;
+            }
         }
     });
 
@@ -198,6 +202,17 @@ const main = async () => {
                 ws.send(JSON.stringify({
                     action: 'STARTGAME',
                     parameters: {},
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'hasmap': {
+                const gameName = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'HASMAP',
+                    parameters: {
+                        gameName
+                    },
                     seq: randomInt(0, 1000000)
                 }))
                 break;

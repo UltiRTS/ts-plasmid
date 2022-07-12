@@ -28,7 +28,7 @@ export class GameRoom {
   constructor(title: string, hoster: string, mapId: number, ID: number, password: string, autohost: string) {
     this.hoster = hoster;
     this.aiHosters = [hoster];
-    this.players[hoster] = {isSpec: false, team: 'A', hasmap: true};
+    this.players[hoster] = {isSpec: false, team: 'A', hasmap: false};
     this.title = title;
     this.mapId = mapId;
     this.id = ID;
@@ -63,7 +63,7 @@ export class GameRoom {
     this.aiHosters = hosters;
   }
 
-  setPlayer(playerName: string, team: string, isSpec: boolean = false, hasmap: boolean = true) {
+  setPlayer(playerName: string, team: string, isSpec: boolean = false, hasmap: boolean = false) {
     this.players[playerName]={'team': team, 'isSpec': isSpec, 'hasmap': hasmap};
   }
 

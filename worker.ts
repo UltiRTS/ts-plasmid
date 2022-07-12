@@ -520,6 +520,35 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+        case 'HASMAP': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                console.log('user or game not found')
+                parentPort?.postMessage({
+                    receiptOf: 'HASMAP',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+            game.players[user.username].hasmap = true;
+            parentPort?.postMessage({
+                receiptOf: 'HASMAP',
+                status: true,
+                seq: msg.seq,
+                message: 'has map',
+                payload: {
+                    game
+                }
+            })
+            break;
+        }
 
         case 'STARTGAME': {
             const game: GameRoom = msg.payload.game;

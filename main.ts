@@ -376,6 +376,38 @@ for(let i=0; i<4; i++) {
                 if(game) state.releaseGame(game.title);
                 break;
             }
+            case 'HASMAP': {
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    break;
+                }
+                if(msg.status) {
+                    state.assignGame(game.title, game);
+                    user.assignGame(game);
+                    console.log(game);
+                    const members = Object.keys(game.players);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'HASMAP',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                break
+            }
             case 'STARTGAME': {
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const start: boolean = msg.payload.start;
@@ -607,6 +639,22 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'SETMAP': {
+            const game = state.getGame(msg.parameters.gameName);
+            const user = state.getUser(clientID2username[clientId]);
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+
+            break;
+        }
+        case 'HASMAP': {
+            console.log('hasmap called')
             const game = state.getGame(msg.parameters.gameName);
             const user = state.getUser(clientID2username[clientId]);
 

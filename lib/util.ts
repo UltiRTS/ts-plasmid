@@ -12,6 +12,7 @@ export const CMD_PARAMETERS = {
     'SETTEAM': ['gameName', 'player', 'team'],
     'SETMAP': ['gameName', 'mapId'],
     'STARTGAME': [],
+    'HASMAP': ['gameName'],
 }
 
 
