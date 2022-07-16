@@ -128,6 +128,14 @@ export class State {
 
     assignGame(roomName: string, game: GameRoom) {
         this.rooms[roomName].entity = game;
+        for(const username in this.rooms[roomName].entity.players) {
+            const user = this.getUser(username);
+            if(!user) continue;
+
+            this.lockUser(username);
+            user.game = game;
+            this.releaseUser(username);
+        }
     }
 
     async lockGame(roomName: string) {

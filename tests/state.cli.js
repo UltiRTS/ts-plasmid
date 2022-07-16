@@ -3,6 +3,7 @@ const { randomInt } = require('crypto');
 const readline = require('node:readline')
 const {stdin, stdout} = require('node:process');
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 const main = async () => {
     const rl = readline.createInterface({
         input: stdin,
@@ -27,6 +28,10 @@ const main = async () => {
                 console.log(jsonData.state.user.game);
                 break;
             }
+            case 'GAMESTARTED': {
+                console.log(jsonData.state.user.game);
+                break;
+            }
         }
     });
 
@@ -39,7 +44,6 @@ const main = async () => {
         + "login <username> <password>\n"
         + "joinchat <room> <password>\n"
         + "saychat <room> <message>\n"
-
 
     for await (const line of rl) {
         if(line.startsWith('quit')) break;

@@ -61,12 +61,20 @@ export class AutohostManager extends EventEmitter {
             ws.on('message', (data, _) => {
                 // parse messages from autohost
                 const msg = JSON.parse(data.toString()) as AutohostResponse
+                console.log(msg);
 
                 switch(msg.action) {
                     case 'serverStarted': {
                         if(msg.parameters.title) {
                             this.hostedGames[msg.parameters.title].hosted = true
-                            this.emit('gameStarted', msg.parameters.title)
+                            this.emit('gameStarted', {
+                                gameName: msg.parameters.title,
+                                payload: {
+                                    autohost: autohostIP,
+                                    port: msg.parameters.port
+                                }
+                            })
+                            console.log('server started, from in autohost.ts')
                         } 
                         break;
                     }
@@ -111,7 +119,7 @@ export class AutohostManager extends EventEmitter {
                 action: 'startGame', 
                 parameters: gameConf
             }))
-            console.log(`autohost ${gameConf.mgr} started game ${gameConf.title}`)
+            console.log(`sending game ${gameConf.title} configration to ${gameConf.mgr}`)
         } else {
             this.hostedGames[gameConf.title].error = 'Manager not connected'
             console.log(`autohost ${gameConf.mgr} not found`)

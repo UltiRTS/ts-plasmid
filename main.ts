@@ -11,8 +11,8 @@ import { ChatRoom } from "./lib/states/chat";
 import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
 import { GameRoom } from "./lib/states/room";
 import { AutohostManager } from "./lib/autohost";
-import { BlobOptions } from "buffer";
 import { IncomingMessage } from "http";
+import { selfIP } from "./config";
 
 const state: State = new State();
 const workers: Worker[] = [];
@@ -423,7 +423,7 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     state.assignGame(game.title, game);
                     user.assignGame(game);
-                    console.log(game);
+                    console.log('assinged game in hasmap: ', user.game);
                     const members = Object.keys(game.players);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
@@ -439,10 +439,12 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
+                if(game) state.releaseGame(game.title);
                 break
             }
             case 'STARTGAME': {
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                console.log('responding');
                 const start: boolean = msg.payload.start;
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
@@ -701,7 +703,6 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'HASMAP': {
-            console.log('hasmap called')
             const game = state.getGame(msg.parameters.gameName);
             const user = state.getUser(clientID2username[clientId]);
 
@@ -750,4 +751,58 @@ network.on('clean', (clientID: string) => {
 
 autohostMgr.on('conn', (ws: WebSocket, req: IncomingMessage) => {
     if(req.socket.remoteAddress) autohostLoad[req.socket.remoteAddress] = 0;
+})
+autohostMgr.on('gameStarted', (startedInfo: {
+    gameName: string,
+    payload : {
+        autohost: string,
+        port: number,
+    }
+}) => {
+    console.log('receieved gameStarted event')
+    const game = state.getGame(startedInfo.gameName);
+    if(game) {
+        state.lockGame(startedInfo.gameName);
+        game.isStarted = true;  
+        if(['127.0.0.1', '::ffff:127.0.0.1'].includes(startedInfo.payload.autohost)) {
+            game.responsibleAutohost = selfIP;
+        } else {
+            game.responsibleAutohost = startedInfo.payload.autohost;
+        }
+        game.autohostPort = startedInfo.payload.port;
+        console.log(startedInfo.payload.port)
+        state.assignGame(startedInfo.gameName, game);
+        console.log(state.getGame(startedInfo.gameName))
+        console.log(game)
+        for(const user in game.players) {
+            console.log('sending gameStarted event to user: ' + user)
+            network.emit('postMessage', username2clientID[user], { 
+                action: 'GAMESTARTED',
+                seq: -1,
+                state: state.dump(user),
+            })
+        }
+
+        state.releaseGame(startedInfo.gameName);
+    }
+}) 
+autohostMgr.on('gameEnded', (roomName: string) => {
+    const game = state.getGame(roomName);
+    console.log('receieved gameEned event')
+    if(game) {
+        state.lockGame(roomName);
+        game.isStarted = false;
+        game.responsibleAutohost = '';
+        game.autohostPort = 0;
+        state.assignGame(roomName, game);
+        for(const user in game.players) {
+            network.emit('postMessage', username2clientID[user], { 
+                action: 'GAMEENDED',
+                seq: -1,
+                state: state.dump(user),
+            })
+        }
+
+        state.releaseGame(roomName);
+    }
 })

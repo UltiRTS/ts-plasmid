@@ -634,22 +634,35 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             const poll = 'STARTGAME';
             let start = false;
             if(!game.polls[poll]) game.polls[poll] = new Set()
-            game.polls[poll].add(user.username)
-            start = game.polls[poll].size === Object.keys(game.players).length
-            if(start) {
-                delete game.polls[poll]
-            }
-
-            parentPort?.postMessage({
-                receiptOf: 'STARTGAME',
-                status: true,
-                seq: msg.seq,
-                message: 'start game poll added',
-                payload: {
-                    game,
-                    start
+            if(game.players[user.username].hasmap) {
+                console.log('user has map')
+                game.polls[poll].add(user.username)
+                start = game.polls[poll].size === Object.keys(game.players).length
+                if(start) {
+                    delete game.polls[poll]
                 }
-            })
+                parentPort?.postMessage({
+                    receiptOf: 'STARTGAME',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'start game poll added',
+                    payload: {
+                        game,
+                        start
+                    }
+                })
+            } else {
+                parentPort?.postMessage({
+                    receiptOf: 'STARTGAME',
+                    status: false,
+                    seq: msg.seq,
+                    message: user.username + ' does not have map',
+                    payload: {
+                        game
+                    }
+                })
+            }
+            break;
         }
     }
 })

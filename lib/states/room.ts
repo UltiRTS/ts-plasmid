@@ -22,6 +22,7 @@ export class GameRoom {
   password: string = '';
   isStarted: boolean = false;
   responsibleAutohost: string = '::ffff:127.0.0.1';
+  autohostPort: number = 0;
   aiHosters: string[] = [];
 
   constructor(title?: string, hoster?: string, mapId?: number, ID?: number, password?: string, autohost?: string);
@@ -35,6 +36,7 @@ export class GameRoom {
     this.password = password;
     this.engineToken = makeid(10);
     this.responsibleAutohost = autohost;
+    this.autohostPort = 0;
 
     function makeid(length: number) {
       let result = '';
