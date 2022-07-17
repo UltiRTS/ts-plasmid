@@ -2,7 +2,6 @@ import {User} from "./states/user";
 import {ChatRoom} from './states/chat';
 import { GameRoom } from './states/room';
 import {Mutex, withTimeout, MutexInterface} from 'async-mutex';
-import { time } from "console";
 
 export interface StateDumped {
     user: User
@@ -16,6 +15,7 @@ export interface StateDumped {
 
 export class State {
     users: { [username: string]: {
+        // mutex: Mutex,
         mutex: Mutex,
         entity: User,
         release: () => void
@@ -23,12 +23,13 @@ export class State {
 
     chats: { [roomName: string]: {
         // mutex: Mutex,
-        mutex: MutexInterface,
+        mutex: Mutex,
         entity: ChatRoom,
         release: () => void
     }}
 
     rooms: { [roomName: string]: {
+        // mutex: Mutex,
         mutex: Mutex,
         entity: GameRoom,
         release: () => void
@@ -43,7 +44,7 @@ export class State {
 
     async addChat(chat: ChatRoom) {
         this.chats[chat.roomName] = {
-            mutex: withTimeout(new Mutex(),100, new Error('timeout')),
+            mutex: new Mutex(),
             entity: chat,
             release: () => {}
         }
@@ -52,12 +53,12 @@ export class State {
     async lockChat(roomName: string) {
         if(!this.chats[roomName]) return true;
 
-        try {
-            this.chats[roomName].release 
-                = await this.chats[roomName].mutex.acquire();
-        } catch(e) {
-            console.log(e);
-        }
+        this.chats[roomName].release 
+            = await this.chats[roomName].mutex.acquire();
+
+        setTimeout(() => {
+            this.releaseChat(roomName);
+        }, 1000);
     }
 
     releaseChat(roomName: string) {
@@ -91,6 +92,10 @@ export class State {
 
         this.users[username].release 
             = await this.users[username].mutex.acquire();
+
+        setTimeout(() => {
+            this.releaseUser(username);
+        }, 1000);
     }
 
     releaseUser(username: string) {
@@ -100,9 +105,9 @@ export class State {
     }
 
     async assignUser(username: string, user: User) {
-        const release = await this.users[username].mutex.acquire();
+        this.lockUser(username);
         this.users[username].entity = user;
-        release();
+        this.releaseUser(username);
     }
 
     addUser(user: User) {
@@ -143,10 +148,17 @@ export class State {
 
         this.rooms[roomName].release 
             = await this.rooms[roomName].mutex.acquire();
+
+        setTimeout(() => {
+            this.releaseGame(roomName);
+        }, 1000);
     } 
 
     releaseGame(roomName: string) {
-        if(!this.rooms[roomName]) return;
+        if(!this.rooms[roomName]) {
+            console.log(`releaseGame: ${roomName} not found`);
+            return;
+        }
 
         this.rooms[roomName].release();
     }
@@ -158,36 +170,43 @@ export class State {
     }
 
     async garbageCollect(user: User) {
+        console.log(`garbageCollect: ${user.username}`);
         if(this.users[user.username]) {
-            const release = await this.users[user.username].mutex.acquire()
+            console.log('acquiring lock');
+            // const release = await this.users[user.username].mutex.acquire()
+            this.lockUser(user.username);
+            console.log('lock acquired');
             const u = this.users[user.username];
             const game = u.entity.game
             const chatRooms = u.entity.chatRooms;
 
+            console.log(game)
+
             if(game) {
-                const release = await this.rooms[game?.title].mutex.acquire();
-                this.rooms[game?.title].entity.removePlayer(user.username);
-                // console.log(`gc ${user.username} in game: ${game?.title}`);
+                this.lockGame(game.title);
+                this.rooms[game.title].entity.removePlayer(user.username);
+                console.log(`gc ${user.username} in game: ${game.title}`);
 
-                if(this.rooms[game?.title].entity.empty()) 
-                    delete this.rooms[game?.title];
+                if(this.rooms[game.title].entity.empty()) 
+                    delete this.rooms[game.title];
 
-                release()
+                this.releaseGame(game.title);
             }
             for(const roomName in chatRooms) {
                 if(this.chats[roomName]) {
-                    const release = await this.chats[roomName].mutex.acquire();
+                    this.lockChat(roomName);
                     this.chats[roomName].entity.leave(user);
                     // console.log(`gc ${user.username} in room: ${roomName}`);
 
                     if(this.chats[roomName].entity.empty()) 
                         delete this.chats[roomName];
 
-                    release()
+                    this.releaseChat(roomName);
                 }
             }
 
-            release()
+            this.releaseUser(user.username);
+
             delete this.users[user.username];
         }
     }

@@ -190,9 +190,6 @@ for(let i=0; i<4; i++) {
             }
             case 'JOINGAME': {
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
-
-                console.log(game);
-                console.log(typeof game)
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -200,6 +197,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be logged out',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
 
@@ -216,6 +214,7 @@ for(let i=0; i<4; i++) {
                             state: state.dump(clientID2username[seq2respond[msg.seq]])
                         })
                     } else if(actionType === 'JOIN') {
+                        console.log(`user ${user.username} joining game ${game.title}`)
                         state.assignGame(game.title, game);
                         user.assignGame(game);
                         state.assignUser(user.username, user);
@@ -239,7 +238,7 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseGame(game.title);
+                if(game) state.releaseGame(game.title);
                 break;
             }
             case 'SETAI': {
@@ -251,6 +250,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 console.log(game)
@@ -285,6 +285,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 console.log(game)
@@ -319,6 +320,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 console.log(game)
@@ -352,6 +354,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 if(msg.status) {
@@ -385,6 +388,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 console.log(game)
@@ -418,6 +422,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
                 if(msg.status) {
@@ -453,6 +458,7 @@ for(let i=0; i<4; i++) {
                         seq: msg.seq,
                         message: 'User may be dismissed',
                     })
+                    if(game) state.releaseGame(game.title);
                     break;
                 }
 
@@ -602,7 +608,7 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
                 }
             } else {
                 const autohosts = Object.keys(autohostLoad);
-                if(autohosts.length < 0) {
+                if(autohosts.length <= 0) {
                     network.emit('postMessage', clientId, {
                         action: 'NOTIFY',
                         seq: msg.seq,
@@ -736,6 +742,7 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
 
 network.on('clean', (clientID: string) => {
     const user = state.getUser(clientID2username[clientID])
+    // console.log(`${user?.username} disconnected, preparing for cleaning`)
     if(user) state.garbageCollect(user)
 
     delete clientID2username[clientID];
@@ -804,5 +811,6 @@ autohostMgr.on('gameEnded', (roomName: string) => {
         }
 
         state.releaseGame(roomName);
+        console.log("locked?: ", state.rooms[roomName].mutex.isLocked());
     }
 })

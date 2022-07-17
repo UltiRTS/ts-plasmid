@@ -278,22 +278,34 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             } else {
-                game.players[user.username] = {
-                    isSpec: false,
-                    team: 'A',
-                    hasmap: false,
-                }
-
-                parentPort?.postMessage({
-                    receiptOf: 'JOINGAME',
-                    status: true,
-                    seq: msg.seq,
-                    message: 'game joined',
-                    payload: {
-                        game: game,
-                        type: 'JOIN'
+                if(user.username in game.players) {
+                    parentPort?.postMessage({
+                        receiptOf: 'JOINGAME',
+                        status: false,
+                        seq: msg.seq,
+                        message: 'already in game',
+                        payload: {
+                            game
+                        }
+                    })
+                } else {
+                    game.players[user.username] = {
+                        isSpec: false,
+                        team: 'A',
+                        hasmap: false,
                     }
-                })
+
+                    parentPort?.postMessage({
+                        receiptOf: 'JOINGAME',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'game joined',
+                        payload: {
+                            game: game,
+                            type: 'JOIN'
+                        }
+                    })
+                }
             }
             break;
         }
