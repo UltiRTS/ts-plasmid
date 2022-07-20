@@ -190,6 +190,7 @@ for(let i=0; i<4; i++) {
             }
             case 'JOINGAME': {
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                console.log(game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -709,8 +710,8 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'HASMAP': {
-            const game = state.getGame(msg.parameters.gameName);
             const user = state.getUser(clientID2username[clientId]);
+            const game = user?.game;
 
             if(game) await state.lockGame(game.title);
 

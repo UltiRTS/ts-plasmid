@@ -563,6 +563,10 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 const poll = 'SETMAP ' + mapId;
                 if(game.polls[poll]) delete game.polls[poll];
 
+                for(const player of Object.keys(game.players)) {
+                    game.players[player].hasmap = false
+                }
+
                 game.mapId = mapId;
 
                 parentPort?.postMessage({
@@ -582,6 +586,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
                 if(game.polls[poll].size > Object.keys(game.players).length / 2) {
                     game.mapId = mapId 
+                    for(const player of Object.keys(game.players)) {
+                        game.players[player].hasmap = false
+                    }
                     delete game.polls[poll]
                 }
                 parentPort?.postMessage({
@@ -614,16 +621,32 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 })
                 break;
             }
-            game.players[user.username].hasmap = true;
-            parentPort?.postMessage({
-                receiptOf: 'HASMAP',
-                status: true,
-                seq: msg.seq,
-                message: 'has map',
-                payload: {
-                    game
-                }
-            })
+
+            let mapId = parseInt(msg.parameters.mapId);
+            console.log(mapId)
+            if(mapId === game.mapId) {
+                game.players[user.username].hasmap = true;
+                parentPort?.postMessage({
+                    receiptOf: 'HASMAP',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'has map',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                parentPort?.postMessage({
+                    receiptOf: 'HASMAP',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'report map mismatch',
+                    payload: {
+                        game
+                    }
+                })
+            }
+
             break;
         }
 

@@ -210,11 +210,11 @@ const main = async () => {
                 break;
             }
             case 'hasmap': {
-                const gameName = cmd[1];
+                const mapId = cmd[1];
                 ws.send(JSON.stringify({
                     action: 'HASMAP',
                     parameters: {
-                        gameName
+                        mapId
                     },
                     seq: randomInt(0, 1000000)
                 }))

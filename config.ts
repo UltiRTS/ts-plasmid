@@ -3,7 +3,7 @@ export const dbType = 'mysql';
 export const dbconf = {
     host: 'localhost',
     user: 'user',
-    password: 'passsword',
+    password: 'password',
     database: 'dbname',
     port: 3306,
 }
