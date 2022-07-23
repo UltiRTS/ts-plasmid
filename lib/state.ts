@@ -169,6 +169,20 @@ export class State {
         return this.rooms[roomName].entity;
     }
 
+    removeGame(roomName: string) {
+        const players = this.rooms[roomName].entity.players;
+        for(const username in players) {
+            const user = this.getUser(username);
+            if(!user) continue;
+
+            this.lockUser(username);
+            user.game = null;
+            this.releaseUser(username);
+        }
+
+        delete this.rooms[roomName];
+    }
+
     async garbageCollect(user: User) {
         console.log(`garbageCollect: ${user.username}`);
         if(this.users[user.username]) {

@@ -11,6 +11,7 @@ export const CMD_PARAMETERS = {
     'DELAI': ['gameName', 'AI', 'type'],
     'SETTEAM': ['gameName', 'player', 'team'],
     'SETMAP': ['gameName', 'mapId'],
+    'LEAVEGAME': [],
     'STARTGAME': [],
     'HASMAP': ['mapId'],
     'SETSPEC': ['gameName', 'player'],

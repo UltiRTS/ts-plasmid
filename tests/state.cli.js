@@ -233,6 +233,14 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'leavegame': {
+                ws.send(JSON.stringify({
+                    action: 'LEAVEGAME',
+                    parameters: {},
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

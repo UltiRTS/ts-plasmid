@@ -488,6 +488,51 @@ for(let i=0; i<4; i++) {
                 if(game) state.releaseGame(game.title);
                 break;
             }
+            case 'LEAVEGAME': {
+                console.log('leaving game');
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    if(game) state.releaseGame(game.title);
+                    break; 
+                }
+
+                if(msg.status) {
+                    if(msg.payload.dismiss) {
+                        const members = Object.keys(game.players);
+                        state.removeGame(game.title);                   
+                        for(const member of members) {
+                            network.emit('postMessage', username2clientID[member], {
+                                action: 'LEAVEGAME',
+                                seq: msg.seq,
+                                state: state.dump(member)
+                            })
+                        }
+                    } else {
+                        state.assignGame(game.title, game);
+                        const members = Object.keys(game.players);
+                        for(const member of members) {
+                            network.emit('postMessage', username2clientID[member], {
+                                action: 'LEAVEGAME',
+                                seq: msg.seq,
+                                state: state.dump(member)
+                            })
+                        }
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                break;
+            }
         }
         delete seq2respond[msg.seq];
     })
@@ -738,6 +783,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             worker.postMessage(msg);
             break;
         }
+        case 'LEAVEGAME': {
+            console.log('called leavegame');
+            const user = state.getUser(clientID2username[clientId]);
+            const game = user?.game
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+            break;
+        }
     }
 })
 
@@ -800,7 +860,7 @@ autohostMgr.on('gameEnded', (roomName: string) => {
     if(game) {
         state.lockGame(roomName);
         game.isStarted = false;
-        game.responsibleAutohost = '';
+        // game.responsibleAutohost = '';
         game.autohostPort = 0;
         state.assignGame(roomName, game);
         for(const user in game.players) {

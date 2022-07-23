@@ -264,6 +264,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             if(game === null) {
                 const {gameName, mapId, password} = msg.parameters;
                 const {roomID, autohost} = msg.payload;
+                console.log('woker received autohost: ', autohost)
                 const gameRoom = 
                     new GameRoom(gameName, user.username, parseInt(mapId), roomID, password, autohost)
 
@@ -697,6 +698,51 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             }
+            break;
+        }
+        case 'LEAVEGAME': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'LEAVEGAME',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game,
+                    }
+                })
+                break;
+            }
+
+            if(user.username === game.hoster) {
+                parentPort?.postMessage({
+                    receiptOf: 'LEAVEGAME',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'hoster dismiss',
+                    payload: {
+                        game,
+                        dismiss: true
+                    }
+                })
+                break;
+            } else {
+                delete game.players[user.username]
+                parentPort?.postMessage({
+                    receiptOf: 'LEAVEGAME',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'user left',
+                    payload: {
+                        game,
+                        dismiss: false
+                    }
+                })
+            }
+
             break;
         }
     }
