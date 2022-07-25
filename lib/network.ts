@@ -51,6 +51,12 @@ export class Network extends EventEmitter {
                 this.clients[clientID].send(JSON.stringify(msg));
             }
         })
+
+        this.on('dump2all', (msg: Object) => {
+            for(let clientID in this.clients) {
+                this.clients[clientID].send(JSON.stringify(msg));
+            }
+        })
     }
 
 }

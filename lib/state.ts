@@ -69,6 +69,14 @@ export class State {
 
     async assignChat(roomName: string, chat: ChatRoom) {
         this.chats[roomName].entity = chat;
+        for(const username in this.chats[roomName].entity.members) {
+            const user = this.getUser(username);
+            if(!user) continue;
+
+            this.lockUser(username);
+            user.assignChat(chat);
+            this.releaseUser(username);
+        }
     }
 
     async removeChat(roomName: string) {

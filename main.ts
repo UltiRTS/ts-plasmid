@@ -147,7 +147,7 @@ for(let i=0; i<4; i++) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SAYCHAT',
                             seq: msg.seq,
-                            state: state.dump(clientID2username[seq2respond[msg.seq]])
+                            state: state.dump(member)
                         })
                     }
                 } else {
@@ -210,6 +210,12 @@ for(let i=0; i<4; i++) {
                         user.assignGame(game);
                         state.assignUser(user.username, user);
                         network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'JOINGAME',
+                            seq: msg.seq,
+                            state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        })
+
+                        network.emit('dump2all', {
                             action: 'JOINGAME',
                             seq: msg.seq,
                             state: state.dump(clientID2username[seq2respond[msg.seq]])
@@ -514,6 +520,7 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     if(msg.payload.dismiss) {
                         const members = Object.keys(game.players);
+                        members.push(clientID2username[seq2respond[msg.seq]]);
                         state.removeGame(game.title);                   
                         for(const member of members) {
                             network.emit('postMessage', username2clientID[member], {
@@ -525,6 +532,7 @@ for(let i=0; i<4; i++) {
                     } else {
                         state.assignGame(game.title, game);
                         const members = Object.keys(game.players);
+                        members.push(clientID2username[seq2respond[msg.seq]]);
                         for(const member of members) {
                             network.emit('postMessage', username2clientID[member], {
                                 action: 'LEAVEGAME',
