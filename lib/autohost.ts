@@ -109,7 +109,7 @@ export class AutohostManager extends EventEmitter {
     }
 
     start(gameConf: GameConf) {
-        console.log(`game ${gameConf.name} starting`)
+        console.log(`game ${gameConf.title} starting`)
         this.hostedGames[gameConf.title] = {
             hosted: false,
             error: ''
