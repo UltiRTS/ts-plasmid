@@ -196,7 +196,7 @@ export class State {
 
             console.log(game)
 
-            if(game) {
+            if(game && this.gameExists(game.title)) {
                 this.lockGame(game.title);
                 this.rooms[game.title].entity.removePlayer(user.username);
                 console.log(`gc ${user.username} in game: ${game.title}`);
@@ -206,6 +206,7 @@ export class State {
 
                 this.releaseGame(game.title);
             }
+
             for(const roomName in chatRooms) {
                 if(this.chats[roomName]) {
                     this.lockChat(roomName);
@@ -223,6 +224,10 @@ export class State {
 
             delete this.users[user.username];
         }
+    }
+
+    gameExists(roomName: string) {
+        return this.rooms[roomName] ? true : false;
     }
 
     dump(username: string) {

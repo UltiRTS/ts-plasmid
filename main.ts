@@ -502,6 +502,15 @@ for(let i=0; i<4; i++) {
                     break; 
                 }
 
+                if(game === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'Game may be dismissed',
+                    })
+                    break;
+                }
+
                 if(msg.status) {
                     if(msg.payload.dismiss) {
                         const members = Object.keys(game.players);

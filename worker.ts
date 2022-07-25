@@ -673,7 +673,13 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             if(game.players[user.username].hasmap) {
                 console.log('user has map')
                 game.polls[poll].add(user.username)
-                start = game.polls[poll].size === Object.keys(game.players).length
+                start = game.polls[poll].size >= Object.keys(game.players).length / 2 
+                    || game.hoster === user.username 
+
+                for(const player of Object.keys(game.players)) {
+                    start = start && game.players[player].hasmap
+                }
+
                 if(start) {
                     delete game.polls[poll]
                 }
@@ -717,25 +723,27 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 break;
             }
 
-            if(user.username === game.hoster) {
+            delete game.players[user.username]
+            if(Object.keys(game.players).length === 0) {
                 parentPort?.postMessage({
                     receiptOf: 'LEAVEGAME',
                     status: true,
                     seq: msg.seq,
-                    message: 'hoster dismiss',
+                    message: 'game deleted',
                     payload: {
                         game,
                         dismiss: true
                     }
                 })
-                break;
             } else {
-                delete game.players[user.username]
+                if(game.players[game.hoster] === undefined) {
+                    game.hoster = Object.keys(game.players)[0]
+                }
                 parentPort?.postMessage({
                     receiptOf: 'LEAVEGAME',
                     status: true,
                     seq: msg.seq,
-                    message: 'user left',
+                    message: user.username + 'leave',
                     payload: {
                         game,
                         dismiss: false
