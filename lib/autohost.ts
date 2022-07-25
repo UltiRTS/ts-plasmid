@@ -66,6 +66,7 @@ export class AutohostManager extends EventEmitter {
                 switch(msg.action) {
                     case 'serverStarted': {
                         if(msg.parameters.title) {
+                            console.log(`autohost ${autohostIP} started game ${msg.parameters.title}`)
                             this.hostedGames[msg.parameters.title].hosted = true
                             this.emit('gameStarted', {
                                 gameName: msg.parameters.title,
@@ -108,6 +109,7 @@ export class AutohostManager extends EventEmitter {
     }
 
     start(gameConf: GameConf) {
+        console.log(`game ${gameConf.name} starting`)
         this.hostedGames[gameConf.title] = {
             hosted: false,
             error: ''
