@@ -484,7 +484,11 @@ for(let i=0; i<4; i++) {
                         })
                     }
                     if(start) {
-                        autohostMgr.start(game.configureToStart())
+                        const config = game.configureToStart();
+                        // console.log(game.players);
+                        // console.log(game.ais);
+                        // console.log(config);
+                        autohostMgr.start(config)
                     }
                 } else {
                     network.emit('postMessage', seq2respond[msg.seq], {

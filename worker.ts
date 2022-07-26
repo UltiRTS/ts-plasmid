@@ -330,8 +330,8 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             const {AI, team, type} = msg.parameters;
 
             if(game.hoster === user.username) {
-                if(type === 'AI') game.ais[AI] = team
-                else if(type === 'Chicken') game.chickens[AI] = team
+                if(type === 'AI') game.ais[AI] = {team}
+                else if(type === 'Chicken') game.chickens[AI] = {team}
 
                 parentPort?.postMessage({
                     receiptOf: 'SETAI',
@@ -348,8 +348,8 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
                 game.polls[poll].add(user.username)
                 if(game.polls[poll].size > Object.keys(game.players).length / 2) {
-                    if(type === 'AI') game.ais[AI] = team
-                    else if(type === 'Chicken') game.chickens[AI] = team
+                    if(type === 'AI') game.ais[AI] = {team}
+                    else if(type === 'Chicken') game.chickens[AI] = {team}
 
                     delete game.polls[poll]
                 }
