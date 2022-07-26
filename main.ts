@@ -215,11 +215,13 @@ for(let i=0; i<4; i++) {
                             state: state.dump(clientID2username[seq2respond[msg.seq]])
                         })
 
-                        network.emit('dump2all', {
-                            action: 'JOINGAME',
-                            seq: msg.seq,
-                            state: state.dump(clientID2username[seq2respond[msg.seq]])
-                        })
+                        for(const username of Object.keys(username2clientID)) {
+                            network.emit('postMessage', username2clientID[username], {
+                                action: 'JOINGAME',
+                                seq: msg.seq,
+                                state: state.dump(username)
+                            })
+                        }
                     } else if(actionType === 'JOIN') {
                         console.log(`user ${user.username} joining game ${game.title}`)
                         state.assignGame(game.title, game);
