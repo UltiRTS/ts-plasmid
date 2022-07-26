@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "watch": "tsc -w",
-    "start": "tsc && node dist/main.js",
+    "start": "tsc && cd dist &&node main.js",
     "migrate": "tsc && node dist/db/migrate.js",
     "autohost": "tsc && node dist/tests/autohost.test.js"
   },
