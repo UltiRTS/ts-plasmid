@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "watch": "tsc -w",
-    "start": "tsc && node main.js",
-    "migrate": "tsc && node db/migrate.js",
-    "autohost": "tsc && node tests/autohost.test.js"
+    "start": "tsc && node dist/main.js",
+    "migrate": "tsc && node dist/db/migrate.js",
+    "autohost": "tsc && node dist/tests/autohost.test.js"
   },
   "author": "",
   "license": "ISC",

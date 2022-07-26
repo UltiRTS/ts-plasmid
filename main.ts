@@ -533,6 +533,7 @@ for(let i=0; i<4; i++) {
                         }
                     } else {
                         state.assignGame(game.title, game);
+                        user.game = null;
                         const members = Object.keys(game.players);
                         members.push(clientID2username[seq2respond[msg.seq]]);
                         for(const member of members) {
