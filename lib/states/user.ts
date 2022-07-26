@@ -33,6 +33,7 @@ export class User extends DBUser {
     }
 
     assignChat(chat: ChatRoom) {
+        console.log("chat in user:", chat)
         this.chatRooms[chat.roomName] = chat;
     }
 

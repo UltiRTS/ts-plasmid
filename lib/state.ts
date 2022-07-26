@@ -68,12 +68,19 @@ export class State {
     }
 
     async assignChat(roomName: string, chat: ChatRoom) {
+        console.log('state assign: ', chat);
         this.chats[roomName].entity = chat;
-        for(const username in this.chats[roomName].entity.members) {
-            const user = this.getUser(username);
-            if(!user) continue;
 
-            this.lockUser(username);
+        console.log(chat.members);
+        for(const username of this.chats[roomName].entity.members) {
+            const user = this.getUser(username);
+            console.log(`user ${username}: `, user);
+            if(!user) {
+                console.log("user not found, can't assign");
+                continue;
+            }
+
+            await this.lockUser(username);
             user.assignChat(chat);
             this.releaseUser(username);
         }
@@ -113,7 +120,7 @@ export class State {
     }
 
     async assignUser(username: string, user: User) {
-        this.lockUser(username);
+        await this.lockUser(username);
         this.users[username].entity = user;
         this.releaseUser(username);
     }
@@ -139,13 +146,13 @@ export class State {
         }
     }
 
-    assignGame(roomName: string, game: GameRoom) {
+    async assignGame(roomName: string, game: GameRoom) {
         this.rooms[roomName].entity = game;
         for(const username in this.rooms[roomName].entity.players) {
             const user = this.getUser(username);
             if(!user) continue;
 
-            this.lockUser(username);
+            await this.lockUser(username);
             user.game = game;
             this.releaseUser(username);
         }
@@ -177,13 +184,13 @@ export class State {
         return this.rooms[roomName].entity;
     }
 
-    removeGame(roomName: string) {
+    async removeGame(roomName: string) {
         const players = this.rooms[roomName].entity.players;
         for(const username in players) {
             const user = this.getUser(username);
             if(!user) continue;
 
-            this.lockUser(username);
+            await this.lockUser(username);
             user.game = null;
             this.releaseUser(username);
         }
@@ -196,7 +203,7 @@ export class State {
         if(this.users[user.username]) {
             console.log('acquiring lock');
             // const release = await this.users[user.username].mutex.acquire()
-            this.lockUser(user.username);
+            await this.lockUser(user.username);
             console.log('lock acquired');
             const u = this.users[user.username];
             const game = u.entity.game

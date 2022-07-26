@@ -181,11 +181,11 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
 
                     AppDataSource.manager.transaction(async (txEntityManager) => {
-                        txEntityManager.save(chatMessage).then((chat) => {
-                            console.log(`save successfully ${chat}`);
-                        }).catch((e) => {
-                            console.log(`chat save failed with ${e}`)
-                        })
+                        try {
+                            await txEntityManager.save(chatMessage)
+                        } catch(e) {
+                            console.log('msg save failed: ', e)
+                        }
                     })
                     chat.lastMessage = {
                         author: chatMessage.author.username,

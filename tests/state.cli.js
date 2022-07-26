@@ -29,7 +29,13 @@ const main = async () => {
                 break;
             }
             case 'GAMESTARTED': {
-                console.log(jsonData.state.user.game);
+                console.log(jsonData.state);
+                break;
+            }
+            case 'SAYCHAT': {
+                for(const room in jsonData.state.user.chatRooms) {
+                    console.log(jsonData.state.user.chatRooms[room]);
+                }
                 break;
             }
         }

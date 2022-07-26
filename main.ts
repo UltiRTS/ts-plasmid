@@ -75,10 +75,8 @@ for(let i=0; i<4; i++) {
                         if(user!==null) {
                             stateChatRoom.join(user);
                             // may be problematic due to race
-                            user.assignChat(stateChatRoom);
-                            state.assignUser(user.username, user);
-
-                            await state.addChat(stateChatRoom);
+                            state.addChat(stateChatRoom);
+                            await state.assignChat(stateChatRoom.roomName, stateChatRoom);
                             console.log(stateChatRoom)
 
                             network.emit('postMessage', seq2respond[msg.seq], {
@@ -103,9 +101,6 @@ for(let i=0; i<4; i++) {
                         const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                         if(user !== null) {
                             stateChatRoom.join(user);
-                            user.assignChat(stateChatRoom);
-                            state.assignUser(user.username, user);
-
                             await state.assignChat(stateChatRoom.roomName, stateChatRoom);
                             console.log(stateChatRoom)
                             network.emit('postMessage', seq2respond[msg.seq], {
@@ -139,9 +134,7 @@ for(let i=0; i<4; i++) {
                 }
                 if(msg.status) {
                     await state.assignChat(chat.roomName, chat);
-                    user.assignChat(chat);
-                    console.log(chat)
-                    console.log(chat.lastMessage)
+                    console.log('main: ', chat)
 
                     for(const member of chat.members) {
                         network.emit('postMessage', username2clientID[member], {
@@ -163,9 +156,8 @@ for(let i=0; i<4; i++) {
             case 'LEAVECHAT': {
                 if(msg.status) {
                     const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
-                    const user: User = Object.assign(new User(msg.payload.user), msg.payload.user);
+                    const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
 
-                    await state.assignUser(user.username, user);
                     await state.assignChat(chat.roomName, chat);
                     console.log(chat)
                     
@@ -173,11 +165,17 @@ for(let i=0; i<4; i++) {
                         await state.removeChat(chat.roomName)
                     }
 
-                    network.emit('postMessage', seq2respond[msg.seq], {
-                        action: 'LEAVECHAT',
-                        seq: msg.seq,
-                        state: state.dump(clientID2username[seq2respond[msg.seq]])
-                    })
+                    const members = chat.members;
+                    if(user !== null) members.push(user.username);
+
+                    for(const member of chat.members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'LEAVECHAT',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+
                     state.releaseChat(chat.roomName);
                 } else {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -207,8 +205,7 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     if(actionType === 'CREATE') {
                         state.addGame(game);
-                        user.assignGame(game);
-                        state.assignUser(user.username, user);
+                        await state.assignGame(game.title, game);
                         network.emit('postMessage', seq2respond[msg.seq], {
                             action: 'JOINGAME',
                             seq: msg.seq,
@@ -224,9 +221,7 @@ for(let i=0; i<4; i++) {
                         }
                     } else if(actionType === 'JOIN') {
                         console.log(`user ${user.username} joining game ${game.title}`)
-                        state.assignGame(game.title, game);
-                        user.assignGame(game);
-                        state.assignUser(user.username, user);
+                        await state.assignGame(game.title, game);
                         network.emit('postMessage', seq2respond[msg.seq], {
                             action: 'JOINGAME',
                             seq: msg.seq,
@@ -264,8 +259,7 @@ for(let i=0; i<4; i++) {
                 }
                 console.log(game)
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
 
                     const members = Object.keys(game.players); 
                     for(const member of members) {
@@ -299,8 +293,7 @@ for(let i=0; i<4; i++) {
                 }
                 console.log(game)
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
 
                     const members = Object.keys(game.players);
                     for(const member of members) {
@@ -335,8 +328,7 @@ for(let i=0; i<4; i++) {
                 console.log(game)
                 const members = Object.keys(game.players);
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETTEAM',
@@ -367,8 +359,7 @@ for(let i=0; i<4; i++) {
                     break;
                 }
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
                     const members = Object.keys(game.players);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
@@ -403,8 +394,7 @@ for(let i=0; i<4; i++) {
                 console.log(game)
                 const members = Object.keys(game.players);
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETMAP',
@@ -435,8 +425,7 @@ for(let i=0; i<4; i++) {
                     break;
                 }
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
                     console.log('assinged game in hasmap: ', user.game);
                     const members = Object.keys(game.players);
                     for(const member of members) {
@@ -472,8 +461,7 @@ for(let i=0; i<4; i++) {
                 }
 
                 if(msg.status) {
-                    state.assignGame(game.title, game);
-                    user.assignGame(game);
+                    await state.assignGame(game.title, game);
 
                     const members = Object.keys(game.players);
                     for(const member of members) {
