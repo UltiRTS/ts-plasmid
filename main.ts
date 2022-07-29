@@ -492,7 +492,6 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'LEAVEGAME': {
-                console.log('leaving game');
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
@@ -854,12 +853,8 @@ autohostMgr.on('gameStarted', (startedInfo: {
             game.responsibleAutohost = startedInfo.payload.autohost;
         }
         game.autohostPort = startedInfo.payload.port;
-        console.log(startedInfo.payload.port)
         state.assignGame(startedInfo.gameName, game);
-        console.log(state.getGame(startedInfo.gameName))
-        console.log(game)
         for(const user in game.players) {
-            console.log('sending gameStarted event to user: ' + user)
             network.emit('postMessage', username2clientID[user], { 
                 action: 'GAMESTARTED',
                 seq: -1,
@@ -877,7 +872,7 @@ autohostMgr.on('gameEnded', (roomName: string) => {
         state.lockGame(roomName);
         game.isStarted = false;
         // game.responsibleAutohost = '';
-        game.autohostPort = 0;
+        // game.autohostPort = 0;
         state.assignGame(roomName, game);
         for(const user in game.players) {
             network.emit('postMessage', username2clientID[user], { 

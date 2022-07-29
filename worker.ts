@@ -261,6 +261,18 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 })
                 break;
             }
+            if(user.game !== null) {
+                parentPort?.postMessage({
+                    receiptOf: 'JOINGAME',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'already in game',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
             if(game === null) {
                 const {gameName, mapId, password} = msg.parameters;
                 const {roomID, autohost} = msg.payload;
@@ -279,6 +291,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             } else {
+
                 if(user.username in game.players) {
                     parentPort?.postMessage({
                         receiptOf: 'JOINGAME',

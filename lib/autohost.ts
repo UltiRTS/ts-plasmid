@@ -61,9 +61,11 @@ export class AutohostManager extends EventEmitter {
             ws.on('message', (data, _) => {
                 // parse messages from autohost
                 const msg = JSON.parse(data.toString()) as AutohostResponse
-                console.log(msg);
+                console.log(`autohost msg: ${JSON.stringify(msg)}`)
                 if(msg.action === 'serverStarted') {
                     console.log('server started by autohost')
+                } else if(msg.action === 'serverEnding') {
+                    console.log('server ended by autohost')
                 }
 
                 switch(msg.action) {
