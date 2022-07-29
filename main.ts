@@ -143,6 +143,9 @@ for(let i=0; i<4; i++) {
                             state: state.dump(member)
                         })
                     }
+                    chat.lastMessage.content = '';
+                    chat.lastMessage.author = '';
+                    await state.assignChat(chat.roomName, chat);
                 } else {
                     network.emit('postMessage', seq2respond[msg.seq], {
                         action: 'NOTIFY',
@@ -512,6 +515,9 @@ for(let i=0; i<4; i++) {
                 }
 
                 if(msg.status) {
+                    user.game = null;
+                    await state.assignUser(user.username, user);
+
                     if(msg.payload.dismiss) {
                         const members = Object.keys(game.players);
                         members.push(clientID2username[seq2respond[msg.seq]]);
@@ -524,8 +530,6 @@ for(let i=0; i<4; i++) {
                             })
                         }
                     } else {
-                        state.assignGame(game.title, game);
-                        user.game = null;
                         const members = Object.keys(game.players);
                         members.push(clientID2username[seq2respond[msg.seq]]);
                         for(const member of members) {

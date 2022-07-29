@@ -62,6 +62,9 @@ export class AutohostManager extends EventEmitter {
                 // parse messages from autohost
                 const msg = JSON.parse(data.toString()) as AutohostResponse
                 console.log(msg);
+                if(msg.action === 'serverStarted') {
+                    console.log('server started by autohost')
+                }
 
                 switch(msg.action) {
                     case 'serverStarted': {
@@ -75,7 +78,6 @@ export class AutohostManager extends EventEmitter {
                                     port: msg.parameters.port
                                 }
                             })
-                            console.log('server started, from in autohost.ts')
                         } 
                         break;
                     }
