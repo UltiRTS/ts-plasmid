@@ -738,6 +738,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             delete game.players[user.username]
             if(Object.keys(game.players).length === 0) {
+                console.log('dimissing');
                 parentPort?.postMessage({
                     receiptOf: 'LEAVEGAME',
                     status: true,
@@ -749,6 +750,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             } else {
+                console.log('exiting');
                 if(game.players[game.hoster] === undefined) {
                     game.hoster = Object.keys(game.players)[0]
                 }

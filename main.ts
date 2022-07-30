@@ -520,7 +520,7 @@ for(let i=0; i<4; i++) {
                     if(msg.payload.dismiss) {
                         const members = Object.keys(game.players);
                         members.push(clientID2username[seq2respond[msg.seq]]);
-                        state.removeGame(game.title);                   
+                        await state.removeGame(game.title);                   
                         for(const member of members) {
                             network.emit('postMessage', username2clientID[member], {
                                 action: 'LEAVEGAME',
