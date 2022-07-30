@@ -531,6 +531,7 @@ for(let i=0; i<4; i++) {
                     } else {
                         const members = Object.keys(game.players);
                         members.push(clientID2username[seq2respond[msg.seq]]);
+                        await state.assignGame(game.title, game);
                         for(const member of members) {
                             network.emit('postMessage', username2clientID[member], {
                                 action: 'LEAVEGAME',
