@@ -33,7 +33,8 @@ export class AutohostManager extends EventEmitter {
         if(allowedAutohost) this.allowedAutohosts = allowedAutohost;
         console.log(`autohosts allowed: ${this.allowedAutohosts.join(', ')}`)
         this.server = new WebSocketServer({
-            port: config?.port || 9000
+            port: config?.port || 9000,
+            host: '0.0.0.0'
         })
 
         this.server.on('error', (err) => {
