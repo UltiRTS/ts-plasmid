@@ -887,3 +887,21 @@ autohostMgr.on('gameEnded', (roomName: string) => {
         console.log("locked?: ", state.rooms[roomName].mutex.isLocked());
     }
 })
+
+autohostMgr.on('workerExists', (roomName: string) => {
+    const game = state.getGame(roomName);
+    if(game) {
+        state.lockGame(roomName);
+        game.isStarted = true;
+        state.assignGame(roomName, game);
+        for(const user in game.players) {
+            network.emit('postMessage', username2clientID[user], { 
+                action: 'WORKEREXISTS',
+                seq: -1,
+                state: state.dump(user),
+            })
+        }
+
+        state.releaseGame(roomName);
+    }
+})

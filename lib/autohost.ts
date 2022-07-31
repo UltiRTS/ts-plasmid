@@ -91,6 +91,12 @@ export class AutohostManager extends EventEmitter {
                         }
                         break;
                     }
+                    case 'workerExists': {
+                        if(msg.parameters.title) {
+                            this.emit('workerExists', msg.parameters.title)
+                        }
+                        break;
+                    }
                     case 'info': {
                         console.log(msg.parameters.info)
                         break;
