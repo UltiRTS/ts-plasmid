@@ -27,14 +27,33 @@ export class Network extends EventEmitter {
 
         this.server.on('connection', (ws, req) => {
             let clientID = randomString(16);
+            let pingPongCount = 0;
             while(clientID in this.clients) {
                 clientID = randomString(16);
             }
 
             this.clients[clientID] = ws;
-            
+
+            setInterval(() => {
+                if(pingPongCount > 3) {
+                    ws.terminate();
+                }
+                pingPongCount++;
+                ws.send(JSON.stringify({
+                    action: 'PING',
+                    parameters: {},
+                }));
+            }, 3000);
+
             ws.on('message', (msg) => {
-                this.emit('message', clientID, JSON.parse(msg.toString()));
+                const data = JSON.parse(msg.toString());
+                switch(data.action) {
+                    case 'PONG':
+                        pingPongCount = 0;
+                        break;
+                    default: 
+                        this.emit('message', clientID, data);
+                }
             })
 
             ws.on('close', (ws: WebSocket, code: number) => {
