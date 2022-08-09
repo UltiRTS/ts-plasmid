@@ -34,9 +34,10 @@ export class Network extends EventEmitter {
 
             this.clients[clientID] = ws;
 
-            setInterval(() => {
+            let pingPongInterval = setInterval(() => {
                 if(pingPongCount > 3) {
                     ws.terminate();
+                    clearInterval(pingPongInterval);
                 }
                 pingPongCount++;
                 ws.send(JSON.stringify({
