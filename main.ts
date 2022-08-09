@@ -122,7 +122,7 @@ for(let i=0; i<4; i++) {
             }
             case 'SAYCHAT': {
                 console.log(msg.payload.chat);
-                const chat: ChatRoom = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
+                let chat = msg.payload.chat;
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
                 if(user === null) {
                     network.emit('postMessage', seq2respond[msg.seq], {
@@ -133,6 +133,7 @@ for(let i=0; i<4; i++) {
                     break;
                 }
                 if(msg.status) {
+                    chat = Object.assign(new ChatRoom(msg.payload.chat), msg.payload.chat);
                     await state.assignChat(chat.roomName, chat);
                     console.log('main: ', chat)
 
@@ -153,7 +154,7 @@ for(let i=0; i<4; i++) {
                         message: msg.message,
                     })
                 }
-                state.releaseChat(chat.roomName);
+                if(chat) state.releaseChat(chat.roomName);
                 break;
             }
             case 'LEAVECHAT': {
