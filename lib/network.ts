@@ -59,6 +59,7 @@ export class Network extends EventEmitter {
 
             ws.on('close', (ws: WebSocket, code: number) => {
                 this.emit('clean', clientID);
+                clearInterval(pingPongInterval);
                 delete this.clients[clientID];
 
                 console.log(`Client ${clientID} disconnected with code ${code}`);
