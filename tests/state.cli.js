@@ -3,14 +3,9 @@ const { randomInt } = require('crypto');
 const readline = require('node:readline')
 const {stdin, stdout} = require('node:process');
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
-const main = async () => {
-    const rl = readline.createInterface({
-        input: stdin,
-        output: stdout
-    })
-    let opened = false;
-
+let pingEnabled = false;
+let opened = false;
+const wsInit = () => {
     const ws = new WebSocket('ws://localhost:8081');
     ws.on('open', () => {
         opened = true;
@@ -18,7 +13,7 @@ const main = async () => {
 
     ws.on('message', (data) => {
         const jsonData = JSON.parse(data);
-        console.log(jsonData)
+        if(jsonData.action !== 'PING') console.log(jsonData)
         switch(jsonData.action) {
             case 'LEAVECHAT': {
                 console.log(jsonData.state.user.chatRooms);
@@ -38,6 +33,15 @@ const main = async () => {
                 }
                 break;
             }
+            case 'PING': {
+                if(pingEnabled) {
+                    ws.send(JSON.stringify({
+                        action: 'PONG',
+                        parameters: {}
+                    }))
+                }
+                break;
+            }
         }
     });
 
@@ -45,6 +49,16 @@ const main = async () => {
         opened = false;
         console.log('closed')
     })
+
+    return ws;
+}
+const main = async () => {
+    const rl = readline.createInterface({
+        input: stdin,
+        output: stdout
+    })
+    let ws = wsInit();
+
 
     const help = "type help to get help\n supporting commands\n"
         + "login <username> <password>\n"
@@ -58,12 +72,16 @@ const main = async () => {
             continue;
         }
 
+
+        let cmd = line.split(' ');
+        if(cmd[0] == 'reconnect') {
+            ws = wsInit();
+        }
+
         if(!opened) {
             console.log('not connected to server')
             continue;
         }
-
-        let cmd = line.split(' ');
         switch(cmd[0]) {
             case 'login': {
                 let username = cmd[1];
@@ -245,6 +263,14 @@ const main = async () => {
                     parameters: {},
                     seq: randomInt(0, 1000000)
                 }))
+                break;
+            }
+            case 'enableping': {
+                pingEnabled = true;
+                break;
+            }
+            case 'disableping': {
+                pingEnabled = false;
                 break;
             }
         }
