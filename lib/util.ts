@@ -15,6 +15,7 @@ export const CMD_PARAMETERS = {
     'STARTGAME': [],
     'HASMAP': ['mapId'],
     'SETSPEC': ['gameName', 'player'],
+    'MIDJOIN': [],
 }
 
 

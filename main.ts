@@ -249,6 +249,30 @@ for(let i=0; i<4; i++) {
                 if(game) state.releaseGame(game.title);
                 break;
             }
+            case 'MIDJOIN': {
+                if(msg.status) {
+                    const {title, playerName, token, isSpec, team, id} = msg.payload;
+                    autohostMgr.midJoin(title, {
+                        playerName,
+                        token,
+                        isSpec,
+                        team,
+                        id,
+                    });
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'MIDJOIN',
+                        seq: msg.seq,
+                        state: state.dump(clientID2username[seq2respond[msg.seq]])
+                    })
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                break;
+            }
             case 'SETAI': {
                 const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
                 const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
@@ -698,6 +722,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             worker.postMessage(msg);
             break;
         }
+        case 'MIDJOIN': {
+            const user = state.getUser(clientID2username[clientId]);
+            const game = user?.game
+            
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user
+            }
+            worker.postMessage(msg);
+
+            break;
+
+        }
         case 'SETAI': {
             const game = state.getGame(msg.parameters.gameName);
             const user = state.getUser(clientID2username[clientId]);
@@ -904,5 +943,19 @@ autohostMgr.on('workerExists', (roomName: string) => {
         }
 
         state.releaseGame(roomName);
+    }
+})
+
+autohostMgr.on('midJoined', (param: {
+    title: string
+    player: string
+}) => {
+    const user = state.getUser(param.player);
+    if(user) {
+        network.emit('postMessage', username2clientID[param.player], {
+            action: 'MIDJOINED',
+            seq: -1,
+            state: state.dump(user.username),
+        })
     }
 })

@@ -20,7 +20,7 @@ export class AutohostManager extends EventEmitter {
         ws: WebSocket,
         workload: number
     }} = {}
-    hostedGames: {[key: string]: {hosted: boolean, error: string}} = {}
+    hostedGames: {[key: string]: {hosted: boolean, error: string, ws: WebSocket | null}} = {}
 
     constructor(allowedAutohost?: string[], 
         config?: {
@@ -97,6 +97,12 @@ export class AutohostManager extends EventEmitter {
                         }
                         break;
                     }
+                    case 'midJoined': {
+                        if(msg.parameters.title) {
+                            this.emit('midJoined', msg.parameters)
+                        }
+                        break;
+                    }
                     case 'info': {
                         console.log(msg.parameters.info)
                         break;
@@ -123,11 +129,13 @@ export class AutohostManager extends EventEmitter {
         console.log(`game ${gameConf.title} starting`)
         this.hostedGames[gameConf.title] = {
             hosted: false,
-            error: ''
+            error: '',
+            ws: null
         }
 
         if(gameConf.mgr in this.clients) {
             this.clients[gameConf.mgr].workload += 1
+            this.hostedGames[gameConf.title].ws = this.clients[gameConf.mgr].ws
             this.clients[gameConf.mgr].ws.send(JSON.stringify({
                 action: 'startGame', 
                 parameters: gameConf
@@ -139,7 +147,23 @@ export class AutohostManager extends EventEmitter {
         }
 
     }
-    midJoin() {}
+    midJoin(title: string, params: {
+        playerName: string
+        isSpec: boolean
+        token: string
+        team: string
+        id: number
+    }) {
+        if(this.hostedGames[title].hosted) {
+            this.hostedGames[title].ws?.send(JSON.stringify({
+                action: 'midJoin',
+                parameters: {
+                    ...params,
+                    title
+                }
+            }))
+        }
+    }
 
     loadBalance() {
         const workloadsPairs = Object.entries(this.clients)

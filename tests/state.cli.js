@@ -273,6 +273,14 @@ const main = async () => {
                 pingEnabled = false;
                 break;
             }
+            case 'midjoin': {
+                ws.send(JSON.stringify({
+                    action: 'MIDJOIN',
+                    parameters: {},
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

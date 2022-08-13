@@ -323,6 +323,42 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             }
             break;
         }
+        case 'MIDJOIN': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+            if(user === null || game === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'MIDJOIN',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const playerName = user.username
+            const token = game.engineToken
+            const isSpec = game.players[playerName].isSpec
+            const team = game.players[playerName].team
+
+            parentPort?.postMessage({
+                receiptOf: 'MIDJOIN',
+                status: true,
+                seq: msg.seq,
+                message: 'mid join request sent',
+                payload: {
+                    id: game.id,
+                    title: game.title,
+                    playerName,
+                    token,
+                    isSpec,
+                    team,
+                }
+            })
+
+            break;
+        }
         case 'SETAI': {
             const game: GameRoom = msg.payload.game;
             const user: StateUser = msg.payload.user;
