@@ -200,6 +200,13 @@ export class State {
 
     async garbageCollect(user: User) {
         console.log(`garbageCollect: ${user.username}`);
+        const res: {
+            username: string
+            users2notify: string[]
+        } = {
+            username: user.username,
+            users2notify: []
+        }
         if(this.users[user.username]) {
             console.log('acquiring lock');
             // const release = await this.users[user.username].mutex.acquire()
@@ -238,7 +245,13 @@ export class State {
             this.releaseUser(user.username);
 
             delete this.users[user.username];
+
+
+            if(game) {
+                res.users2notify = Object.keys(game.players).filter(p => p !== user.username);
+            }
         }
+        return res;
     }
 
     gameExists(roomName: string) {

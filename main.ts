@@ -250,6 +250,7 @@ for(let i=0; i<4; i++) {
                 break;
             }
             case 'MIDJOIN': {
+                console.log('receiving midjoin, returning');
                 if(msg.status) {
                     const {title, playerName, token, isSpec, team, id} = msg.payload;
                     autohostMgr.midJoin(title, {
@@ -857,10 +858,19 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
     }
 })
 
-network.on('clean', (clientID: string) => {
+network.on('clean', async (clientID: string) => {
     const user = state.getUser(clientID2username[clientID])
     // console.log(`${user?.username} disconnected, preparing for cleaning`)
-    if(user) state.garbageCollect(user)
+    if(user) {
+       const gcRes = await state.garbageCollect(user) 
+       for(const player of gcRes.users2notify) {
+        network.emit('postMessage', username2clientID[player], {
+            action: 'DISCONNECT',
+            seq: -1,
+            state: state.dump(player)
+        })
+       }
+    }
 
     delete clientID2username[clientID];
     if(user) delete username2clientID[user?.username];
@@ -951,8 +961,9 @@ autohostMgr.on('midJoined', (param: {
     player: string
 }) => {
     const user = state.getUser(param.player);
+    console.log('midjoin: ', user);
     if(user) {
-        network.emit('postMessage', username2clientID[param.player], {
+        network.emit('postMessage', username2clientID[user.username], {
             action: 'MIDJOINED',
             seq: -1,
             state: state.dump(user.username),
