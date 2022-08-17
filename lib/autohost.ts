@@ -108,7 +108,9 @@ export class AutohostManager extends EventEmitter {
                         break;
                     }
                     default: {
+                        this.emit('message', msg);
                         console.log(`autohost ${autohostIP} sent unknown message: ${msg.action}`)
+                        break;
                     }
                 }
 
@@ -179,4 +181,19 @@ export class AutohostManager extends EventEmitter {
         else return null
     }
 
+    killEngine(params: {
+        id: number
+        title: string
+    }) {
+        if(this.hostedGames[params.title].hosted) {
+            this.hostedGames[params.title].ws?.send(JSON.stringify({
+                action: 'killEngine',
+                parameters: params
+            }))
+            return true;
+        } else {
+            console.log(`game ${params.title} not hosted`)
+            return false;
+        }
+    }
 }

@@ -16,6 +16,7 @@ export const CMD_PARAMETERS = {
     'HASMAP': ['mapId'],
     'SETSPEC': ['gameName', 'player'],
     'MIDJOIN': [],
+    'KILLENGINE': [],
 }
 
 

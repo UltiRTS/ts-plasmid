@@ -804,5 +804,36 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+        case 'KILLENGINE': {
+            const game: GameRoom = msg.payload.game;
+            const user: StateUser = msg.payload.user;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'KILLENGINE',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game,
+                    }
+                })
+                break;
+            }
+
+            if(game.hoster === user.username) {
+                parentPort?.postMessage({
+                    receiptOf: 'KILLENGINE',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'engine killed',
+                    payload: {
+                        game,
+                        dismiss: true
+                    }
+                })
+            }
+            break;
+        }
     }
 })

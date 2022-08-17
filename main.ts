@@ -575,6 +575,43 @@ for(let i=0; i<4; i++) {
                 }
                 break;
             }
+            case 'KILLENGINE': {
+                const game = msg.payload.game; 
+                if(msg.status) {
+                    if(!game) {
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'NOTIFY',
+                            seq: msg.seq,
+                            message: 'Game may be dismissed',
+                        })
+                        break;
+                    }
+                    const res = autohostMgr.killEngine({
+                        id: game.id,
+                        title: game.title
+                    });
+                    if(res) {
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'KILLENGINE',
+                            seq: msg.seq,
+                            state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        })
+                    } else {
+                        network.emit('postMessage', seq2respond[msg.seq], {
+                            action: 'NOTIFY',
+                            seq: msg.seq,
+                            message: 'Autohost maybe not running',
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                break;
+            }
         }
         delete seq2respond[msg.seq];
     })
@@ -855,6 +892,18 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             worker.postMessage(msg);
             break;
         }
+        case 'KILLENGINE': {
+            const user = state.getUser(clientID2username[clientId]);
+            const game = user?.game
+
+            msg.payload = {
+                game,
+                user
+            }
+
+            worker.postMessage(msg);
+            break;
+        }
     }
 })
 
@@ -968,5 +1017,24 @@ autohostMgr.on('midJoined', (param: {
             seq: -1,
             state: state.dump(user.username),
         })
+    }
+})
+
+autohostMgr.on('message', (msg: {
+    action: string
+    parameters: {
+        id: number
+        title: string
+    }
+}) => {
+    const game = state.getGame(msg.parameters.title);
+    if(game) {
+        for(const user in game.players) {
+            network.emit('postMessage', username2clientID[user], { 
+                action: msg.action,
+                seq: -1,
+                state: state.dump(user),
+            })
+        }
     }
 })

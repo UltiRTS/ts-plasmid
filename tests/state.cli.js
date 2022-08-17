@@ -281,6 +281,14 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'killEngine': {
+                ws.send(JSON.stringify({
+                    action: 'KILLENGINE',
+                    parameters: {},
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 
