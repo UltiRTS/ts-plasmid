@@ -545,18 +545,18 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             const {player} = msg.parameters;
             const poll = 'SETSPEC ' + player;
 
-            if(player == game.hoster) {
-                parentPort?.postMessage({
-                    receiptOf: 'SETSPEC',
-                    status: false,
-                    seq: msg.seq,
-                    message: "can't set hoster ast spect",
-                    payload: {
-                        game
-                    }
-                })
-                break;
-            }
+            // if(player == game.hoster) {
+            //     parentPort?.postMessage({
+            //         receiptOf: 'SETSPEC',
+            //         status: false,
+            //         seq: msg.seq,
+            //         message: "can't set hoster ast spect",
+            //         payload: {
+            //             game
+            //         }
+            //     })
+            //     break;
+            // }
             if(user.username === game.hoster || player === user.username) {
                 game.players[player].isSpec = true
                 delete game.polls[poll]
