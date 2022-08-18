@@ -210,11 +210,11 @@ for(let i=0; i<4; i++) {
                     if(actionType === 'CREATE') {
                         state.addGame(game);
                         await state.assignGame(game.title, game);
-                        network.emit('postMessage', seq2respond[msg.seq], {
-                            action: 'JOINGAME',
-                            seq: msg.seq,
-                            state: state.dump(clientID2username[seq2respond[msg.seq]])
-                        })
+                        // network.emit('postMessage', seq2respond[msg.seq], {
+                        //     action: 'JOINGAME',
+                        //     seq: msg.seq,
+                        //     state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        // })
 
                         for(const username of Object.keys(username2clientID)) {
                             network.emit('postMessage', username2clientID[username], {
@@ -226,11 +226,20 @@ for(let i=0; i<4; i++) {
                     } else if(actionType === 'JOIN') {
                         console.log(`user ${user.username} joining game ${game.title}`)
                         await state.assignGame(game.title, game);
-                        network.emit('postMessage', seq2respond[msg.seq], {
-                            action: 'JOINGAME',
-                            seq: msg.seq,
-                            state: state.dump(clientID2username[seq2respond[msg.seq]])
-                        })
+                        // network.emit('postMessage', seq2respond[msg.seq], {
+                        //     action: 'JOINGAME',
+                        //     seq: msg.seq,
+                        //     state: state.dump(clientID2username[seq2respond[msg.seq]])
+                        // })
+
+                        const players = Object.keys(game.players);
+                        for(const player of players) {
+                            network.emit('postMessage', username2clientID[player], {
+                                action: 'JOINGAME',
+                                seq: msg.seq,
+                                state: state.dump(player)
+                            })
+                        }
                     } else {
                         console.log('unknown action type')
                         network.emit('postMessage', seq2respond[msg.seq], {
