@@ -17,6 +17,7 @@ export const CMD_PARAMETERS = {
     'SETSPEC': ['gameName', 'player'],
     'MIDJOIN': [],
     'KILLENGINE': [],
+    'ADDFRIEND': ['friendName'],
 }
 
 

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable} from "typeorm"
 import { Confirmation } from "./confirmation"
 import { Chat } from "./chat"
 import crypto from 'crypto'
@@ -8,7 +8,7 @@ export class User {
     @PrimaryGeneratedColumn()
     id: number
 
-    @Column()
+    @Column('varchar', {unique: true})
     username: string
 
     @Column()
@@ -34,6 +34,10 @@ export class User {
 
     @OneToMany(() => Chat, (chat) => chat.author)
     chats: Chat[]
+
+    @ManyToMany(() => User, (user) => user.id)
+    @JoinTable()
+    friends: User[]
 
 
     static saltNhash(password: string) {

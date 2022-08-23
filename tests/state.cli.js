@@ -289,6 +289,18 @@ const main = async () => {
                 }))
                 break;
             }
+
+            case 'addFriend': {
+                const friendName = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'ADDFRIEND',
+                    parameters: {
+                        friendName 
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import { Chat as DBChat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import {User as StateUser} from './lib/states/user';
 import {ChatRoom as StateChatRoom} from './lib/states/chat';
 import {GameRoom} from './lib/states/room';
+import { Confirmation } from "./db/models/confirmation";
 
 let dbInitialized = false;
 
@@ -28,6 +29,9 @@ AppDataSource.initialize().then(() => {
     console.log(e)
 })
 
+const userRepo = AppDataSource.getRepository(User);
+const confirmRepo = AppDataSource.getRepository(Confirmation);
+
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
     if(!dbInitialized) {
@@ -40,33 +44,66 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             const { username, password } = msg.parameters;
 
             let user = await AppDataSource
-                .getRepository(User)
-                .findOneBy({
-                    username: username
+                .getRepository(User).findOne({
+                    where: {
+                        username: username
+                    },
+                    relations: {
+                        confirmations: true
+                    }
                 })
+
+                // console.log(user);
+                // .findOneBy({
+                //     username: username
+                // })
             
             if(user === null) {
-                user = new User()
-                user.username = username
                 const {salt, hash} = User.saltNhash(password)
-                user.salt = salt
-                user.hash = hash
-
-                await AppDataSource.manager.transaction(async (txEntityManager) => {
-                    await txEntityManager.save(user)
+                user = userRepo.create({
+                    salt,
+                    hash,
+                    username,
+                    confirmations: []
                 })
 
-                const receipt: Receipt = {
-                    receiptOf: 'LOGIN',
-                    status: true,
-                    seq: msg.seq,
-                    message: 'register successfully',
-                    payload: {
-                        user: user
+                try {
+                    await userRepo.save(user);
+                    const receipt: Receipt = {
+                        receiptOf: 'LOGIN',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'register successfully',
+                        payload: {
+                            user: user
+                        }
                     }
-                }
 
-                toParent(receipt)
+                    toParent(receipt)
+                } catch(e) {
+                    const receipt: Receipt = {
+                        receiptOf: 'LOGIN',
+                        status: false,
+                        seq: msg.seq,
+                        message: 'maybe username is taken',
+                        payload: {
+                            user: user
+                        }
+                    }
+
+                    toParent(receipt)
+                    
+                    break;
+                }
+                // user = new User()
+                // user.username = username
+                // user.salt = salt
+                // user.hash = hash
+
+                // await AppDataSource.manager.transaction(async (txEntityManager) => {
+                //     await txEntityManager.save(user)
+                // })
+
             } else {
                 if(user.verify(password)) {
                     const receipt: Receipt = {
@@ -834,6 +871,77 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             }
+            break;
+        }
+        case 'ADDFRIEND': {
+            const friendName = msg.parameters.friendName;
+            const user = msg.payload.user;
+
+            if(user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'ADDFRIEND',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const friend2add = await userRepo.findOne({
+                where: {
+                    username: friendName
+                },
+                relations: {
+                    confirmations: true
+                }
+            })
+
+            if(friend2add === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'ADDFRIEND',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'friend not found',
+                    payload: {}
+                })
+                break;
+            }
+
+            const confirmContent = {
+                type: 'friend',
+                targetVal: user.username,
+            }
+
+            let confirmation = new Confirmation();
+            confirmation.payload = JSON.stringify(confirmContent);
+            confirmation.claimed = false;
+            confirmation.text = `${user.username} has requested to be your friend`,
+            confirmation.type = 'friend';
+            confirmation.user = friend2add;
+
+            friend2add.confirmations = [...friend2add.confirmations, confirmation];
+
+            userRepo.save(friend2add).then((u)=> {
+                console.log(`added one friend request to ${u.username}`);
+            }).catch((reason) => {
+                console.log(`friend confirmation added failed ${reason}`);
+            })
+
+            confirmRepo.save(confirmation).then(cfm => {
+                console.log('confirm saved');
+            }).catch((reason) => {
+                console.log(`confirmation added failed ${reason}`);
+            })
+
+            parentPort?.postMessage({
+                    receiptOf: 'ADDFRIEND',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'friend request added',
+                    payload: {}
+            })
+
             break;
         }
     }

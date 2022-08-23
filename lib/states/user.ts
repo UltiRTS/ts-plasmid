@@ -19,6 +19,7 @@ export class User extends DBUser {
         // clear sensitive fields
         this.hash = "";
         this.salt = "";
+        this.confirmations = user.confirmations;
     }
 
     getState() {
@@ -28,7 +29,8 @@ export class User extends DBUser {
             accessLevel: this.accessLevel,
             exp: this.exp,
             sanity: this.sanity,
-            blocked: this.blocked
+            blocked: this.blocked,
+            confiramations: this.confirmations
         }
     }
 

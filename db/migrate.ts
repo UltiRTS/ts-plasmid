@@ -29,6 +29,8 @@ const main = async () => {
 
     await AppDataSource.manager.save(user);
     await AppDataSource.manager.save(confirmation);
+
+    await AppDataSource.destroy();
 }
 
 main()

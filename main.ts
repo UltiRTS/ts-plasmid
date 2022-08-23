@@ -45,6 +45,7 @@ for(let i=0; i<4; i++) {
                 if(msg.status) {
                     const user: DBUser = msg.payload.user;
                     const stateUser = new User(user);
+                    console.log(stateUser);
                     clientID2username[seq2respond[msg.seq]] = user.username;
                     username2clientID[user.username] = seq2respond[msg.seq];
 
@@ -621,6 +622,24 @@ for(let i=0; i<4; i++) {
                 }
                 break;
             }
+
+            case 'ADDFRIEND': {
+                if(!msg.status) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message
+                    })
+                    break;
+                }
+
+                network.emit('postMessage', seq2respond[msg.seq], {
+                    action: 'ADDFRIEND',
+                    seq: msg.seq,
+                    state: state.dump(clientID2username[seq2respond[msg.seq]])
+                })
+                break;
+            }
         }
         delete seq2respond[msg.seq];
     })
@@ -911,6 +930,17 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             }
 
             worker.postMessage(msg);
+            break;
+        }
+        case 'ADDFRIEND': {
+            const user = state.getUser(clientID2username[clientId]);
+
+            msg.payload = {
+                user
+            }
+
+            worker.postMessage(msg);
+
             break;
         }
     }
