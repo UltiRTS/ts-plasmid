@@ -558,7 +558,8 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             //     break;
             // }
             if(user.username === game.hoster || player === user.username) {
-                game.players[player].isSpec = true
+                console.log('spec in worker', game.players);
+                game.players[player].isSpec = !game.players[player].isSpec
                 delete game.polls[poll]
                 parentPort?.postMessage({
                     receiptOf: 'SETSPEC',
@@ -574,7 +575,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                 game.polls[poll].add(user.username)
 
                 if(game.polls[poll].size > Object.keys(game.players).length / 2) {
-                    game.players[player].isSpec = true
+                    game.players[player].isSpec = !game.players[player].isSpec 
                     delete game.polls[poll]
                 }
                 parentPort?.postMessage({
