@@ -106,6 +106,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             } else {
                 if(user.verify(password)) {
+                    user.confirmations = user.confirmations.filter(item => !item.claimed);
                     const receipt: Receipt = {
                         receiptOf: 'LOGIN',
                         status: true,
@@ -942,6 +943,98 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     payload: {}
             })
 
+            break;
+        }
+        case 'CLAIMCONFIRM': {
+            const type = msg.parameters.type;
+            const confirmationId = msg.parameters.confirmationId;
+            const user: StateUser = msg.payload.user;
+
+            if(type === 'friend') {
+                const agree = msg.parameters.agree;
+                const confirmation = await confirmRepo.findOne({
+                    where: {
+                        id: confirmationId
+                    }
+                })
+                if(confirmation === null || agree === undefined) {
+                    parentPort?.postMessage({
+                            receiptOf: 'CLAIMCONFIRM',
+                            status: false,
+                            seq: msg.seq,
+                            message: 'confirmation not exists or agree is undefined',
+                            payload: {}
+                    })
+                    break;
+                }
+                confirmation.claimed = true;
+                confirmRepo.save(confirmation);
+                if(agree) {
+                    const payload: {
+                        targetVal: string
+                    } = JSON.parse(confirmation.payload);
+                    const friend2add = await userRepo.findOne({
+                        where: {
+                            username: payload.targetVal
+                        },
+                        relations: {
+                            friends: true
+                        }
+                    })
+
+                    if(friend2add === null) {
+                        parentPort?.postMessage({
+                                receiptOf: 'CLAIMCONFIRM',
+                                status: false,
+                                seq: msg.seq,
+                                message: 'your friend maybe deleted their account',
+                                payload: {}
+                        })
+                        break;
+                    }
+
+                    const db_user = await userRepo.findOne({
+                        where: {
+                            username: user.username
+                        },
+                        relations: {
+                            friends: true
+                        }
+                    })
+                    if(db_user === null) {
+                        parentPort?.postMessage({
+                                receiptOf: 'CLAIMCONFIRM',
+                                status: false,
+                                seq: msg.seq,
+                                message: 'you deleted ur own account?',
+                                payload: {}
+                        })
+                        break;
+                    }
+
+                    db_user.friends = [...db_user.friends, friend2add];
+                    friend2add.friends = [...friend2add.friends, db_user];
+
+                    userRepo.save(db_user);
+                    userRepo.save(friend2add);
+
+                    parentPort?.postMessage({
+                        receiptOf: 'CLAIMCONFIRM',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'friend added',
+                        payload: {}
+                    })
+                } else {
+                    parentPort?.postMessage({
+                        receiptOf: 'CLAIMCONFIRM',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'rejected add friend request',
+                        payload: {}
+                    })
+                }
+            }
             break;
         }
     }

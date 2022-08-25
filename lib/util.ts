@@ -18,6 +18,8 @@ export const CMD_PARAMETERS = {
     'MIDJOIN': [],
     'KILLENGINE': [],
     'ADDFRIEND': ['friendName'],
+    // friend - agree
+    'CLAIMCONFIRM': ['type', 'confirmationId']
 }
 
 

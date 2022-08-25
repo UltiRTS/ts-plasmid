@@ -301,6 +301,22 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'claim': {
+                const confirmationId = cmd[1];
+                const type = cmd[2];
+                const agree = cmd[3];
+
+                ws.send(JSON.stringify({
+                    action: 'CLAIMCONFIRM',
+                    parameters: {
+                        confirmationId,
+                        type,
+                        agree 
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 
