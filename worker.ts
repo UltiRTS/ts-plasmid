@@ -36,6 +36,11 @@ const confirmRepo = AppDataSource.getRepository(Confirmation);
 parentPort?.on('message', async (msg: IncommingMsg) => {
     if(!dbInitialized) {
         console.log("DB not initialized");
+        AppDataSource.initialize().then(() => {
+            dbInitialized = true;
+        }).catch(e => {
+            console.log('reinitialize failed');
+        })
         return;
     }
 
