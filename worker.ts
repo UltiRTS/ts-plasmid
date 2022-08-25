@@ -49,7 +49,8 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                         username: username
                     },
                     relations: {
-                        confirmations: true
+                        confirmations: true,
+                        friends: true
                     }
                 })
 
@@ -107,6 +108,10 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
             } else {
                 if(user.verify(password)) {
                     user.confirmations = user.confirmations.filter(item => !item.claimed);
+                    for(let i=0; i<user.friends.length; i++) {
+                        user.friends[i].hash = "";
+                        user.friends[i].salt = "";
+                    }
                     const receipt: Receipt = {
                         receiptOf: 'LOGIN',
                         status: true,

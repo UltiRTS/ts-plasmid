@@ -20,6 +20,7 @@ export class User extends DBUser {
         this.hash = "";
         this.salt = "";
         this.confirmations = user.confirmations;
+        this.friends = user.friends;
     }
 
     getState() {
