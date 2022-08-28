@@ -8,12 +8,16 @@ import {User} from './lib/states/user';
 import {User as DBUser} from './db/models/user';
 import { Chat, ChatRoom as DBChatRoom } from "./db/models/chat";
 import { ChatRoom } from "./lib/states/chat";
-import { fullfillParameters, CMD_PARAMETERS } from "./lib/util";
+import { fullfillParameters, CMD_PARAMETERS, getMods } from "./lib/util";
 import { GameRoom } from "./lib/states/room";
 import { AutohostManager } from "./lib/autohost";
 import { IncomingMessage } from "http";
 import { selfIP } from "./config";
 
+let mods: string[] = [];
+getMods().then(res => {
+    mods = res;
+})
 const state: State = new State();
 const workers: Worker[] = [];
 const network: Network = new Network(8081);
@@ -437,6 +441,39 @@ for(let i=0; i<4; i++) {
                     for(const member of members) {
                         network.emit('postMessage', username2clientID[member], {
                             action: 'SETMAP',
+                            seq: msg.seq,
+                            state: state.dump(member)
+                        })
+                    }
+                } else {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: msg.message,
+                    })
+                }
+                if(game) state.releaseGame(game.title);
+                break;
+            }
+            case 'SETMOD': {
+                const game: GameRoom = Object.assign(new GameRoom(), msg.payload.game);
+                const user = state.getUser(clientID2username[seq2respond[msg.seq]]);
+                if(user === null) {
+                    network.emit('postMessage', seq2respond[msg.seq], {
+                        action: 'NOTIFY',
+                        seq: msg.seq,
+                        message: 'User may be dismissed',
+                    })
+                    if(game) state.releaseGame(game.title);
+                    break;
+                }
+                if(msg.status) {
+                    await state.assignGame(game.title, game);
+                    console.log('assinged game in setmod: ', user.game);
+                    const members = Object.keys(game.players);
+                    for(const member of members) {
+                        network.emit('postMessage', username2clientID[member], {
+                            action: 'SETMOD',
                             seq: msg.seq,
                             state: state.dump(member)
                         })
@@ -893,6 +930,21 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
 
             break;
         }
+        case 'SETMOD': {
+            const user = state.getUser(clientID2username[clientId]);
+            const game =  user?.game;
+
+            if(game) await state.lockGame(game.title);
+
+            msg.payload = {
+                game,
+                user,
+                mods
+            }
+
+            worker.postMessage(msg);
+            break;
+        }
         case 'HASMAP': {
             const user = state.getUser(clientID2username[clientId]);
             const game = user?.game;
@@ -1104,3 +1156,10 @@ autohostMgr.on('message', (msg: {
         }
     }
 })
+
+// timer functions
+// update mods every 5 mins
+setInterval(async () => {
+    mods = await getMods();
+    console.log(`mods set: ${mods}`)
+}, 60 * 5 * 1000)

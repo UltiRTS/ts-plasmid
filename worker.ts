@@ -703,6 +703,81 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
 
             break;
         }
+        case 'SETMOD': {
+            const user: StateUser = msg.payload.user;
+            const game: GameRoom = msg.payload.game;
+            const mods: string[] = msg.payload.mods;
+
+            if(game === null || user === null) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETMOD',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'user or game not found',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+
+            const mod2set = msg.parameters.mod;
+            console.log(mod2set);
+            console.log('workder mods', mods)
+            if(!(mods.includes(mod2set))) {
+                parentPort?.postMessage({
+                    receiptOf: 'SETMOD',
+                    status: false,
+                    seq: msg.seq,
+                    message: 'mod not available',
+                    payload: {
+                        game
+                    }
+                })
+                break;
+            }
+
+            const poll = 'SETMOD ' + mod2set;
+            if(user.username === game.hoster) {
+                game.mod = mod2set;
+                delete game.polls[poll];
+                parentPort?.postMessage({
+                    receiptOf: 'SETMOD',
+                    status: true,
+                    seq: msg.seq,
+                    message: 'mod set',
+                    payload: {
+                        game
+                    }
+                })
+            } else {
+                game.polls[poll].add(user.username);
+                if(game.polls[poll].size > Object.keys(game.players).length / 2) {
+                    game.mod = mod2set;
+                    delete game.polls[poll];
+                    parentPort?.postMessage({
+                        receiptOf: 'SETMOD',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'mod set',
+                        payload: {
+                            game
+                        }
+                    })
+                } else {
+                    parentPort?.postMessage({
+                        receiptOf: 'SETMOD',
+                        status: true,
+                        seq: msg.seq,
+                        message: 'added poll to set mod' + mod2set,
+                        payload: {
+                            game
+                        }
+                    })
+                }
+            }
+            break;
+        }
         case 'HASMAP': {
             const game: GameRoom = msg.payload.game;
             const user: StateUser = msg.payload.user;

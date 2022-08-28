@@ -317,6 +317,17 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'setmod': {
+                const mod = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'SETMOD',
+                    parameters: {
+                        mod
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

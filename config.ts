@@ -6,4 +6,5 @@ export const dbconf = {
     password: 'Diy.2002',
     database: 'plasmid',
     port: 3306,
-}
+};
+export const dntpAddr = 'http://144.126.145.172:3000';

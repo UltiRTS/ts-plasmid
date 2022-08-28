@@ -1,3 +1,6 @@
+import axios, { responseEncoding } from 'axios';
+import {dntpAddr} from '../config';
+
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 export const CMD_PARAMETERS = {
@@ -19,7 +22,8 @@ export const CMD_PARAMETERS = {
     'KILLENGINE': [],
     'ADDFRIEND': ['friendName'],
     // friend - agree
-    'CLAIMCONFIRM': ['type', 'confirmationId']
+    'CLAIMCONFIRM': ['type', 'confirmationId'],
+    'SETMOD': ['mod']
 }
 
 
@@ -40,4 +44,27 @@ export function fullfillParameters(cmd: keyof typeof CMD_PARAMETERS, parameters:
     }
 
     return true;
+}
+
+export function getMods() {
+    return axios.get(dntpAddr + '/mods').then(res => {
+        const mods: [{
+            id: number
+            name: string
+            archive: number
+            version: string
+        }] = res.data.mods;
+        const modsNames = [];
+        for(const mod of mods) {
+            if(!(mod.name in modsNames)) modsNames.push(mod.name);
+        }
+
+        console.log(modsNames);
+        return modsNames;
+
+    }).catch(e => {
+        console.log('error connection');
+        console.log(e);
+        return [] as string[];
+    })    
 }

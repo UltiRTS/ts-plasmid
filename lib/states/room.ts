@@ -24,6 +24,7 @@ export class GameRoom {
   responsibleAutohost: string = '::ffff:127.0.0.1';
   autohostPort: number = 0;
   aiHosters: string[] = [];
+  mod: string = 'mod.sdd'
 
   constructor(title?: string, hoster?: string, mapId?: number, ID?: number, password?: string, autohost?: string);
   constructor(title: string, hoster: string, mapId: number, ID: number, password: string, autohost: string) {
@@ -227,6 +228,7 @@ export class GameRoom {
 
     engineLaunchObj['mapId'] = this.mapId;
     engineLaunchObj['aiHosters'] = [];
+    engineLaunchObj['mod'] = this.mod;
 
     const teamMapping: {[key: string]: number} = {};
     let teamCount = 0;
