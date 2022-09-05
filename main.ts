@@ -686,12 +686,15 @@ for(let i=0; i<4; i++) {
                     })
                     break;
                 }
-
+                const user: User = msg.payload.user;
+                await state.assignUser(user.username, user);
                 network.emit('postMessage', seq2respond[msg.seq], {
                     action: 'CLAIMCONFIRM',
                     seq: msg.seq,
                     state: state.dump(clientID2username[seq2respond[msg.seq]])
                 })
+
+                if(user) state.releaseUser(user.username);
                 break;
             }
         }
@@ -1014,6 +1017,7 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
         }
         case 'CLAIMCONFIRM': {
             const user = state.getUser(clientID2username[clientId]);
+            if(user) state.lockUser(user.username);
 
             msg.payload = {
                 user

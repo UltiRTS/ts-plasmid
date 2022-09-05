@@ -1032,7 +1032,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
         }
         case 'CLAIMCONFIRM': {
             const type = msg.parameters.type;
-            const confirmationId = msg.parameters.confirmationId;
+            const confirmationId: number = parseInt(msg.parameters.confirmationId);
             const user: StateUser = msg.payload.user;
 
             if(type === 'friend') {
@@ -1103,12 +1103,18 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     userRepo.save(db_user);
                     userRepo.save(friend2add);
 
+                    user.confirmations = user.confirmations.filter(confirm => confirm.id !== confirmationId);
+
+                    console.log('processed user: ', user);
+
                     parentPort?.postMessage({
                         receiptOf: 'CLAIMCONFIRM',
                         status: true,
                         seq: msg.seq,
                         message: 'friend added',
-                        payload: {}
+                        payload: {
+                            user
+                        }
                     })
                 } else {
                     parentPort?.postMessage({
@@ -1116,7 +1122,9 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                         status: true,
                         seq: msg.seq,
                         message: 'rejected add friend request',
-                        payload: {}
+                        payload: {
+                            user
+                        }
                     })
                 }
             }

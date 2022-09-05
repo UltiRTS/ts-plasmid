@@ -42,6 +42,10 @@ const wsInit = () => {
                 }
                 break;
             }
+            case 'CLAIMCONFIRM': {
+                console.log(jsonData.state.user.confirmations);
+                break;
+            }
         }
     });
 

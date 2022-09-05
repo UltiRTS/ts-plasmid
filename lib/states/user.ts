@@ -51,4 +51,13 @@ export class User extends DBUser {
     leaveGame() {
         this.game = null;
     }
+
+    claimConfirmation(id: number) {
+        for(let i=0; i<this.confirmations.length; i++) {
+            if(this.confirmations[i].id === id) {
+                this.confirmations[i].claimed = true;
+                console.log(this.confirmations[i]);
+            }
+        }
+    }
 }
