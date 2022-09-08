@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable} from "typeorm"
 import { Confirmation } from "./confirmation"
 import { Chat } from "./chat"
-import crypto from 'crypto'
+import * as crypto from 'crypto'
+// import c from "crypto"
 
 @Entity()
 export class User {
