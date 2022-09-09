@@ -1097,11 +1097,26 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                         break;
                     }
 
-                    db_user.friends = [...db_user.friends, friend2add];
-                    friend2add.friends = [...friend2add.friends, db_user];
+                    let alreadyFriend = false;
 
-                    userRepo.save(db_user);
-                    userRepo.save(friend2add);
+                    for(const friend of db_user.friends) {
+                        if(friend.username === friend2add.username) alreadyFriend = true;
+                    }
+
+                    for(const friend of friend2add.friends) {
+                        if(friend.username === db_user.username) alreadyFriend = true;  
+                    }
+
+                    console.log(`${db_user.username} has ${friend2add.username} is ${alreadyFriend}`);
+
+                    if(!alreadyFriend) {
+                        db_user.friends = [...db_user.friends, friend2add];
+                        friend2add.friends = [...friend2add.friends, db_user];
+
+                        userRepo.save(db_user);
+                        userRepo.save(friend2add);
+                    }
+
 
                     user.confirmations = user.confirmations.filter(confirm => confirm.id !== confirmationId);
 
