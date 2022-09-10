@@ -751,6 +751,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
                     }
                 })
             } else {
+                if(!game.polls[poll]) game.polls[poll] = new Set()
                 game.polls[poll].add(user.username);
                 if(game.polls[poll].size > Object.keys(game.players).length / 2) {
                     game.mod = mod2set;
