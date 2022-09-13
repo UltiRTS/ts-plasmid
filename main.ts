@@ -686,7 +686,7 @@ for(let i=0; i<4; i++) {
                     })
                     break;
                 }
-                const user: User = msg.payload.user;
+                const user: User = Object.assign(new User(msg.payload.user), msg.payload.user);
                 await state.assignUser(user.username, user);
                 network.emit('postMessage', seq2respond[msg.seq], {
                     action: 'CLAIMCONFIRM',
