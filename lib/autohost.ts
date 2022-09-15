@@ -1,6 +1,19 @@
 import { EventEmitter } from "stream";
 import { WebSocketServer, WebSocket } from "ws";
 import { GameConf } from "./states/room";
+import {Game} from '../db/models/game';
+import {AppDataSource} from '../db/datasource';
+import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage";
+
+let dbInitialized = false;
+
+AppDataSource.initialize().then(() => {
+    dbInitialized = true;
+}).catch(e => {
+    console.log('db init failed', e);
+})
+
+const gameRepo = AppDataSource.getRepository(Game);
 
 interface AutohostResponse {
     action: string
@@ -20,7 +33,18 @@ export class AutohostManager extends EventEmitter {
         ws: WebSocket,
         workload: number
     }} = {}
-    hostedGames: {[key: string]: {hosted: boolean, error: string, ws: WebSocket | null}} = {}
+    hostedGames: {
+        [key: string]: {
+            hosted: boolean, 
+            error: string, 
+            ws: WebSocket | null, 
+            game: Game, 
+            lostMarks: {[key: number]: {
+                team: number
+                lost: boolean
+            }}
+        }
+    } = {}
 
     constructor(allowedAutohost?: string[], 
         config?: {
@@ -74,6 +98,14 @@ export class AutohostManager extends EventEmitter {
                         if(msg.parameters.title) {
                             console.log(`autohost ${autohostIP} started game ${msg.parameters.title}`)
                             this.hostedGames[msg.parameters.title].hosted = true
+
+                            gameRepo.save(this.hostedGames[msg.parameters.title].game).then(game => {
+                                if(msg.parameters.title) this.hostedGames[msg.parameters.title].game = game;
+                                console.log(`game ${game.id} started and saved`);
+                            }).catch(e => {
+                                console.log('save error', e);
+                            })
+
                             this.emit('gameStarted', {
                                 gameName: msg.parameters.title,
                                 payload: {
@@ -87,6 +119,25 @@ export class AutohostManager extends EventEmitter {
                     case 'serverEnding': {
                         if(msg.parameters.title) {
                             this.hostedGames[msg.parameters.title].hosted = false
+                            let winner_team = -1;
+                            const lostMarks = this.hostedGames[msg.parameters.title].lostMarks;
+                            for(const playerNum in lostMarks) {
+                                if(lostMarks[playerNum].lost === false) {
+                                    winner_team = lostMarks[playerNum].team;
+                                    break;
+                                }
+                            }
+
+                            this.hostedGames[msg.parameters.title].game.team_win = winner_team;
+
+                            gameRepo.save(this.hostedGames[msg.parameters.title].game).then(g => {
+                                console.log(`game ${g.id} result saved`);
+                            }).catch(e => {
+                                console.log('update error', e);
+                            })
+
+                            this.hostedGames[msg.parameters.title].lostMarks
+
                             this.emit('gameEnded', msg.parameters.title)
                         }
                         break;
@@ -105,6 +156,12 @@ export class AutohostManager extends EventEmitter {
                     }
                     case 'info': {
                         console.log(msg.parameters.info)
+                        break;
+                    }
+                    case 'defeat': {
+                        const playerNumber: number = msg.parameters.playerNumber;
+                        if(msg.parameters.title) 
+                            this.hostedGames[msg.parameters.title].lostMarks[playerNumber].lost = true;
                         break;
                     }
                     default: {
@@ -132,8 +189,27 @@ export class AutohostManager extends EventEmitter {
         this.hostedGames[gameConf.title] = {
             hosted: false,
             error: '',
-            ws: null
+            ws: null,
+            game: new Game(),
+            lostMarks: {}
         }
+
+        for(const playerName in gameConf.team) {
+            const playerNum = gameConf.team[playerName].index;
+            const player = gameConf.team[playerName];
+            if(!gameConf.team[playerName].isSpectator) {
+                this.hostedGames[gameConf.title].lostMarks[playerNum] = {
+                    team: player.team,
+                    lost: false
+                }
+            }
+        }
+        console.log(`generated lost marks dict: `, this.hostedGames[gameConf.title].lostMarks);
+
+        this.hostedGames[gameConf.title].lostMarks
+
+        this.hostedGames[gameConf.title].game.game_config = JSON.stringify(gameConf);
+        this.hostedGames[gameConf.title].game.team_win = -1;
 
         if(gameConf.mgr in this.clients) {
             this.clients[gameConf.mgr].workload += 1
