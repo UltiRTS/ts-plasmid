@@ -4,6 +4,7 @@ import { GameConf } from "./states/room";
 import {Game} from '../db/models/game';
 import {AppDataSource} from '../db/datasource';
 import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage";
+import { User } from "../db/models/user";
 
 let dbInitialized = false;
 
@@ -14,6 +15,7 @@ AppDataSource.initialize().then(() => {
 })
 
 const gameRepo = AppDataSource.getRepository(Game);
+const userRepo = AppDataSource.getRepository(User);
 
 interface AutohostResponse {
     action: string
@@ -42,7 +44,9 @@ export class AutohostManager extends EventEmitter {
             lostMarks: {[key: number]: {
                 team: number
                 lost: boolean
-            }}
+                name: string
+                isPlayer: boolean
+            }},
         }
     } = {}
 
@@ -83,7 +87,7 @@ export class AutohostManager extends EventEmitter {
             //     console.log(`autohost ${autohostIP} not allowed`)
             // }
 
-            ws.on('message', (data, _) => {
+            ws.on('message', async (data, _) => {
                 // parse messages from autohost
                 const msg = JSON.parse(data.toString()) as AutohostResponse
                 console.log(`autohost msg: ${JSON.stringify(msg)}`)
@@ -138,6 +142,26 @@ export class AutohostManager extends EventEmitter {
                             }).catch(e => {
                                 console.log('update error', e);
                             })
+
+                            for(const playerNum in lostMarks) {
+                                const player = lostMarks[playerNum]; 
+                                if(player.isPlayer) {
+                                    const user = await userRepo.findOne({
+                                        where: {
+                                            username: player.name
+                                        }
+                                    })
+                                    if(user) {
+                                        user.winCount += player.lost?0:1;
+                                        user.loseCount += player.lost?1:0;
+                                        userRepo.save(user).then(u => {
+                                            console.log(`user ${user.username} winning count updated`);
+                                        }).catch(e => {
+                                            console.log(`user ${user.username} winning count error saving`);
+                                        })
+                                    }
+                                }
+                            }
 
                             this.hostedGames[msg.parameters.title].lostMarks
 
@@ -194,7 +218,7 @@ export class AutohostManager extends EventEmitter {
             error: '',
             ws: null,
             game: new Game(),
-            lostMarks: {}
+            lostMarks: {},
         }
 
         for(const playerName in gameConf.team) {
@@ -203,7 +227,9 @@ export class AutohostManager extends EventEmitter {
             if(!gameConf.team[playerName].isSpectator) {
                 this.hostedGames[gameConf.title].lostMarks[playerNum] = {
                     team: player.team,
-                    lost: false
+                    lost: false,
+                    name: playerName,
+                    isPlayer: !(player.isAI || player.isChicken)
                 }
             }
         }
