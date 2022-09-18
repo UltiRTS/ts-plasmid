@@ -98,6 +98,7 @@ export class AutohostManager extends EventEmitter {
                         if(msg.parameters.title) {
                             console.log(`autohost ${autohostIP} started game ${msg.parameters.title}`)
                             this.hostedGames[msg.parameters.title].hosted = true
+                            this.hostedGames[msg.parameters.title].game.start_time = new Date()
 
                             gameRepo.save(this.hostedGames[msg.parameters.title].game).then(game => {
                                 if(msg.parameters.title) this.hostedGames[msg.parameters.title].game = game;
@@ -129,6 +130,8 @@ export class AutohostManager extends EventEmitter {
                             }
 
                             this.hostedGames[msg.parameters.title].game.team_win = winner_team;
+                            this.hostedGames[msg.parameters.title].game.end_time = new Date();
+
 
                             gameRepo.save(this.hostedGames[msg.parameters.title].game).then(g => {
                                 console.log(`game ${g.id} result saved`);
