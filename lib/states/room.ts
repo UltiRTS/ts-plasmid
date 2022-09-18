@@ -4,7 +4,13 @@ export interface GameConf {
     mgr: string
     aiHosters: number[]
     mapId: number
-    team: {[key: string]: any}
+    team: {[key: string]: {
+      index: number,
+      isAI: boolean,
+      isChicken: boolean,
+      isSpectator: boolean,
+      team: number,
+    }}
     [key: string]: any
 }
 

@@ -208,7 +208,7 @@ export class AutohostManager extends EventEmitter {
 
         this.hostedGames[gameConf.title].lostMarks
 
-        this.hostedGames[gameConf.title].game.game_config = JSON.stringify(gameConf);
+        this.hostedGames[gameConf.title].game.game_config = this.serializeGameConf(gameConf);
         this.hostedGames[gameConf.title].game.team_win = -1;
 
         if(gameConf.mgr in this.clients) {
@@ -271,5 +271,26 @@ export class AutohostManager extends EventEmitter {
             console.log(`game ${params.title} not hosted`)
             return false;
         }
+    }
+
+    serializeGameConf(gameConf: GameConf) {
+        const map = gameConf.mapId; 
+        const teams = gameConf.team;
+
+        let mapStr = `map:${map};`
+        let teamStr = '';
+        for(const team in teams) {
+            if(teams[team].isAI) teamStr += 'ai' + teams[team].team;
+            else if(teams[team].isChicken) teamStr += 'chicken' + teams[team].team;
+            else if(teams[team].isSpectator) {
+                // do nothing for spectators
+            } else {
+                teamStr += team + teams[team].team;
+            }
+
+            teamStr += ',';
+        }
+
+        return mapStr + teamStr;
     }
 }
