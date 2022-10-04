@@ -37,7 +37,7 @@ export class AutohostManager extends EventEmitter {
     }} = {}
     hostedGames: {
         [key: string]: {
-            hosted: boolean, 
+            running: boolean, 
             error: string, 
             ws: WebSocket | null, 
             game: Game, 
@@ -101,7 +101,7 @@ export class AutohostManager extends EventEmitter {
                     case 'serverStarted': {
                         if(msg.parameters.title) {
                             console.log(`autohost ${autohostIP} started game ${msg.parameters.title}`)
-                            this.hostedGames[msg.parameters.title].hosted = true
+                            this.hostedGames[msg.parameters.title].running = true
                             this.hostedGames[msg.parameters.title].game.start_time = new Date()
 
                             gameRepo.save(this.hostedGames[msg.parameters.title].game).then(game => {
@@ -123,7 +123,7 @@ export class AutohostManager extends EventEmitter {
                     }
                     case 'serverEnding': {
                         if(msg.parameters.title) {
-                            this.hostedGames[msg.parameters.title].hosted = false
+                            this.hostedGames[msg.parameters.title].running = false
                             let winner_team = -1;
                             const lostMarks = this.hostedGames[msg.parameters.title].lostMarks;
                             for(const playerNum in lostMarks) {
@@ -214,7 +214,7 @@ export class AutohostManager extends EventEmitter {
     start(gameConf: GameConf) {
         console.log(`game ${gameConf.title} starting`)
         this.hostedGames[gameConf.title] = {
-            hosted: false,
+            running: false,
             error: '',
             ws: null,
             game: new Game(),
@@ -261,7 +261,9 @@ export class AutohostManager extends EventEmitter {
         team: string
         id: number
     }) {
-        if(this.hostedGames[title].hosted) {
+        if(!this.hostedGames[title])
+            return false;
+        if(this.hostedGames[title].running) {
             this.hostedGames[title].ws?.send(JSON.stringify({
                 action: 'midJoin',
                 parameters: {
@@ -290,7 +292,9 @@ export class AutohostManager extends EventEmitter {
         id: number
         title: string
     }) {
-        if(this.hostedGames[params.title].hosted) {
+        if(!this.hostedGames[params.title])
+            return false;
+        if(this.hostedGames[params.title].running) {
             this.hostedGames[params.title].ws?.send(JSON.stringify({
                 action: 'killEngine',
                 parameters: params

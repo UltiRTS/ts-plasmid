@@ -647,7 +647,7 @@ for(let i=0; i<4; i++) {
                         network.emit('postMessage', seq2respond[msg.seq], {
                             action: 'NOTIFY',
                             seq: msg.seq,
-                            message: 'Autohost maybe not running',
+                            message: 'OPERATION NOT INITED!',
                         })
                     }
                 } else {
@@ -808,6 +808,18 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
             break;
         }
         case 'JOINGAME': {
+            const autohosts = Object.keys(autohostLoad);
+            if(autohosts.length <= 0) {
+                network.emit('postMessage', clientId, {
+                    action: 'NOTIFY',
+                    seq: msg.seq,
+                    message: 'No autohost available',
+                })
+
+                delete seq2respond[msg.seq];
+                return;
+            }
+
             const game = state.getGame(msg.parameters.gameName);
             if(!(game === null)) {
                 await state.lockGame(game.title);
@@ -817,18 +829,6 @@ network.on('message', async (clientId: string, msg: IncommingMsg) => {
                     user: state.getUser(clientID2username[clientId]),
                 }
             } else {
-                const autohosts = Object.keys(autohostLoad);
-                if(autohosts.length <= 0) {
-                    network.emit('postMessage', clientId, {
-                        action: 'NOTIFY',
-                        seq: msg.seq,
-                        message: 'No autohost available',
-                    })
-
-                    delete seq2respond[msg.seq];
-                    return;
-                }
-
                 // TODO: use AutohostManager to load balance
                 const autohost = autohosts[randomInt(0, autohosts.length)];
 
