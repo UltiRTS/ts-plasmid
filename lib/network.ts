@@ -34,17 +34,17 @@ export class Network extends EventEmitter {
 
             this.clients[clientID] = ws;
 
-            let pingPongInterval = setInterval(() => {
-                if(pingPongCount > 3) {
-                    ws.terminate();
-                    clearInterval(pingPongInterval);
-                }
-                pingPongCount++;
-                ws.send(JSON.stringify({
-                    action: 'PING',
-                    parameters: {},
-                }));
-            }, 3000);
+            // let pingPongInterval = setInterval(() => {
+            //     if(pingPongCount > 3) {
+            //         ws.terminate();
+            //         clearInterval(pingPongInterval);
+            //     }
+            //     pingPongCount++;
+            //     ws.send(JSON.stringify({
+            //         action: 'PING',
+            //         parameters: {},
+            //     }));
+            // }, 3000);
 
             ws.on('message', (msg) => {
                 const data = JSON.parse(msg.toString());
@@ -59,7 +59,7 @@ export class Network extends EventEmitter {
 
             ws.on('close', (ws: WebSocket, code: number) => {
                 this.emit('clean', clientID);
-                clearInterval(pingPongInterval);
+                // clearInterval(pingPongInterval);
                 delete this.clients[clientID];
 
                 console.log(`Client ${clientID} disconnected with code ${code}`);

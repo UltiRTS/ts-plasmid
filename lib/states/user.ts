@@ -23,6 +23,14 @@ export class User extends DBUser {
         this.friends = user.friends;
     }
 
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static from(str: string) {
+        return JSON.parse(str) as User;
+    }
+
     getState() {
         return {
             id: this.id,
