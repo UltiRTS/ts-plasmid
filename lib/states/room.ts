@@ -56,6 +56,18 @@ export class GameRoom {
     }
   }
 
+  serialize() {
+    return JSON.stringify(GameRoom);
+  }
+
+  static from(str: string) {
+    try {
+      return JSON.parse(str) as GameRoom;
+    } catch(e) {
+      return null;
+    }
+  }
+
   empty() {
     return Object.keys(this.players).length === 0
   }
