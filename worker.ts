@@ -2,10 +2,7 @@ import "reflect-metadata"
 import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
-import {User} from './db/models/user';
-import { Confirmation } from "./db/models/confirmation";
 import { loginHandler } from "./lib/worker/auth";
-import { RedisStore } from "./lib/store";
 import { Receipt } from "./lib/interfaces";
 
 
@@ -32,11 +29,6 @@ AppDataSource.initialize().then(() => {
 }).catch(e=> {
     console.log(e)
 })
-
-const store = new RedisStore();
-
-const userRepo = AppDataSource.getRepository(User);
-const confirmRepo = AppDataSource.getRepository(Confirmation);
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
     if(!(msg.action in handlersTable)) return;

@@ -30,10 +30,16 @@ export async function loginHandler(params: {
         return {
             receiptOf: 'LOGIN',
             seq: seq,
-            status: true,
-            message: 'registered successfully'
+            status: false,
+            message: 'missing username or password',
+            payload: {}
         } as Receipt;
     }
+
+    const RESOURCE_OCCUPIED = store.USER_RESOURCE(username);
+    const locked = await store.acquireLock(RESOURCE_OCCUPIED);
+
+    if(locked) return LockedNotify('LOGIN', seq);
 
     const user = await userRepo.findOne({
         where: {
@@ -54,15 +60,20 @@ export async function loginHandler(params: {
         const userState = new StateUser(user);
         store.setUser(username, userState);
 
+        await store.releaseLock(RESOURCE_OCCUPIED);
         return {
             receiptOf: 'LOGIN',
             seq: seq,
             status: true,
-            message: 'registered successfully'
+            message: 'registered successfully',
+            payload: {
+                username
+            }
         } as Receipt;
     }
 
     if(!user.verify(password)) {
+        await store.releaseLock(RESOURCE_OCCUPIED);
         return {
             receiptOf: 'LOGIN',
             seq: seq,
@@ -73,11 +84,24 @@ export async function loginHandler(params: {
         const userState = new StateUser(user);
         store.setUser(username, userState);
 
+        await store.releaseLock(RESOURCE_OCCUPIED);
         return {
             receiptOf: 'LOGIN',
             seq: seq,
             status: true,
-            message: 'login successfully'
+            message: 'login successfully',
+            payload: {
+                username
+            }
         } as Receipt;
     }
+}
+
+export function LockedNotify(receiptOf: string, seq: number) {
+    return {
+        receiptOf: 'LOGIN',
+        seq: seq,
+        status: false,
+        message: 'LOCK ACQUIRED FAILED'
+    } as Receipt;
 }
