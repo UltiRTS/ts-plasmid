@@ -4,6 +4,7 @@ import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import { loginHandler } from "./lib/worker/auth";
 import { Receipt } from "./lib/interfaces";
+import { joinGameHandler } from "./lib/worker/dod";
 
 
 const handlersTable: {
@@ -12,10 +13,11 @@ const handlersTable: {
         username?: string,
         password?: string,
         [key:string]: any
-    }, seq: number) => Promise<Receipt>
+    }, seq: number, caller: string) => Promise<Receipt>
 } = 
 { 
-        LOGIN: loginHandler
+        LOGIN: loginHandler,
+        JOINGAME: joinGameHandler
 }
 
 let dbInitialized = false;
@@ -36,7 +38,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     const action = msg.action;
     const hanlder = handlersTable[action]
 
-    const receipt = await hanlder(msg.parameters, msg.seq);
+    const receipt = await hanlder(msg.parameters, msg.seq, msg.caller);
 
     toParent(receipt);
 })

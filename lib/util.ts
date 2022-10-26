@@ -1,5 +1,6 @@
 import axios, { responseEncoding } from 'axios';
 import {dntpAddr} from '../config';
+import { Receipt } from './interfaces';
 
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -71,4 +72,13 @@ export function getMods() {
 
 export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function LockedNotify(receiptOf: string, seq: number) {
+    return {
+        receiptOf: 'LOGIN',
+        seq: seq,
+        status: false,
+        message: 'LOCK ACQUIRED FAILED'
+    } as Receipt;
 }

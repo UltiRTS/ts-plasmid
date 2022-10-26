@@ -9,28 +9,32 @@ const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
 const LOGIN = 'LOGIN';
 const LOCK = 'LOCK';
-// 200 ms
-const ACQUIRE_INTERVAL = 200;
-const MAX_ACQUIRE = 3;
+const ACQUIRE_MAX_AWAIT = 5000;
+const LOCK_EXPIRE_TIME = 20; // 20s
 
 export class RedisStore {
     client: RedisClientType
+    sub: RedisClientType
     connected: boolean
 
     constructor() {
         this.client = createClient();
+        this.sub = this.client.duplicate();
         this.connected = false;
 
         (async () => {
             await this.client.connect();
+            await this.sub.connect();
             this.connected = true;
             console.log('redis client connected')
         })()
     }
 
-    setGame(gameName: string, game: GameRoom) {
+    async setGame(gameName: string, game: GameRoom) {
         const name = PREFIX_GAME + gameName;
-        this.client.set(name, game.serialize());
+        console.log(game);
+        console.log(game.serialize());
+        await this.client.set(name, game.serialize());
     }
 
     async getGame(gameName: string) {
@@ -41,10 +45,10 @@ export class RedisStore {
         else return GameRoom.from(gameStr);
     }
 
-    setUser(username: string, user: User) {
+    async setUser(username: string, user: User) {
         const name = PREFIX_USER + username;
 
-        this.client.set(name, user.serialize());
+        await this.client.set(name, user.serialize());
     }
 
     async getUser(username: string) {
@@ -72,25 +76,47 @@ export class RedisStore {
     }
 
     async acquireLock(resource: string) {
-        const lockName = LOCK + resource;
+        const sub = this.sub;
+        const client_redis = this.client;
+        return new Promise(async (resolve, reject) => {
+            const success = await client_redis.set(resource, '1', {
+                EX: LOCK_EXPIRE_TIME,
+                NX: true
+            });
+            if(success) {
+                console.log('key', resource, 'acquired');
+                resolve(true);
+            } else {
+                const timeout = setTimeout(async () => {
+                    await sub.unsubscribe('__keyevent@0__:del')
+                    reject(new Error('key required failed'))
+                }, ACQUIRE_MAX_AWAIT)
 
-        let locked = true;
-        let retry = 0;
-
-        while(locked) {
-            if(retry < MAX_ACQUIRE) retry++;
-            else return true;
-
-            locked = await this.client.setNX(lockName, '1');
-            if(locked) await sleep(ACQUIRE_INTERVAL);
-        }
-
-        return false;
+                await sub.subscribe('__keyevent@0__:del', async (key) => {
+                    if(key === resource) {
+                        const success = await client_redis.set(resource, '1', {
+                            EX: LOCK_EXPIRE_TIME,
+                            NX: true
+                        });
+                        if(success) {
+                            console.log('key', resource, 'acquired');
+                            await sub.unsubscribe('__keyevent@0__:del')
+                            clearTimeout(timeout);
+                            resolve(true);
+                        }
+                    }
+                });
+            }
+        })
     }
 
     async releaseLock(resource: string) {
-        const lockName = LOCK + resource;
-        this.client.del(lockName);
+        const client_redis = this.client;
+        return new Promise(async (resolve, reject) => {
+            await client_redis.del(resource);
+            console.log('key', resource, 'released')
+            resolve(true);
+        })
     }
 
     USER_RESOURCE(username: string) {

@@ -30,6 +30,9 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
     clientID2seq[clientID] = data.seq;
     seq2clientID[data.seq] = clientID;
 
+    // if it's not logged in, caller will be undefined
+    data.caller = clientID2username[clientID];
+
     workers[workerId].postMessage(data)
 })
 
@@ -58,6 +61,7 @@ for(let i=0; i<4; i++) {
         console.log(seq2clientID[receipt.seq])
 
         network.emit('postMessage', seq2clientID[receipt.seq], receipt);
+        console.log(receipt)
     })
 
     workers.push(worker);

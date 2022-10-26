@@ -3,6 +3,7 @@ import { User } from "../../db/models/user"
 import { User as StateUser } from "../states/user";
 import { RedisStore } from "../store";
 import { Receipt } from "../interfaces";
+import { LockedNotify } from "../util";
 
 import { AppDataSource } from "../../db/datasource";
 
@@ -22,7 +23,7 @@ export async function loginHandler(params: {
     username?: string,
     password?: string,
     [key:string]: any
-}, seq: number) {
+}, seq: number, caller: string) {
     const username = params.username;
     const password = params.password;
 
@@ -37,9 +38,12 @@ export async function loginHandler(params: {
     }
 
     const RESOURCE_OCCUPIED = store.USER_RESOURCE(username);
-    const locked = await store.acquireLock(RESOURCE_OCCUPIED);
+    try {
+        await store.acquireLock(RESOURCE_OCCUPIED);
+    } catch {
+        return LockedNotify('LOGIN', seq);
+    }
 
-    if(locked) return LockedNotify('LOGIN', seq);
 
     const user = await userRepo.findOne({
         where: {
@@ -58,7 +62,7 @@ export async function loginHandler(params: {
         await userRepo.save(user);
 
         const userState = new StateUser(user);
-        store.setUser(username, userState);
+        await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
         return {
@@ -82,7 +86,7 @@ export async function loginHandler(params: {
         } as Receipt;
     } else {
         const userState = new StateUser(user);
-        store.setUser(username, userState);
+        await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
         return {
@@ -95,13 +99,4 @@ export async function loginHandler(params: {
             }
         } as Receipt;
     }
-}
-
-export function LockedNotify(receiptOf: string, seq: number) {
-    return {
-        receiptOf: 'LOGIN',
-        seq: seq,
-        status: false,
-        message: 'LOCK ACQUIRED FAILED'
-    } as Receipt;
 }

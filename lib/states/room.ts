@@ -57,12 +57,12 @@ export class GameRoom {
   }
 
   serialize() {
-    return JSON.stringify(GameRoom);
+    return JSON.stringify(this);
   }
 
   static from(str: string) {
     try {
-      return JSON.parse(str) as GameRoom;
+      return Object.assign(new GameRoom(), JSON.parse(str));
     } catch(e) {
       return null;
     }
