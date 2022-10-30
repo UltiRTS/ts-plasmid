@@ -59,6 +59,14 @@ export class RedisStore {
         else return User.from(userStr);
     }
 
+    async dumpState(username: string) {
+        const name = this.USER_RESOURCE(username);
+        const userStr = await this.client.get(name);
+        if(userStr === null) return null;
+
+        const user = User.from(userStr);
+    }
+
     async setLoginStatus(username: string, status: boolean) {
         const tableStr = await this.client.get(LOGIN);
         const table: {[key:string]: boolean} = tableStr==null?{}:JSON.parse(tableStr);

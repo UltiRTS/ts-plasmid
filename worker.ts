@@ -4,7 +4,7 @@ import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import { loginHandler } from "./lib/worker/auth";
 import { Receipt } from "./lib/interfaces";
-import { joinGameHandler } from "./lib/worker/dod";
+import { delAI, hasMap, joinGameHandler, killEngine, leaveGame, midJoin, setAI, setMap, setMod, setSpec, setTeam, startGame } from "./lib/worker/dod";
 
 
 const handlersTable: {
@@ -12,12 +12,28 @@ const handlersTable: {
     (params: {
         username?: string,
         password?: string,
+        gameName?: string
+        player?: string
+        team?: string
+        mapId?: number
+        mod?: string
         [key:string]: any
     }, seq: number, caller: string) => Promise<Receipt>
 } = 
 { 
         LOGIN: loginHandler,
-        JOINGAME: joinGameHandler
+        JOINGAME: joinGameHandler,
+        SETTEAM: setTeam,
+        SETMAP: setMap,
+        STARTGAME: startGame,
+        SETSPEC: setSpec,
+        LEAVEGAME: leaveGame,
+        HASMAP: hasMap,
+        MIDJOIN: midJoin,
+        KILLENGINE: killEngine,
+        SETMOD: setMod,
+        SETAI: setAI,
+        DELAI: delAI
 }
 
 let dbInitialized = false;

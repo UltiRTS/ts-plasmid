@@ -13,6 +13,10 @@ const clientID2username: {[key: string]: string} = {}
 const username2clientID: {[key: string]: string} = {}
 
 network.on('message', (clientID: string, data: IncommingMsg) => {
+
+    clientID2seq[clientID] = data.seq;
+    seq2clientID[data.seq] = clientID;
+
     const workerId = randomInt(4);
     console.log(clientID, data);
 
@@ -27,8 +31,6 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
         }
     }
 
-    clientID2seq[clientID] = data.seq;
-    seq2clientID[data.seq] = clientID;
 
     // if it's not logged in, caller will be undefined
     data.caller = clientID2username[clientID];

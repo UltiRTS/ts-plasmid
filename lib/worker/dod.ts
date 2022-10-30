@@ -64,3 +64,81 @@ export async function joinGameHandler(params: {
         message: `user ${caller} joined`
     } as Receipt;
 }
+
+export async function setTeam(params: {
+    gameName?: string
+    player?: string
+    team?: string
+    [key:string]: any
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function setMap(params: {
+    gameName?: string
+    mapId?: number
+    [key:string]: any
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function startGame(params: {
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function setSpec(params: {
+    gameName?: string
+    player?: string
+    [key:string]: any
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function leaveGame(params: {
+}, seq: number, caller: string) {
+   return { } as Receipt;
+
+}
+
+export async function hasMap(params: {
+    mapId?: number
+    [key:string]: any
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function midJoin(params: {
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function killEngine(params: {
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function setMod(params: {
+    mod?: string
+}, seq: number, caller: string) {
+   return { } as Receipt;
+}
+
+export async function setAI(params: {
+    gameName?: string
+    AI?: string
+    type?: string
+    [key:string]: any
+}, seq: number, caller: string) {
+
+   return { } as Receipt;
+}
+
+export async function delAI(params: {
+    gameName?: string
+    AI?: string
+    type?: string
+    [key:string]: any
+}, seq:number, caller: string) {
+   return { } as Receipt;
+}
