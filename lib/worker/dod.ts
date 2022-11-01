@@ -26,7 +26,8 @@ export async function joinGameHandler(params: {
         } as Receipt;
     }
 
-    const RESOURCE_OCCUPIED = store.GAME_RESOURCE(gameName);
+    const RESOURCE_OCCUPIED = RedisStore.GAME_RESOURCE(gameName);
+
     try {
         await store.acquireLock(RESOURCE_OCCUPIED);
     } catch {

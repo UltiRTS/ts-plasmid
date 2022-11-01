@@ -37,7 +37,7 @@ export async function loginHandler(params: {
         } as Receipt;
     }
 
-    const RESOURCE_OCCUPIED = store.USER_RESOURCE(username);
+    const RESOURCE_OCCUPIED = RedisStore.USER_RESOURCE(username);
     try {
         await store.acquireLock(RESOURCE_OCCUPIED);
     } catch {

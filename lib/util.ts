@@ -76,7 +76,7 @@ export function sleep(ms: number) {
 
 export function LockedNotify(receiptOf: string, seq: number) {
     return {
-        receiptOf: 'LOGIN',
+        receiptOf: 'LOCK',
         seq: seq,
         status: false,
         message: 'LOCK ACQUIRED FAILED'

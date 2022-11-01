@@ -29,7 +29,7 @@ export class User extends DBUser {
 
     static from(str: string) {
         try {
-            const dbUser = Object.assign(new DBUser(), JSON.parse(str));
+            const dbUser = Object.assign(new DBUser(), JSON.parse(str)) as User;
             return new User(dbUser);
         } catch(e) {
             return null;

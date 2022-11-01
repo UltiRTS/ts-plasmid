@@ -40,4 +40,17 @@ export class ChatRoom extends DBChatRoom {
 
         this.members.splice(this.members.indexOf(user.username), 1);
     }
+    
+    serialize() {
+        return JSON.stringify(this);
+    }
+
+    static from(str: string) {
+        try {
+            return Object.assign(new ChatRoom(), JSON.parse(str)) as ChatRoom;
+        } catch(e) {
+            return null;
+        }
+    }
+
 }

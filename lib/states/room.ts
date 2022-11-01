@@ -62,7 +62,7 @@ export class GameRoom {
 
   static from(str: string) {
     try {
-      return Object.assign(new GameRoom(), JSON.parse(str));
+      return Object.assign(new GameRoom(), JSON.parse(str)) as GameRoom;
     } catch(e) {
       return null;
     }
