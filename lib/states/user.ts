@@ -6,7 +6,7 @@ import { ChatRoom } from './chat';
 
 export class User extends DBUser {
     chatRooms: {[key: string]: ChatRoom} = {} 
-    game: GameRoom | null = null;
+    game: string | null = null
 
     constructor(user: DBUser) {
         super();
@@ -55,10 +55,6 @@ export class User extends DBUser {
 
     leaveChat(chat: ChatRoom) {
         delete this.chatRooms[chat.roomName];
-    }
-
-    assignGame(game: GameRoom) {
-        this.game = game;
     }
 
     leaveGame() {

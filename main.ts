@@ -1,7 +1,7 @@
 import { randomInt } from "crypto";
 import "reflect-metadata"
 import { Worker, parentPort, threadId } from "worker_threads";
-import { Receipt } from "./lib/interfaces";
+import { Receipt, State } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification} from "./lib/network";
 
 const network = new Network(8081);
@@ -20,6 +20,14 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
     const workerId = randomInt(4);
     console.log(clientID, data);
 
+    // if action is login and the user is not logged in, set the clientID to username
+    if(data.action === 'LOGIN' && !(data.parameters.username in username2clientID)) {
+        const username = data.parameters.username;
+
+        clientID2username[clientID] = username;
+        username2clientID[username] = clientID;
+    }
+
     if(!(['LOGIN'].includes(data.action))) {
         if(!(clientID in clientID2username)) {
             network.emit('postMessage', seq2clientID[data.seq], {
@@ -32,7 +40,6 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
     }
 
 
-    // if it's not logged in, caller will be undefined
     data.caller = clientID2username[clientID];
 
     workers[workerId].postMessage(data)
@@ -46,24 +53,12 @@ for(let i=0; i<4; i++) {
     worker.on('exit', (code) => {
         console.log(`worker ${worker.threadId} exited with code ${code}`);
     })
-    worker.on('message', (receipt: Receipt) => {
-        console.log(receipt);
-        switch(receipt.receiptOf) {
-            case 'LOGIN':
-                if(receipt.status) {
-                    const username: string = receipt.payload.username;
-                    const clientID: string = seq2clientID[receipt.seq];
+    worker.on('message', (payload:{
+        receiptOrState: Receipt | State, 
+        seq: number
+    }) => {
 
-                    clientID2username[clientID] = username;
-                    username2clientID[username] = clientID;
-                }
-                break
-        }
-
-        console.log(seq2clientID[receipt.seq])
-
-        network.emit('postMessage', seq2clientID[receipt.seq], receipt);
-        console.log(receipt)
+        network.emit('postMessage', seq2clientID[payload.seq], payload.receiptOrState);
     })
 
     workers.push(worker);

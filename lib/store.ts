@@ -1,6 +1,7 @@
 import {createHash} from 'crypto';
 import { parse } from 'path';
 import {createClient, RedisClientType, } from 'redis';
+import { State, User2Dump } from './interfaces';
 import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
@@ -9,6 +10,8 @@ import { sleep } from './util';
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
 const PREFIX_CHAT = 'CHAT_';
+
+const SUFFIX_LOCK = '_LOCK';
 
 const LOGIN = 'LOGIN';
 
@@ -154,11 +157,40 @@ export class RedisStore {
     }
 
     async dumpState(username: string) {
-        const name = RedisStore.USER_RESOURCE(username);
-        const userStr = await this.client.get(name);
-        if(userStr === null) return null;
+        const user = await this.getUser(username);
 
-        const user = User.from(userStr);
+        const gameName = user?.game;
+        let game: GameRoom | null = null
+        if(gameName) game = await this.getGame(gameName);
+
+        let user2dump: User2Dump | null = null;
+        if(user) {
+            user2dump = user as User2Dump;
+            user2dump.game = game;
+        }
+
+        const chats = this.chats;
+        const games: {
+            title: string
+            hoster: string
+            mapId: number
+        }[] = []
+
+        for(const g in this.games) {
+            games.push({
+                title: g,
+                hoster: this.games[g].hoster,
+                mapId: this.games[g].mapId
+            })
+        }
+
+        const state: State = {
+            user: user2dump,
+            chats,
+            games
+        }
+
+        return state;
     }
 
     async setLoginStatus(username: string, status: boolean) {
@@ -235,6 +267,22 @@ export class RedisStore {
 
     static OVERVIEW_RESOURCE(title: string) {
         return OVERVIEW + title;
+    }
+
+    static LOCK_RESOURCE(name: string, type: string) {
+        let lockname = '';
+        type = type.toLowerCase();
+
+        switch(type) {
+            case 'user':
+                lockname = RedisStore.USER_RESOURCE(name) + SUFFIX_LOCK;
+            case 'game':
+                lockname = RedisStore.GAME_RESOURCE(name) + SUFFIX_LOCK;
+            default:
+                lockname = lockname + SUFFIX_LOCK;
+        }
+
+        return lockname;
     }
 }
 /** 

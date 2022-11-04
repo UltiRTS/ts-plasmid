@@ -37,7 +37,7 @@ export async function loginHandler(params: {
         } as Receipt;
     }
 
-    const RESOURCE_OCCUPIED = RedisStore.USER_RESOURCE(username);
+    const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
     try {
         await store.acquireLock(RESOURCE_OCCUPIED);
     } catch {
@@ -63,17 +63,10 @@ export async function loginHandler(params: {
 
         const userState = new StateUser(user);
         await store.setUser(username, userState);
+        console.log('getting inside auth: ', await store.getUser(username));
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return {
-            receiptOf: 'LOGIN',
-            seq: seq,
-            status: true,
-            message: 'registered successfully',
-            payload: {
-                username
-            }
-        } as Receipt;
+        return await store.dumpState(username);
     }
 
     if(!user.verify(password)) {
@@ -89,14 +82,6 @@ export async function loginHandler(params: {
         await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return {
-            receiptOf: 'LOGIN',
-            seq: seq,
-            status: true,
-            message: 'login successfully',
-            payload: {
-                username
-            }
-        } as Receipt;
+        return await store.dumpState(username);
     }
 }

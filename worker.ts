@@ -3,8 +3,12 @@ import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import { loginHandler } from "./lib/worker/auth";
-import { Receipt } from "./lib/interfaces";
+import { Receipt, State } from "./lib/interfaces";
 import { delAI, hasMap, joinGameHandler, killEngine, leaveGame, midJoin, setAI, setMap, setMod, setSpec, setTeam, startGame } from "./lib/worker/dod";
+import { RedisStore } from "./lib/store";
+import { CallTracker } from "assert";
+
+const store = new RedisStore();
 
 
 const handlersTable: {
@@ -18,7 +22,7 @@ const handlersTable: {
         mapId?: number
         mod?: string
         [key:string]: any
-    }, seq: number, caller: string) => Promise<Receipt>
+    }, seq: number, caller: string) => Promise<Receipt | State>
 } = 
 { 
         LOGIN: loginHandler,
@@ -38,8 +42,11 @@ const handlersTable: {
 
 let dbInitialized = false;
 
-function toParent(receipt: Receipt) {
-    parentPort?.postMessage(receipt)
+function toParent(receiptOrState: Receipt | State, seq: number) {
+    parentPort?.postMessage({
+        receiptOrState,
+        seq
+    })
 }
 
 AppDataSource.initialize().then(() => {
@@ -55,6 +62,5 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     const hanlder = handlersTable[action]
 
     const receipt = await hanlder(msg.parameters, msg.seq, msg.caller);
-
-    toParent(receipt);
+    toParent(receipt, msg.seq);
 })

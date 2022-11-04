@@ -45,12 +45,7 @@ export async function joinGameHandler(params: {
 
         await store.releaseLock(RESOURCE_OCCUPIED);
 
-        return {
-           receiptOf: 'JOINGAME',
-           seq,
-           status: true,
-           message: 'game room created'
-        } as Receipt;
+        return await store.dumpState(caller);
     }
 
     gameRoom.setPlayer(caller, 'A', false);
@@ -58,12 +53,7 @@ export async function joinGameHandler(params: {
 
     await store.releaseLock(RESOURCE_OCCUPIED);
 
-    return {
-        receiptOf: 'JOINGAME',
-        seq,
-        status: true,
-        message: `user ${caller} joined`
-    } as Receipt;
+    return await store.dumpState(caller);
 }
 
 export async function setTeam(params: {
