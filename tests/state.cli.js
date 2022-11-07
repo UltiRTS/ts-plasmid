@@ -49,7 +49,7 @@ const wsInit = () => {
         }
     });
 
-    ws.on('close', () => {
+    ws.on('close', async () => {
         opened = false;
         console.log('closed')
     })

@@ -8,7 +8,7 @@ import { delAI, hasMap, joinGameHandler, killEngine, leaveGame, midJoin, setAI, 
 import { RedisStore } from "./lib/store";
 import { CallTracker } from "assert";
 
-const store = new RedisStore();
+import { store } from "./lib/worker/shared";
 
 
 const handlersTable: {

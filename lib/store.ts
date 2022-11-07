@@ -274,12 +274,22 @@ export class RedisStore {
         type = type.toLowerCase();
 
         switch(type) {
-            case 'user':
+            case 'user': {
                 lockname = RedisStore.USER_RESOURCE(name) + SUFFIX_LOCK;
-            case 'game':
+                break;
+            }
+            case 'game': {
                 lockname = RedisStore.GAME_RESOURCE(name) + SUFFIX_LOCK;
-            default:
+                break;
+            }
+            case 'chat': {
+                lockname = RedisStore.CHAT_RESOURCE(name) + SUFFIX_LOCK;
+                break;
+            }
+            default: {
                 lockname = lockname + SUFFIX_LOCK;
+                break;
+            }
         }
 
         return lockname;

@@ -8,19 +8,33 @@ export class User extends DBUser {
     chatRooms: {[key: string]: ChatRoom} = {} 
     game: string | null = null
 
-    constructor(user: DBUser) {
+    constructor(user?: DBUser) {
         super();
-        this.id = user.id;
-        this.username = user.username;
-        this.accessLevel = user.accessLevel;
-        this.exp = user.exp;
-        this.sanity = user.sanity;
-        this.blocked = user.blocked;
-        // clear sensitive fields
-        this.hash = "";
-        this.salt = "";
-        this.confirmations = user.confirmations;
-        this.friends = user.friends;
+        if(user) {
+            this.id = user.id;
+            this.username = user.username;
+            this.accessLevel = user.accessLevel;
+            this.exp = user.exp;
+            this.sanity = user.sanity;
+            this.blocked = user.blocked;
+            // clear sensitive fields
+            this.hash = "";
+            this.salt = "";
+            this.confirmations = user.confirmations;
+            this.friends = user.friends;
+        } else {
+            this.id = 0;
+            this.username = '';
+            this.accessLevel = 0;
+            this.exp = 0;
+            this.sanity = 0;
+            this.blocked = false;
+            // clear sensitive fields
+            this.hash = "";
+            this.salt = "";
+            this.confirmations = [];
+            this.friends = [];
+        }
     }
 
     serialize() {
@@ -29,8 +43,8 @@ export class User extends DBUser {
 
     static from(str: string) {
         try {
-            const dbUser = Object.assign(new DBUser(), JSON.parse(str)) as User;
-            return new User(dbUser);
+            // const dbUser = Object.assign(new DBUser(), JSON.parse(str)) as User;
+            return Object.assign(new User(), JSON.parse(str));
         } catch(e) {
             return null;
         }

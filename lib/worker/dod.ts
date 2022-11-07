@@ -2,9 +2,8 @@ import { Game } from "../../db/models/game";
 import { Receipt } from "../interfaces";
 import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
-import { LockedNotify } from "../util";
-
-const store = new RedisStore();
+import { LockedNotify, Notify } from "../util";
+import { store } from "./shared";
 
 export async function joinGameHandler(params: {
     gameName?: string,
@@ -26,32 +25,55 @@ export async function joinGameHandler(params: {
         } as Receipt;
     }
 
-    const RESOURCE_OCCUPIED = RedisStore.GAME_RESOURCE(gameName);
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+
 
     try {
-        await store.acquireLock(RESOURCE_OCCUPIED);
+        await store.acquireLock(GAME_LOCK);
     } catch {
+        console.log('game lock required failed');
+        return LockedNotify('JOINGAME', seq);
+    }
+
+    try {
+        await store.acquireLock(USER_LOCK);
+    } catch {
+        console.log('user lock required failed');
         return LockedNotify('JOINGAME', seq);
     }
 
 
     let gameRoom = await store.getGame(gameName)
+    const user = await store.getUser(caller);
+
+    if(user == null) {
+        return Notify('JOINGAME', seq, 'user not found');
+    }
 
     if(gameRoom == null) {
         gameRoom = new GameRoom(gameName, caller, mapId)
         gameRoom.password = password;
+        user.game = gameName;
+
+        gameRoom.setPlayer(caller, 'A', false);
 
         await store.setGame(gameName, gameRoom);
+        await store.setUser(caller, user);
 
-        await store.releaseLock(RESOURCE_OCCUPIED);
+        await store.releaseLock(GAME_LOCK);
+        await store.releaseLock(USER_LOCK);
 
         return await store.dumpState(caller);
     }
 
+    user.game = gameName;
     gameRoom.setPlayer(caller, 'A', false);
     await store.setGame(gameName, gameRoom);
+    await store.setUser(caller, user);
 
-    await store.releaseLock(RESOURCE_OCCUPIED);
+    await store.releaseLock(GAME_LOCK);
+    await store.releaseLock(USER_LOCK);
 
     return await store.dumpState(caller);
 }

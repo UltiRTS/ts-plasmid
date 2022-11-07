@@ -82,3 +82,12 @@ export function LockedNotify(receiptOf: string, seq: number) {
         message: 'LOCK ACQUIRED FAILED'
     } as Receipt;
 }
+
+export function Notify(receiptOf: string, seq: number, message: string) {
+    return {
+        receiptOf: receiptOf,
+        seq: seq,
+        status: false,
+        message: message
+    } as Receipt;
+}

@@ -5,19 +5,9 @@ import { RedisStore } from "../store";
 import { Receipt } from "../interfaces";
 import { LockedNotify } from "../util";
 
-import { AppDataSource } from "../../db/datasource";
+import { store } from "./shared";
+import { userRepo } from "./shared";
 
-
-let dbInitialized = false;
-
-AppDataSource.initialize().then(() => {
-    dbInitialized = true;
-}).catch(e=> {
-    console.log(e)
-})
-
-const store = new RedisStore();
-const userRepo = AppDataSource.getRepository(User);
 
 export async function loginHandler(params: {
     username?: string,

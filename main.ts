@@ -1,6 +1,7 @@
 import { randomInt } from "crypto";
 import "reflect-metadata"
 import { Worker, parentPort, threadId } from "worker_threads";
+import { AutohostManager } from "./lib/autohost";
 import { Receipt, State } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification} from "./lib/network";
 
@@ -11,6 +12,8 @@ const clientID2seq: {[key: string]: number} = {}
 const seq2clientID: {[key: number]: string} = {}
 const clientID2username: {[key: string]: string} = {}
 const username2clientID: {[key: string]: string} = {}
+
+const autohostMgr = new AutohostManager();
 
 network.on('message', (clientID: string, data: IncommingMsg) => {
 
@@ -46,7 +49,9 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
 })
 
 for(let i=0; i<4; i++) {
-    let worker = new Worker('./worker.js');
+    let worker = new Worker('./worker.ts', {
+        execArgv: ['-r', 'ts-node/register/transpile-only']
+    });
     worker.on('online', () => {
         console.log(`Worker ${worker.threadId} online`);
     })
