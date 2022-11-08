@@ -1,6 +1,21 @@
 import { GameRoom } from "./states/room"
 import { User } from "./states/user"
 
+export interface GameConf {
+    id: number
+    title: string
+    mgr: string
+    aiHosters: number[]
+    mapId: number
+    team: {[key: string]: {
+      index: number,
+      isAI: boolean,
+      isChicken: boolean,
+      isSpectator: boolean,
+      team: number,
+    }}
+    [key: string]: any
+}
 export interface Receipt {
     receiptOf: string
     seq: number
@@ -21,4 +36,18 @@ export interface State {
         hoster: string
         mapId: number
     }[]
+}
+
+export interface CMD {
+    to: string,
+    payload: {
+        [key: string]: any
+    }
+}
+
+export interface CMD_Autohost_Start_Game extends CMD {
+    payload: {
+        gameConf: GameConf
+        [key: string]: any
+    }
 }

@@ -1,5 +1,5 @@
 import { Game } from "../../db/models/game";
-import { Receipt } from "../interfaces";
+import { CMD, CMD_Autohost_Start_Game, Receipt } from "../interfaces";
 import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
 import { LockedNotify, Notify } from "../util";
@@ -18,11 +18,9 @@ export async function joinGameHandler(params: {
 
     if(gameName == null || password == null || mapId == null) {
         return {
-           receiptOf: 'JOINGAME',
-           seq,
-           status: false,
-           message: 'insufficient parameters'
-        } as Receipt;
+            resp: Notify('JOINGAME', seq, 'insufficient parameters'),
+            type: 'network'
+        }
     }
 
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
@@ -33,14 +31,20 @@ export async function joinGameHandler(params: {
         await store.acquireLock(GAME_LOCK);
     } catch {
         console.log('game lock required failed');
-        return LockedNotify('JOINGAME', seq);
+        return {
+            resp:LockedNotify('JOINGAME', seq),
+            type: 'network'
+        }
     }
 
     try {
         await store.acquireLock(USER_LOCK);
     } catch {
         console.log('user lock required failed');
-        return LockedNotify('JOINGAME', seq);
+        return {
+            resp:LockedNotify('JOINGAME', seq),
+            type: 'network'
+        }
     }
 
 
@@ -48,7 +52,10 @@ export async function joinGameHandler(params: {
     const user = await store.getUser(caller);
 
     if(user == null) {
-        return Notify('JOINGAME', seq, 'user not found');
+        return {
+            resp: Notify('JOINGAME', seq, 'user not found'),
+            type: 'network'
+        }
     }
 
     if(gameRoom == null) {
@@ -64,7 +71,10 @@ export async function joinGameHandler(params: {
         await store.releaseLock(GAME_LOCK);
         await store.releaseLock(USER_LOCK);
 
-        return await store.dumpState(caller);
+        return {
+            resp: await store.dumpState(caller),
+            type: 'network'
+        }
     }
 
     user.game = gameName;
@@ -75,7 +85,10 @@ export async function joinGameHandler(params: {
     await store.releaseLock(GAME_LOCK);
     await store.releaseLock(USER_LOCK);
 
-    return await store.dumpState(caller);
+    return {
+        resp: await store.dumpState(caller),
+        type: 'network'
+    }
 }
 
 export async function setTeam(params: {
@@ -97,7 +110,79 @@ export async function setMap(params: {
 
 export async function startGame(params: {
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const player = await store.getUser(caller);
+    if(player == null) {
+        return {
+            resp: Notify('STARTGAME', seq, 'player doesn\'t exist'),
+            type: 'network'
+        }
+    }
+
+    const gameName = player.game;
+    if(gameName == null) {
+        return {
+            resp: Notify('STARTGAME', seq, 'joined no game'),
+            type: 'network'
+        }
+    }
+
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        return {
+            resp: Notify('STARTGAME', seq, 'game not found'),
+            type: 'network'
+        }
+    }
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return {
+            resp: LockedNotify('STARTGAME', seq),
+            type: 'network'
+        }
+    }
+
+    if(game.isStarted) {
+        return {
+           resp: Notify('STARTGAME', seq, 'game already started'),
+           type: 'network'
+        }
+    }
+
+    if(game.hoster === player.username) {
+        game.clearPoll();
+        const cmd: CMD_Autohost_Start_Game = {
+            to: 'autohost',
+            payload: {
+                gameConf: game.configureToStart()
+            }
+        }
+        return {
+            resp: cmd,
+            type: 'cmd'
+        }
+    } else {
+        game.addPoll(caller, 'STARTGAME');
+        if(game.getPollCount('STARTGAME') > game.getPlayerCount() / 2) {
+            const cmd: CMD_Autohost_Start_Game = {
+                to: 'autohost',
+                payload: {
+                    gameConf: game.configureToStart()
+                }
+            }
+            return {
+                resp: cmd,
+                type: 'cmd'
+            }
+        } else {
+            return {
+                resp: await store.dumpState(caller),
+                type: 'network'
+            }
+        }
+    }
 }
 
 export async function setSpec(params: {

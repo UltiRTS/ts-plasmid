@@ -2,7 +2,7 @@ import { randomInt } from "crypto";
 import "reflect-metadata"
 import { Worker, parentPort, threadId } from "worker_threads";
 import { AutohostManager } from "./lib/autohost";
-import { Receipt, State } from "./lib/interfaces";
+import { CMD, CMD_Autohost_Start_Game, Receipt, State } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification} from "./lib/network";
 
 const network = new Network(8081);
@@ -13,7 +13,9 @@ const seq2clientID: {[key: number]: string} = {}
 const clientID2username: {[key: string]: string} = {}
 const username2clientID: {[key: string]: string} = {}
 
-const autohostMgr = new AutohostManager();
+const autohostMgr = new AutohostManager([], {
+   port: 5000 
+});
 
 network.on('message', (clientID: string, data: IncommingMsg) => {
 
@@ -44,6 +46,7 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
 
 
     data.caller = clientID2username[clientID];
+    data.type = 'client';
 
     workers[workerId].postMessage(data)
 })
@@ -59,11 +62,24 @@ for(let i=0; i<4; i++) {
         console.log(`worker ${worker.threadId} exited with code ${code}`);
     })
     worker.on('message', (payload:{
-        receiptOrState: Receipt | State, 
-        seq: number
+        receiptOrState: Receipt | State | CMD, 
+        seq: number,
+        type: string
     }) => {
-
-        network.emit('postMessage', seq2clientID[payload.seq], payload.receiptOrState);
+        switch(payload.type) {
+            case 'network': {
+                network.emit('postMessage', seq2clientID[payload.seq], payload.receiptOrState);
+                break
+            }
+            case 'cmd': {
+                let cmd = payload.receiptOrState as CMD;
+                if(cmd.to === 'autohost') {
+                    let autohostCmd = cmd as CMD_Autohost_Start_Game;
+                    autohostMgr.start(autohostCmd.payload.gameConf);
+                }
+                break;
+            }
+        }
     })
 
     workers.push(worker);

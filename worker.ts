@@ -3,7 +3,7 @@ import { parentPort } from "worker_threads";
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import { loginHandler } from "./lib/worker/auth";
-import { Receipt, State } from "./lib/interfaces";
+import { CMD, Receipt, State } from "./lib/interfaces";
 import { delAI, hasMap, joinGameHandler, killEngine, leaveGame, midJoin, setAI, setMap, setMod, setSpec, setTeam, startGame } from "./lib/worker/dod";
 import { RedisStore } from "./lib/store";
 import { CallTracker } from "assert";
@@ -22,30 +22,31 @@ const handlersTable: {
         mapId?: number
         mod?: string
         [key:string]: any
-    }, seq: number, caller: string) => Promise<Receipt | State>
+    }, seq: number, caller: string) => Promise<{resp: Receipt | State | CMD, type: string}>
 } = 
 { 
         LOGIN: loginHandler,
         JOINGAME: joinGameHandler,
-        SETTEAM: setTeam,
-        SETMAP: setMap,
+        // SETTEAM: setTeam,
+        // SETMAP: setMap,
         STARTGAME: startGame,
-        SETSPEC: setSpec,
-        LEAVEGAME: leaveGame,
-        HASMAP: hasMap,
-        MIDJOIN: midJoin,
-        KILLENGINE: killEngine,
-        SETMOD: setMod,
-        SETAI: setAI,
-        DELAI: delAI
+        // SETSPEC: setSpec,
+        // LEAVEGAME: leaveGame,
+        // HASMAP: hasMap,
+        // MIDJOIN: midJoin,
+        // KILLENGINE: killEngine,
+        // SETMOD: setMod,
+        // SETAI: setAI,
+        // DELAI: delAI
 }
 
 let dbInitialized = false;
 
-function toParent(receiptOrState: Receipt | State, seq: number) {
+function toParent(receiptOrState: Receipt | State | CMD, seq: number, type: string) {
     parentPort?.postMessage({
         receiptOrState,
-        seq
+        seq,
+        type
     })
 }
 
@@ -58,9 +59,19 @@ AppDataSource.initialize().then(() => {
 parentPort?.on('message', async (msg: IncommingMsg) => {
     if(!(msg.action in handlersTable)) return;
 
-    const action = msg.action;
-    const hanlder = handlersTable[action]
+    switch(msg.type) {
+        case 'client': {
+            const action = msg.action;
+            const hanlder = handlersTable[action]
 
-    const receipt = await hanlder(msg.parameters, msg.seq, msg.caller);
-    toParent(receipt, msg.seq);
+            const {resp, type} = await hanlder(msg.parameters, msg.seq, msg.caller);
+            if(type === 'network') {
+                toParent(resp, msg.seq, 'network');
+            } else if(type === 'cmd') {
+                toParent(resp, msg.seq, 'cmd');
+            }
+            break;
+        }
+    }
+
 })

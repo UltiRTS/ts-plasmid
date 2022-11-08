@@ -1,10 +1,11 @@
 import { EventEmitter } from "stream";
 import { WebSocketServer, WebSocket } from "ws";
-import { GameConf } from "./states/room";
+import { GameConf } from "./interfaces";
 import {Game} from '../db/models/game';
 import {AppDataSource} from '../db/datasource';
 import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage";
 import { User } from "../db/models/user";
+import { getRandomInt } from "./util";
 
 let dbInitialized = false;
 
@@ -211,8 +212,20 @@ export class AutohostManager extends EventEmitter {
         })
     }
 
+    assignAutohost() {
+        const autohostLen = Object.keys(this.clients).length;
+        if(autohostLen === 0) return '';
+
+        return Object.keys(this.clients)[
+            getRandomInt(autohostLen)
+        ];
+    }
+
     start(gameConf: GameConf) {
         console.log(`game ${gameConf.title} starting`)
+        if(gameConf.mgr == null) {
+            gameConf.mgr = this.assignAutohost();
+        }
         this.hostedGames[gameConf.title] = {
             running: false,
             error: '',

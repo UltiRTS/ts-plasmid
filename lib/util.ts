@@ -91,3 +91,7 @@ export function Notify(receiptOf: string, seq: number, message: string) {
         message: message
     } as Receipt;
 }
+
+export function getRandomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}

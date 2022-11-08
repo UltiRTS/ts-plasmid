@@ -3,7 +3,7 @@ import { User } from "../../db/models/user"
 import { User as StateUser } from "../states/user";
 import { RedisStore } from "../store";
 import { Receipt } from "../interfaces";
-import { LockedNotify } from "../util";
+import { LockedNotify, Notify } from "../util";
 
 import { store } from "./shared";
 import { userRepo } from "./shared";
@@ -19,19 +19,19 @@ export async function loginHandler(params: {
 
     if(username == null || password == null) {
         return {
-            receiptOf: 'LOGIN',
-            seq: seq,
-            status: false,
-            message: 'missing username or password',
-            payload: {}
-        } as Receipt;
+            resp: Notify('LOGIN', seq, 'missing username or password'),
+            type: 'network'
+        }
     }
 
     const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
     try {
         await store.acquireLock(RESOURCE_OCCUPIED);
     } catch {
-        return LockedNotify('LOGIN', seq);
+        return {
+            resp: LockedNotify('LOGIN', seq),
+            type: 'network'
+        }
     }
 
 
@@ -56,22 +56,26 @@ export async function loginHandler(params: {
         console.log('getting inside auth: ', await store.getUser(username));
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return await store.dumpState(username);
+        return {
+            resp: await store.dumpState(username),
+            type: 'network'
+        }
     }
 
     if(!user.verify(password)) {
         await store.releaseLock(RESOURCE_OCCUPIED);
         return {
-            receiptOf: 'LOGIN',
-            seq: seq,
-            status: false,
-            message: 'wrong password or username'
-        } as Receipt;
+            resp: Notify('LOGIN', seq, 'wrong password or username'),
+            type: 'network'
+        }
     } else {
         const userState = new StateUser(user);
         await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return await store.dumpState(username);
+        return {
+            resp: await store.dumpState(username),
+            type: 'network'
+        }
     }
 }
