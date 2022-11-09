@@ -1,7 +1,6 @@
 import { Receipt } from "../interfaces";
 import { ChatRoom } from "../states/chat";
 import { RedisStore } from "../store";
-import { LockedNotify } from "../util";
 
 const store = new RedisStore();
 

@@ -17,9 +17,6 @@ export interface GameConf {
     [key: string]: any
 }
 export interface Receipt {
-    receiptOf: string
-    seq: number
-    status: boolean
     message: string
     payload: {[key: string]: any}
 }
@@ -40,6 +37,7 @@ export interface State {
 
 export interface CMD {
     to: string,
+    action: string,
     payload: {
         [key: string]: any
     }
@@ -50,4 +48,19 @@ export interface CMD_Autohost_Start_Game extends CMD {
         gameConf: GameConf
         [key: string]: any
     }
+}
+
+export interface Wrapped_Message {
+    payload: {
+        receipt?: Receipt
+        state?: State
+        cmd?: CMD
+    }
+    receiptOf: string
+    status: boolean
+    seq: number
+    // autohost, clients, etc
+    targets: string[],
+    // usernames
+    client: string
 }

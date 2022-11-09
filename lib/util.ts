@@ -1,6 +1,6 @@
 import axios, { responseEncoding } from 'axios';
 import {dntpAddr} from '../config';
-import { Receipt } from './interfaces';
+import { CMD, Receipt, State, Wrapped_Message} from './interfaces';
 
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -74,24 +74,52 @@ export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function LockedNotify(receiptOf: string, seq: number) {
-    return {
-        receiptOf: 'LOCK',
-        seq: seq,
-        status: false,
-        message: 'LOCK ACQUIRED FAILED'
-    } as Receipt;
-}
-
-export function Notify(receiptOf: string, seq: number, message: string) {
-    return {
-        receiptOf: receiptOf,
-        seq: seq,
-        status: false,
-        message: message
-    } as Receipt;
-}
-
 export function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
+}
+
+export function Notify(receiptOf: string, seq: number, msg: string, client: string) {
+     return {
+        receiptOf,
+        seq,
+        status: false,
+        targets: ['network'],
+        payload: { 
+            receipt: {
+                message: msg
+            } as Receipt
+        },
+        client
+    } as Wrapped_Message
+}
+
+export function WrappedState(receiptOf: string, seq: number, state: State, client: string) {
+     return {
+        receiptOf,
+        seq,
+        status: true,
+        targets: ['network'],
+        payload: {
+            state
+        },
+        client
+    } as Wrapped_Message
+}
+
+export function WrappedCMD(receiptOf: string, seq: number, cmd: CMD, extraTarget: string, client: string, options: {
+    state?: State
+    receipt?: Receipt
+}) {
+     return {
+        receiptOf,
+        seq,
+        status: true,
+        targets: extraTarget==='cmd'?['cmd']:[extraTarget, 'cmd'],
+        payload: {
+            cmd,
+            receipt: options.receipt,
+            state: options.state
+        },
+        client
+    } as Wrapped_Message
 }

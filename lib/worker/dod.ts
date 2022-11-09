@@ -1,8 +1,8 @@
 import { Game } from "../../db/models/game";
-import { CMD, CMD_Autohost_Start_Game, Receipt } from "../interfaces";
+import { CMD, CMD_Autohost_Start_Game, Receipt, Wrapped_Message } from "../interfaces";
 import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
-import { LockedNotify, Notify } from "../util";
+import { Notify, WrappedCMD, WrappedState } from "../util";
 import { store } from "./shared";
 
 export async function joinGameHandler(params: {
@@ -17,10 +17,7 @@ export async function joinGameHandler(params: {
     const mapId = params.mapId;
 
     if(gameName == null || password == null || mapId == null) {
-        return {
-            resp: Notify('JOINGAME', seq, 'insufficient parameters'),
-            type: 'network'
-        }
+        return [Notify('JOINGAME', seq, 'insufficient parameters', caller)];
     }
 
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
@@ -31,31 +28,27 @@ export async function joinGameHandler(params: {
         await store.acquireLock(GAME_LOCK);
     } catch {
         console.log('game lock required failed');
-        return {
-            resp:LockedNotify('JOINGAME', seq),
-            type: 'network'
-        }
+        return [Notify('JOINGAME', seq, 'game lock acquired fail', caller)];
     }
 
     try {
         await store.acquireLock(USER_LOCK);
     } catch {
         console.log('user lock required failed');
-        return {
-            resp:LockedNotify('JOINGAME', seq),
-            type: 'network'
-        }
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('JOINGAME', seq, 'user lock acquired fail', caller)];
     }
 
 
     let gameRoom = await store.getGame(gameName)
     const user = await store.getUser(caller);
+    console.log(caller);
+    console.log(user);
 
     if(user == null) {
-        return {
-            resp: Notify('JOINGAME', seq, 'user not found'),
-            type: 'network'
-        }
+        await store.releaseLock(USER_LOCK);
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('JOINGAME', seq, 'user not found', caller)];
     }
 
     if(gameRoom == null) {
@@ -71,10 +64,7 @@ export async function joinGameHandler(params: {
         await store.releaseLock(GAME_LOCK);
         await store.releaseLock(USER_LOCK);
 
-        return {
-            resp: await store.dumpState(caller),
-            type: 'network'
-        }
+        return [WrappedState('JOINGAME', seq, await store.dumpState(caller), caller)]
     }
 
     user.game = gameName;
@@ -85,10 +75,16 @@ export async function joinGameHandler(params: {
     await store.releaseLock(GAME_LOCK);
     await store.releaseLock(USER_LOCK);
 
-    return {
-        resp: await store.dumpState(caller),
-        type: 'network'
+    const res: Wrapped_Message[] = [];
+
+    for(const player in gameRoom.players) {
+        if(caller !== player)
+            res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
     }
+
+    res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function setTeam(params: {
@@ -105,82 +101,147 @@ export async function setMap(params: {
     mapId?: number
     [key:string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const gameName = params.gameName;
+    const mapId = params.mapId;
+
+    if(gameName == null || mapId == null) {
+        return [Notify('SETMAP', seq, 'insufficient parameters', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('SETMAP', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('SETMAP', seq, 'no such game', caller)];
+    }
+
+    const poll = 'SETMAP_' + mapId;
+
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+
+        game.setMapId(mapId);
+        await store.setGame(gameName, game);
+        console.log('map set');
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount() / 2) {
+            game.setMapId(mapId);
+            console.log('poll added then map set');
+        }
+        await store.setGame(gameName, game);
+        console.log('poll added');
+    }
+
+    await store.releaseLock(GAME_LOCK);
+
+    const res: Wrapped_Message[] = [];
+
+    for(const player in game.players) {
+        if(caller !== player)
+            res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller));
+
+    await store.releaseLock(GAME_LOCK);
+    return res;
 }
 
 export async function startGame(params: {
 }, seq: number, caller: string) {
     const player = await store.getUser(caller);
     if(player == null) {
-        return {
-            resp: Notify('STARTGAME', seq, 'player doesn\'t exist'),
-            type: 'network'
-        }
+        return [Notify('STARTGAME', seq, 'player doesn\'t exist', caller)]
     }
 
     const gameName = player.game;
     if(gameName == null) {
-        return {
-            resp: Notify('STARTGAME', seq, 'joined no game'),
-            type: 'network'
-        }
+        return [Notify('STARTGAME', seq, 'joined no game', caller)]
     }
 
 
     const game = await store.getGame(gameName);
     if(game == null) {
-        return {
-            resp: Notify('STARTGAME', seq, 'game not found'),
-            type: 'network'
-        }
+        return [Notify('STARTGAME', seq, 'game not found', caller)]
     }
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
     try {
         await store.acquireLock(GAME_LOCK);
     } catch(e) {
-        return {
-            resp: LockedNotify('STARTGAME', seq),
-            type: 'network'
-        }
+        return [Notify('STARTGAME', seq, 'game lock acquired failed', caller)]
     }
 
     if(game.isStarted) {
-        return {
-           resp: Notify('STARTGAME', seq, 'game already started'),
-           type: 'network'
-        }
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('STARTGAME', seq, 'game already started', caller)]
     }
 
     if(game.hoster === player.username) {
-        game.clearPoll();
+        game.clearPoll('STARTGAME');
         const cmd: CMD_Autohost_Start_Game = {
             to: 'autohost',
+            action: 'STARTGAME',
             payload: {
                 gameConf: game.configureToStart()
             }
         }
-        return {
-            resp: cmd,
-            type: 'cmd'
+
+        const res: Wrapped_Message[] = [];
+        for(const player in game.players) {
+            if(caller !== player)
+                res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
         }
+        res.push(
+            WrappedCMD('STARTGAME', seq, cmd, 'network', caller, {
+                state: await store.dumpState(caller)
+            })
+        );
+
+        await store.releaseLock(GAME_LOCK);
+        return res;
+
     } else {
         game.addPoll(caller, 'STARTGAME');
         if(game.getPollCount('STARTGAME') > game.getPlayerCount() / 2) {
             const cmd: CMD_Autohost_Start_Game = {
                 to: 'autohost',
+                action: 'STARTGAME',
                 payload: {
                     gameConf: game.configureToStart()
                 }
             }
-            return {
-                resp: cmd,
-                type: 'cmd'
+
+            const res: Wrapped_Message[] = [];
+            for(const player in game.players) {
+                if(caller !== player)
+                    res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
             }
+            res.push(
+                WrappedCMD('STARTGAME', seq, cmd, 'network', caller, {
+                    state: await store.dumpState(caller)
+                })
+            );
+
+            await store.releaseLock(GAME_LOCK);
+            return res;
         } else {
-            return {
-                resp: await store.dumpState(caller),
-                type: 'network'
+            const res: Wrapped_Message[] = [];
+            for(const player in game.players) {
+                if(caller !== player)
+                    res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
             }
+            res.push(
+                WrappedState('STARTGAME', seq, await store.dumpState(caller), caller)
+            )
+            await store.releaseLock(GAME_LOCK);
+            return res;
         }
     }
 }

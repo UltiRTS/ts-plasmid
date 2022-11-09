@@ -1,13 +1,10 @@
-import { Repository } from "typeorm"
 import { User } from "../../db/models/user"
 import { User as StateUser } from "../states/user";
 import { RedisStore } from "../store";
-import { Receipt } from "../interfaces";
-import { LockedNotify, Notify } from "../util";
+import { Notify, WrappedState, WrappedCMD} from "../util";
 
 import { store } from "./shared";
 import { userRepo } from "./shared";
-
 
 export async function loginHandler(params: {
     username?: string,
@@ -18,20 +15,14 @@ export async function loginHandler(params: {
     const password = params.password;
 
     if(username == null || password == null) {
-        return {
-            resp: Notify('LOGIN', seq, 'missing username or password'),
-            type: 'network'
-        }
+        return [Notify('LOGIN', seq, 'missing username or password', caller)];
     }
 
     const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
     try {
         await store.acquireLock(RESOURCE_OCCUPIED);
     } catch {
-        return {
-            resp: LockedNotify('LOGIN', seq),
-            type: 'network'
-        }
+        return [Notify('LOGIN', seq, 'acquire user lock failed', caller)];
     }
 
 
@@ -56,26 +47,17 @@ export async function loginHandler(params: {
         console.log('getting inside auth: ', await store.getUser(username));
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return {
-            resp: await store.dumpState(username),
-            type: 'network'
-        }
+        return [WrappedState('LOGIN', seq, await store.dumpState(username), caller)];
     }
 
     if(!user.verify(password)) {
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return {
-            resp: Notify('LOGIN', seq, 'wrong password or username'),
-            type: 'network'
-        }
+        return [Notify('LOGIN', seq, 'wrong password of username', caller)];
     } else {
         const userState = new StateUser(user);
         await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
-        return {
-            resp: await store.dumpState(username),
-            type: 'network'
-        }
+        return [WrappedState('LOGIN', seq, await store.dumpState(username), caller)];
     }
 }

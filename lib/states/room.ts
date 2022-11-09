@@ -183,11 +183,9 @@ export class GameRoom {
     return returningPoll;
   }
 
-  clearPoll(actionName: string = 'aNew') {
-    if (actionName == 'aNew') {
-      this.polls = {};
-    } else {
-      this.polls[actionName].clear();
+  clearPoll(actionName: string) {
+    if(actionName in this.polls) {
+      this.polls[actionName].clear()
     }
   }
 
