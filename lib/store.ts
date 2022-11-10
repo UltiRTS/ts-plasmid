@@ -113,12 +113,10 @@ export class RedisStore {
 
     async setGame(gameName: string, game: GameRoom) {
         const name = RedisStore.GAME_RESOURCE(gameName);
-        if(!(gameName in this.games)) {
-            this.games[gameName] = {
-                hoster: game.hoster,
-                mapId: game.mapId
-            };
-        }
+        this.games[gameName] = {
+            hoster: game.hoster,
+            mapId: game.mapId
+        };
         await this.client.set(name, game.serialize());
     }
 

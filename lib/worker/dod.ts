@@ -125,9 +125,8 @@ export async function setMap(params: {
 
     if(game.hoster === caller) {
         game.clearPoll(poll);
-
         game.setMapId(mapId);
-        await store.setGame(gameName, game);
+
         console.log('map set');
     } else {
         game.addPoll(caller, poll);
@@ -135,10 +134,10 @@ export async function setMap(params: {
             game.setMapId(mapId);
             console.log('poll added then map set');
         }
-        await store.setGame(gameName, game);
         console.log('poll added');
     }
 
+    await store.setGame(gameName, game);
     await store.releaseLock(GAME_LOCK);
 
     const res: Wrapped_Message[] = [];

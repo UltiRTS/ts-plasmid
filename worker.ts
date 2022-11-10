@@ -9,7 +9,7 @@ import { RedisStore } from "./lib/store";
 import { CallTracker } from "assert";
 
 import { store } from "./lib/worker/shared";
-
+import { gameEndedHandler, gameStartedHandler } from "./lib/worker/internal";
 
 const clientsHandlers: {
     [index: string]: 
@@ -41,9 +41,13 @@ const clientsHandlers: {
 }
 
 const interalHandlers: {
-
+    [index: string]: (params: {
+        gameName?: string
+        [key: string]: any
+    }) => Promise<Wrapped_Message[]>
 } = {
-
+    GAMESTARTED: gameStartedHandler,
+    GAMEENDED: gameEndedHandler
 }
 
 let dbInitialized = false;
@@ -59,18 +63,24 @@ AppDataSource.initialize().then(() => {
 })
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
-    if(!(msg.action in clientsHandlers) || !(msg)) return;
+    console.log(msg);
+    if(!(msg.action in clientsHandlers) && !(msg.action in interalHandlers)) return;
+
 
     switch(msg.type) {
         case 'client': {
             const action = msg.action;
             const hanlder = clientsHandlers[action]
-            console.log(msg)
             const resp = await hanlder(msg.parameters, msg.seq, msg.caller);
             toParent(resp);
             break;
         }
         case 'internal': {
+            console.log('interal: ', msg);
+            const action = msg.action;
+            const hanlder = interalHandlers[action];
+            const resp = await hanlder(msg.parameters);
+            toParent(resp);
             break;
         }
     }

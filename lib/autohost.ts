@@ -6,6 +6,7 @@ import {AppDataSource} from '../db/datasource';
 import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage";
 import { User } from "../db/models/user";
 import { getRandomInt } from "./util";
+import { randomInt } from "crypto";
 
 let dbInitialized = false;
 
@@ -34,10 +35,14 @@ export class AutohostManager extends EventEmitter {
     server: WebSocketServer | null = null
     clients: {[key: string]: {
         ws: WebSocket,
-        workload: number
+        workload: number,
+        hostedId: {
+            [key: number]: string
+        }
     }} = {}
     hostedGames: {
         [key: string]: {
+            autohost: string,
             running: boolean, 
             error: string, 
             ws: WebSocket | null, 
@@ -80,7 +85,8 @@ export class AutohostManager extends EventEmitter {
             const autohostIP = req.socket.remoteAddress
             if(autohostIP) this.clients[autohostIP] = {
                 ws,
-                workload: 0
+                workload: 0,
+                hostedId: {}
             };
             // if(autohostIP && autohostIP in this.allowedAutohosts) {
             // } else {
@@ -124,6 +130,17 @@ export class AutohostManager extends EventEmitter {
                     }
                     case 'serverEnding': {
                         if(msg.parameters.title) {
+                            // delete occupied id
+                            const autohost = this.hostedGames[msg.parameters.title].autohost;
+                            for(const [key, value] of Object.entries(this.clients[autohost].hostedId)) {
+                                if(value === msg.parameters.title) {
+                                    delete this.clients[autohost].hostedId[parseInt(key)];
+                                    break;
+                                }
+                            }
+
+                            console.log('occupied:', this.clients[autohost].hostedId);
+
                             this.hostedGames[msg.parameters.title].running = false
                             let winner_team = -1;
                             const lostMarks = this.hostedGames[msg.parameters.title].lostMarks;
@@ -221,12 +238,27 @@ export class AutohostManager extends EventEmitter {
         ];
     }
 
+    randRoomId(autohost: string) {
+        const hostedIds = this.clients[autohost].hostedId;
+        let randId = randomInt(10000);
+        while(randId in hostedIds) {
+            randId = randomInt(10000);
+        }
+
+        return randId;
+    }
+
     start(gameConf: GameConf) {
         console.log(`game ${gameConf.title} starting`)
         if(gameConf.mgr == null) {
             gameConf.mgr = this.assignAutohost();
+            // do load balance here
         }
+        gameConf.id = this.randRoomId(gameConf.mgr);
+        this.clients[gameConf.mgr].hostedId[gameConf.id] = gameConf.title;
+        console.log('occupied:', this.clients[gameConf.mgr].hostedId);
         this.hostedGames[gameConf.title] = {
+            autohost: gameConf.mgr,
             running: false,
             error: '',
             ws: null,

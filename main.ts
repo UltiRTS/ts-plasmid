@@ -147,7 +147,25 @@ autohostMgr.on('gameStarted', (msg: {
         type: 'internal',
         seq: -1,
         caller: '',
-        parameters: msg.payload,
+        parameters: {
+            ...msg.payload,
+            gameName: msg.gameName
+        },
+        payload: {}
+    }
+
+    workers[randomInt(4)].postMessage(internalMsg);
+})
+
+autohostMgr.on('gameEnded', (gameName) => {
+    const internalMsg: IncommingMsg = {
+        action: 'GAMEENDED',
+        type: 'internal',
+        seq: -1,
+        caller: '',
+        parameters: {
+            gameName
+        },
         payload: {}
     }
 
