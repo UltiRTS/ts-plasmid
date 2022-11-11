@@ -1,6 +1,7 @@
 import {WebSocketServer, WebSocket} from 'ws';
 import { randomString } from "./util";
 import {EventEmitter} from "events";
+import { Receipt, State } from './interfaces';
 
 export interface IncommingMsg {
     action: string,
@@ -82,4 +83,20 @@ export class Network extends EventEmitter {
         })
     }
 
+}
+
+export function wrapState(action: string, seq: number, state: State) {
+    return {
+        action,
+        seq,
+        state
+    }
+} 
+
+export function wrapReceipt(action: string, seq: number, receipt: Receipt) {
+    return {
+        action,
+        seq,
+        ...receipt
+    }
 }

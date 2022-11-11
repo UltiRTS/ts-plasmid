@@ -3,7 +3,7 @@ import { randomInt } from "crypto";
 import { Worker, parentPort, threadId } from "worker_threads";
 import { AutohostManager } from "./lib/autohost";
 import { CMD, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
-import { Network, IncommingMsg, Notification} from "./lib/network";
+import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -86,6 +86,7 @@ for(let i=0; i<4; i++) {
             for(const target of msg.targets) {
                 switch(target) {
                     case 'network': {
+                        // sustain the mapping
                         if(msg.receiptOf === 'LOGIN') {
                             const clientID = seq2clientID[msg.seq];
                             username2clientID[msg.client] = clientID;
@@ -94,16 +95,16 @@ for(let i=0; i<4; i++) {
 
                         if(msg.payload.receipt) {
                             if(msg.seq !== -1) 
-                                network.emit('postMessage', seq2clientID[msg.seq], msg.payload.receipt);
+                                network.emit('postMessage', seq2clientID[msg.seq], wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt));
                             else if(msg.client !== '' && username2clientID[msg.client] != null) {
-                                network.emit('postMessage', username2clientID[msg.client], msg.payload.receipt);
+                                network.emit('postMessage', username2clientID[msg.client], wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt));
                             }
                         }
                         if(msg.payload.state) {
                             if(msg.seq !== -1) {
-                                network.emit('postMessage', seq2clientID[msg.seq], msg.payload.state);
+                                network.emit('postMessage', seq2clientID[msg.seq], wrapState(msg.receiptOf, msg.seq, msg.payload.state));
                             } else if(msg.client !== '' && username2clientID[msg.client] != null) {
-                                network.emit('postMessage', username2clientID[msg.client], msg.payload.state);
+                                network.emit('postMessage', username2clientID[msg.client], wrapState(msg.receiptOf, msg.seq, msg.payload.state));
                             }
                         }
                         break
