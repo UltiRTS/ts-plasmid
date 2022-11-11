@@ -59,7 +59,7 @@ export interface Wrapped_Message {
     receiptOf: string
     status: boolean
     seq: number
-    // autohost, clients, etc
+    // cmd, network, all
     targets: string[],
     // usernames
     client: string

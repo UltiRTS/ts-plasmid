@@ -1,5 +1,2 @@
-+ pressure test
-+ autohost disconnected garbage collection
-+ when game is started, all game related commands are disabled
-+ garbage collect disconnected players notification
-+ say chat exception before joining room
++ Situation with no autohost
++ games dumping when there is new

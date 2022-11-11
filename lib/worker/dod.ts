@@ -64,7 +64,7 @@ export async function joinGameHandler(params: {
         await store.releaseLock(GAME_LOCK);
         await store.releaseLock(USER_LOCK);
 
-        return [WrappedState('JOINGAME', seq, await store.dumpState(caller), caller)]
+        return [WrappedState('JOINGAME', seq, await store.dumpState(caller), caller, ['client', 'all'])]
     }
 
     user.game = gameName;
@@ -210,7 +210,7 @@ export async function startGame(params: {
                 res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
         }
         res.push(
-            WrappedCMD('STARTGAME', seq, cmd, 'network', caller, {
+            WrappedCMD('STARTGAME', seq, cmd, 'client', caller, {
                 state: await store.dumpState(caller)
             })
         );
@@ -247,7 +247,7 @@ export async function startGame(params: {
                     res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
             }
             res.push(
-                WrappedCMD('STARTGAME', seq, cmd, 'network', caller, {
+                WrappedCMD('STARTGAME', seq, cmd, 'client', caller, {
                     state: await store.dumpState(caller)
                 })
             );
@@ -336,10 +336,11 @@ export async function leaveGame(params: {
     for(const player in game.players) {
         if(player === 'caller') continue;
 
-        res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(player), player));
+        res.push(WrappedState('LEAVEGAME', -1, await store.dumpState(player), player));
     }
 
-    res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(caller), caller));
+    if(!game.empty()) res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(caller), caller));
+    else res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(caller), caller, ['client', 'all']));
 
     return res;
 }

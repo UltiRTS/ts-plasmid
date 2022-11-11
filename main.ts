@@ -4,9 +4,11 @@ import { Worker, parentPort, threadId } from "worker_threads";
 import { AutohostManager } from "./lib/autohost";
 import { CMD, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
+import { RedisStore } from "./lib/store";
 
 const network = new Network(8081);
 const workers: Worker[] = [];
+const store = new RedisStore();
 
 const clientID2seq: {[key: string]: number} = {}
 const seq2clientID: {[key: number]: string} = {}
@@ -81,11 +83,11 @@ for(let i=0; i<4; i++) {
     worker.on('exit', (code) => {
         console.log(`worker ${worker.threadId} exited with code ${code}`);
     })
-    worker.on('message', (msgs: Wrapped_Message[]) => {
+    worker.on('message', async (msgs: Wrapped_Message[]) => {
         for(const msg of msgs) {
             for(const target of msg.targets) {
                 switch(target) {
-                    case 'network': {
+                    case 'client': {
                         // sustain the mapping
                         if(msg.receiptOf === 'LOGIN') {
                             const clientID = seq2clientID[msg.seq];
@@ -125,6 +127,17 @@ for(let i=0; i<4; i++) {
                                     }
                                 }
                             }
+                        }
+                        break;
+                    }
+                    case 'all': {
+                        if(!msg.payload.state) break;
+
+                        const users = Object.keys(username2clientID);
+                        const dump2all = JSON.parse(JSON.stringify(msg.payload.state)) as State;
+                        dump2all.user = null;
+                        for(const user of users) {
+                            network.emit('postMessage', username2clientID[user], wrapState('DUMP2ALL', -1, dump2all));
                         }
                         break;
                     }

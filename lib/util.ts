@@ -78,12 +78,12 @@ export function getRandomInt(max: number) {
   return Math.floor(Math.random() * max);
 }
 
-export function Notify(receiptOf: string, seq: number, msg: string, client: string) {
+export function Notify(receiptOf: string, seq: number, msg: string, client: string, targets: string[] = ['client']) {
      return {
         receiptOf,
         seq,
         status: false,
-        targets: ['network'],
+        targets,
         payload: { 
             receipt: {
                 message: msg
@@ -93,12 +93,12 @@ export function Notify(receiptOf: string, seq: number, msg: string, client: stri
     } as Wrapped_Message
 }
 
-export function WrappedState(receiptOf: string, seq: number, state: State, client: string) {
+export function WrappedState(receiptOf: string, seq: number, state: State, client: string, targets: string[] = ['client']) {
      return {
         receiptOf,
         seq,
         status: true,
-        targets: ['network'],
+        targets,
         payload: {
             state
         },
