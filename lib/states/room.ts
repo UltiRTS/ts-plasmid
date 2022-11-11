@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { GameConf } from "../interfaces";
 
 export class GameRoom {
@@ -74,6 +75,18 @@ export class GameRoom {
     this.players[playerName]={'team': team, 'isSpec': isSpec, 'hasmap': hasmap};
   }
 
+  hasMap(player: string) {
+    this.players[player].hasmap = true;
+  }
+
+  ready() {
+    let ready = true;
+    for(const player in this.players) {
+      ready = ready && this.players[player].hasmap
+    }
+    return ready;
+  }
+
   // return a list of players
   getPlayers() {
     return Object.keys(this.players);
@@ -81,6 +94,10 @@ export class GameRoom {
 
   removePlayer(playerName: string) {
     delete this.players[playerName];
+    if(playerName === this.hoster && !this.empty()) {
+      const players = Object.keys(this.players);
+      this.hoster = players[randomInt(players.length)];
+    }
   }
 
   setAI(aiName: string, team: string) {

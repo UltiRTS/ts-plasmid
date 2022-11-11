@@ -13,7 +13,13 @@ const wsInit = () => {
 
     ws.on('message', (data) => {
         const jsonData = JSON.parse(data);
-        if(jsonData.action !== 'PING') console.log(jsonData)
+        if(jsonData.action !== 'PING') {
+            if(jsonData.state) {
+                console.log(jsonData.state);
+            } else {
+                console.log(jsonData);
+            }
+        }
         switch(jsonData.action) {
             case 'LEAVECHAT': {
                 console.log(jsonData.state.user.chatRooms);

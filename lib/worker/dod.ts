@@ -183,6 +183,18 @@ export async function startGame(params: {
     }
 
     if(game.hoster === player.username) {
+        if(!game.ready()) {
+            const res = [];
+            for(const player in game.players) {
+                if(caller !== player)
+                    res.push(Notify('STARTGAME', -1, 'someone doesn\'t have map', player));
+            }
+            res.push(Notify('STARTGAME', seq, 'someone doesn\'t have map', caller));
+
+            await store.releaseLock(GAME_LOCK);
+            return res;
+        }
+
         game.clearPoll('STARTGAME');
         const cmd: CMD_Autohost_Start_Game = {
             to: 'autohost',
@@ -209,6 +221,18 @@ export async function startGame(params: {
     } else {
         game.addPoll(caller, 'STARTGAME');
         if(game.getPollCount('STARTGAME') > game.getPlayerCount() / 2) {
+            if(!game.ready()) {
+                const res = [];
+                for(const player in game.players) {
+                    if(caller !== player)
+                        res.push(Notify('STARTGAME', -1, 'someone doesn\'t have map', player));
+                }
+                res.push(Notify('STARTGAME', seq, 'someone doesn\'t have map', caller));
+
+                await store.releaseLock(GAME_LOCK);
+                return res;
+            }
+
             const cmd: CMD_Autohost_Start_Game = {
                 to: 'autohost',
                 action: 'STARTGAME',
@@ -231,6 +255,7 @@ export async function startGame(params: {
             await store.releaseLock(GAME_LOCK);
             return res;
         } else {
+
             const res: Wrapped_Message[] = [];
             for(const player in game.players) {
                 if(caller !== player)
@@ -255,15 +280,120 @@ export async function setSpec(params: {
 
 export async function leaveGame(params: {
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    if(caller == null) {
+        return [Notify('LEAVEGAME', seq, 'caller is empty', caller)]
+    }
 
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+
+    try {
+        await store.acquireLock(USER_LOCK);
+    } catch(e) {
+        return [Notify('LEAVEGAME', seq, 'acquire user lock failed', caller)]
+    }
+
+    const user = await store.getUser(caller);
+    if(user == null) {
+        await store.releaseLock(USER_LOCK);
+        return [Notify('LEAVEGAME', seq, 'no such user', caller)];
+    }
+
+    if(user.game == null) {
+        await store.releaseLock(USER_LOCK);
+        return [Notify('LEAVEGAME', seq, 'joined no game', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(user.game, 'game');
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        await store.releaseLock(USER_LOCK);
+        return [Notify('LEAVEGAME', seq, 'acquire game lock failed', caller)]
+    }
+
+    const game = await store.getGame(user.game);
+    if(game == null) {
+        await store.releaseLock(USER_LOCK);
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('LEAVEGAME', seq, 'no such game', caller)];
+    }
+
+    game.removePlayer(caller);
+    if(game.empty()) {
+        await store.delGame(user.game);
+    } else {
+        await store.setGame(user.game, game);
+    }
+
+    user.game = null;
+    await store.setUser(caller, user);
+
+    await store.releaseLock(USER_LOCK);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+
+    for(const player in game.players) {
+        if(player === 'caller') continue;
+
+        res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('LEAVEGAME', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function hasMap(params: {
     mapId?: number
     [key:string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const mapId = params.mapId;
+    if(mapId == null) {
+        return [Notify('LEAVEGAME', seq, 'empty map id', caller)]
+    }
+
+    if(caller == null) {
+        return [Notify('LEAVEGAME', seq, 'caller is empty', caller)]
+    }
+
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('LEAVEGAME', seq, 'no such user', caller)];
+    }
+
+    if(user.game == null) {
+        return [Notify('LEAVEGAME', seq, 'joined no game', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(user.game, 'game');
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('LEAVEGAME', seq, 'acquire game lock failed', caller)]
+    }
+
+    const game = await store.getGame(user.game);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('LEAVEGAME', seq, 'no such game', caller)];
+    }
+
+    if(game.mapId == mapId) {
+        game.hasMap(caller);
+    } else {
+        return [Notify('LEAVEGAME', seq, 'map id not correct', caller)];
+    }
+
+    await store.setGame(user.game, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        res.push(WrappedState('HASMAP', -1, await store.dumpState(player), player));
+    }
+
+    return res;
 }
 
 export async function midJoin(params: {
