@@ -56,6 +56,7 @@ export class RedisStore {
     async delChat(chatName: string) {
         const name = RedisStore.CHAT_RESOURCE(chatName);
         await this.client.del(name);
+        await this.removeChatOverview(chatName);
     }
 
     async setGame(gameName: string, game: GameRoom) {
@@ -80,6 +81,7 @@ export class RedisStore {
     async delGame(gameName: string) {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.del(name);
+        await this.removeGameOverview(gameName);
     }
 
 
@@ -146,6 +148,23 @@ export class RedisStore {
         await this.releaseLock(GAME_OVERVIEW_LOCK);
     }
 
+    async removeGameOverview(game: string) {
+        const GAME_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('game', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(GAME_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+
+        const gameOverview = await this.getGameOverview();
+        delete gameOverview[game];
+
+        await this.setGameOverview(gameOverview);
+        await this.releaseLock(GAME_OVERVIEW_LOCK);
+    }
+
     async getChatOverview() {
         const name = RedisStore.OVERVIEW_RESOURCE('chat');
         let chatOverviewStr = await this.client.get(name);
@@ -179,6 +198,23 @@ export class RedisStore {
         if(!(chat in chatOverview)) {
             chatOverview[chat] = '';
         }
+
+        await this.setChatOverview(chatOverview);
+        await this.releaseLock(CHAT_OVERVIEW_LOCK);
+    }
+
+    async removeChatOverview(chat: string) {
+        const CHAT_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('chat', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(CHAT_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+        
+        const chatOverview = await this.getChatOverview();
+        delete chatOverview[chat];
 
         await this.setChatOverview(chatOverview);
         await this.releaseLock(CHAT_OVERVIEW_LOCK);

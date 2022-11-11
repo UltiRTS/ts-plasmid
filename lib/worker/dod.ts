@@ -56,7 +56,7 @@ export async function joinGameHandler(params: {
         gameRoom.password = password;
         user.game = gameName;
 
-        gameRoom.setPlayer(caller, 'A', false);
+        gameRoom.setPlayer(caller, 'A');
 
         await store.setGame(gameName, gameRoom);
         await store.setUser(caller, user);
@@ -68,7 +68,7 @@ export async function joinGameHandler(params: {
     }
 
     user.game = gameName;
-    gameRoom.setPlayer(caller, 'A', false);
+    gameRoom.setPlayer(caller, 'A');
     await store.setGame(gameName, gameRoom);
     await store.setUser(caller, user);
 
@@ -93,7 +93,52 @@ export async function setTeam(params: {
     team?: string
     [key:string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const gameName = params.gameName;
+    const player = params.player;
+    const team = params.team;
+
+    if(gameName == null || player == null || team == null) {
+        return [Notify('SETTEAM', seq, 'insufficient parameter', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('SETTEAM', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('SETTEAM', seq, 'no such game', caller)];
+    }
+
+    const poll = 'SETTEAM_' + player + team;
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+        game.setPlayer(player, team);
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount()/2) {
+            game.clearPoll(poll);
+            game.setPlayer(player, team);
+        }
+    }
+
+    await store.setGame(gameName, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        if(player === caller) continue;
+        res.push(WrappedState('SETTEAM', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('SETTEAM', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function setMap(params: {
@@ -131,8 +176,8 @@ export async function setMap(params: {
     } else {
         game.addPoll(caller, poll);
         if(game.getPollCount(poll) > game.getPlayerCount() / 2) {
+            game.clearPoll(poll);
             game.setMapId(mapId);
-            console.log('poll added then map set');
         }
         console.log('poll added');
     }
@@ -164,7 +209,6 @@ export async function startGame(params: {
     if(gameName == null) {
         return [Notify('STARTGAME', seq, 'joined no game', caller)]
     }
-
 
     const game = await store.getGame(gameName);
     if(game == null) {
@@ -233,6 +277,7 @@ export async function startGame(params: {
                 return res;
             }
 
+            game.clearPoll('STARTGAME');
             const cmd: CMD_Autohost_Start_Game = {
                 to: 'autohost',
                 action: 'STARTGAME',
@@ -275,7 +320,51 @@ export async function setSpec(params: {
     player?: string
     [key:string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const gameName = params.gameName;
+    const player = params.player;
+
+    if(gameName == null || player == null) {
+        return [Notify('SETSPEC', seq, 'insufficient parameter', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('SETSPEC', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('SETSPEC', seq, 'no such game', caller)];
+    }
+
+    const poll = 'SETSPEC_' + player;
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+        game.setSpec(player);
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount()/2) {
+            game.clearPoll(poll);
+            game.setSpec(player);
+        }
+    }
+
+    await store.setGame(gameName, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        if(player === caller) continue;
+        res.push(WrappedState('SETSPEC', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('SETSPEC', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function leaveGame(params: {
@@ -391,8 +480,11 @@ export async function hasMap(params: {
 
     const res = [];
     for(const player in game.players) {
+        if(player == caller) continue;
         res.push(WrappedState('HASMAP', -1, await store.dumpState(player), player));
     }
+
+    res.push(WrappedState('HASMAP', seq, await store.dumpState(caller), caller));
 
     return res;
 }
@@ -409,18 +501,131 @@ export async function killEngine(params: {
 
 export async function setMod(params: {
     mod?: string
+    [key: string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    const mod = params.mod;
+
+    if(mod == null) {
+        return [Notify('SETMOD', seq, 'insufficient parameter', caller)];
+    }
+
+    if(caller == null) {
+        return [Notify('SETMOD', seq, 'caller not exists', caller)];
+    }
+
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('SETMOD', seq, 'user not exists', caller)];
+    }
+
+    if(user.game == null) {
+        return [Notify('SETMOD', seq, 'joined no game', caller)];
+    }
+
+    const gameName = user.game;
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('SETMOD', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('SETMOD', seq, 'no such game', caller)];
+    }
+
+    const poll = 'SETMOD_' + mod;
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+        game.setMod(mod);
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount()/2) {
+            game.clearPoll(poll);
+            game.setMod(mod);
+        }
+    }
+
+    await store.setGame(gameName, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        if(player === caller) continue;
+        res.push(WrappedState('SETMOD', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('SETMOD', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function setAI(params: {
     gameName?: string
     AI?: string
     type?: string
+    team?: string
     [key:string]: any
 }, seq: number, caller: string) {
+    const gameName = params.gameName;
+    const AI = params.AI;
+    const type = params.type;
+    const team = params.team;
 
-   return { } as Receipt;
+    if(gameName == null || AI == null || type == null || team == null) {
+        return [Notify('SETAI', seq, 'insufficient parameter', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('SETAI', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('SETAI', seq, 'no such game', caller)];
+    }
+
+    const poll = 'SETAI_' + AI;
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+        if(type.toLowerCase() === 'ai') {
+            game.setAI(AI, team);
+        } else if(type.toLowerCase() === 'chicken') {
+            game.setChicken(AI, team);
+        }
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount()/2) {
+            game.clearPoll(poll);
+            if(type.toLowerCase() === 'ai') {
+                game.setAI(AI, team);
+            } else if(type.toLowerCase() === 'chicken') {
+                game.setChicken(AI, team);
+            }
+        }
+    }
+
+    await store.setGame(gameName, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        if(player === caller) continue;
+        res.push(WrappedState('SETAI', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('SETAI', seq, await store.dumpState(caller), caller));
+
+    return res;
 }
 
 export async function delAI(params: {
@@ -429,5 +634,58 @@ export async function delAI(params: {
     type?: string
     [key:string]: any
 }, seq:number, caller: string) {
-   return { } as Receipt;
+    const gameName = params.gameName;
+    const AI = params.AI;
+    const type = params.type;
+
+    if(gameName == null || AI == null || type == null) {
+        return [Notify('DELAI', seq, 'insufficient parameter', caller)];
+    }
+
+    const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
+
+    try {
+        await store.acquireLock(GAME_LOCK);
+    } catch(e) {
+        return [Notify('DELAI', seq, 'acquire game lock failed', caller)];
+    }
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        await store.releaseLock(GAME_LOCK);
+        return [Notify('DELAI', seq, 'no such game', caller)];
+    }
+
+    const poll = 'DELAI_' + AI;
+    if(game.hoster === caller) {
+        game.clearPoll(poll);
+        if(type.toLowerCase() === 'ai') {
+            game.removeAI(AI);
+        } else if(type.toLowerCase() === 'chicken') {
+            game.removeChicken(AI);
+        }
+    } else {
+        game.addPoll(caller, poll);
+        if(game.getPollCount(poll) > game.getPlayerCount()/2) {
+            game.clearPoll(poll);
+            if(type.toLowerCase() === 'ai') {
+                game.removeAI(AI);
+            } else if(type.toLowerCase() === 'chicken') {
+                game.removeChicken(AI);
+            }
+        }
+    }
+
+    await store.setGame(gameName, game);
+    await store.releaseLock(GAME_LOCK);
+
+    const res = [];
+    for(const player in game.players) {
+        if(player === caller) continue;
+        res.push(WrappedState('DELAI', -1, await store.dumpState(player), player));
+    }
+
+    res.push(WrappedState('DELAI', seq, await store.dumpState(caller), caller));
+
+    return res;
 }

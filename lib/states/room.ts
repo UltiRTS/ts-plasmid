@@ -71,8 +71,12 @@ export class GameRoom {
     this.aiHosters = hosters;
   }
 
-  setPlayer(playerName: string, team: string, isSpec: boolean = false, hasmap: boolean = false) {
-    this.players[playerName]={'team': team, 'isSpec': isSpec, 'hasmap': hasmap};
+  setPlayer(playerName: string, team: string) {
+    if(this.players[playerName]) {
+      this.players[playerName].team = team;
+    } else {
+      this.players[playerName]={'team': team, 'isSpec': false, 'hasmap': false};
+    }
   }
 
   hasMap(player: string) {
@@ -134,6 +138,16 @@ export class GameRoom {
    */
   setRoomName(roomName: string) {
     this.title = roomName;
+  }
+
+  setMod(mod: string) {
+    this.mod = mod;
+  }
+
+  setSpec(player: string) {
+    if(this.players[player]) {
+      this.players[player].isSpec = !this.players[player].isSpec;
+    }
   }
 
   getPort() {

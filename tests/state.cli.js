@@ -2,6 +2,7 @@ const {WebSocket} = require('ws');
 const { randomInt } = require('crypto');
 const readline = require('node:readline')
 const {stdin, stdout} = require('node:process');
+const { json } = require('stream/consumers');
 
 let pingEnabled = false;
 let opened = false;
@@ -16,6 +17,8 @@ const wsInit = () => {
         if(jsonData.action !== 'PING') {
             if(jsonData.state) {
                 console.log(jsonData.state);
+                // console.log(jsonData.state.user)
+                console.log(jsonData.state.user.game)
             } else {
                 console.log(jsonData);
             }

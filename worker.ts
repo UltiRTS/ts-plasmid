@@ -27,17 +27,17 @@ const clientsHandlers: {
 { 
         LOGIN: loginHandler,
         JOINGAME: joinGameHandler,
-        // SETTEAM: setTeam,
+        SETTEAM: setTeam,
         SETMAP: setMap,
         STARTGAME: startGame,
-        // SETSPEC: setSpec,
+        SETSPEC: setSpec,
         LEAVEGAME: leaveGame,
         HASMAP: hasMap,
         // MIDJOIN: midJoin,
         // KILLENGINE: killEngine,
-        // SETMOD: setMod,
-        // SETAI: setAI,
-        // DELAI: delAI
+        SETMOD: setMod,
+        SETAI: setAI,
+        DELAI: delAI
 }
 
 const interalHandlers: {
