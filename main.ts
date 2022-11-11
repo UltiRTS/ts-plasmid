@@ -71,6 +71,16 @@ network.on('clean', (clientID: string) => {
     delete username2clientID[username];
 
     // pass cmd to workers to clean the redis cache
+    const internalMsg: IncommingMsg = {
+        action: 'LEAVEGAME',
+        type: 'client',
+        seq: -1,
+        caller: username,
+        parameters: {},
+        payload: {}
+    }
+
+    workers[randomInt(4)].postMessage(internalMsg);
 })
 
 for(let i=0; i<4; i++) {
@@ -134,10 +144,8 @@ for(let i=0; i<4; i++) {
                         if(!msg.payload.state) break;
 
                         const users = Object.keys(username2clientID);
-                        const dump2all = JSON.parse(JSON.stringify(msg.payload.state)) as State;
-                        dump2all.user = null;
                         for(const user of users) {
-                            network.emit('postMessage', username2clientID[user], wrapState('DUMP2ALL', -1, dump2all));
+                            network.emit('postMessage', username2clientID[user], wrapState('DUMP2ALL', -1, await store.dumpState(user)));
                         }
                         break;
                     }

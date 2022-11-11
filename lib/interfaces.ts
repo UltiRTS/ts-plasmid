@@ -64,3 +64,14 @@ export interface Wrapped_Message {
     // usernames
     client: string
 }
+
+export interface Game_Overview {
+    [title: string]: {
+        hoster: string
+        mapId: number
+    }
+}
+
+export interface Chat_Overview {
+    [title: string]: string
+}

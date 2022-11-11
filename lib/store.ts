@@ -1,11 +1,10 @@
 import {createHash} from 'crypto';
 import { parse } from 'path';
 import {createClient, RedisClientType, } from 'redis';
-import { State, User2Dump } from './interfaces';
+import { Chat_Overview, Game_Overview, State, User2Dump } from './interfaces';
 import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
-import { sleep } from './util';
 
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
@@ -26,18 +25,6 @@ export class RedisStore {
     sub: RedisClientType
     connected: boolean
 
-    // brief stats
-    games: {
-        [gameName: string]: {
-            hoster: string
-            mapId: number
-        }
-    } = {}
-
-    chats: string[] = []
-
-    
-
     constructor() {
         this.client = createClient();
         this.sub = this.client.duplicate();
@@ -49,53 +36,13 @@ export class RedisStore {
             this.connected = true;
             console.log('redis client connected')
         })()
-
-        setInterval(async () => {
-            const overview_chats = RedisStore.OVERVIEW_RESOURCE('chats');
-            const overview_games = RedisStore.OVERVIEW_RESOURCE('games');
-
-            try {
-                const acquired = await this.acquireLock(OVERVIEW);
-                if(!acquired) {
-                    return;
-                }
-            } catch(e) {
-                return;
-            }
-
-            const remote_chats_str = await this.client.get(overview_chats);
-            const remote_games_str = await this.client.get(overview_games);
-
-            let remote_chats: string[] = remote_chats_str==null?[]:JSON.parse(remote_chats_str);
-            let remote_games: {[gameName: string]: {
-                hoster: string, 
-                mapId: number
-            }} = remote_games_str==null?{}:JSON.parse(remote_games_str);
-
-            const local_games = this.games;
-            const local_chats = this.chats;
-
-            for(let i=0; i<local_chats.length; i++) {
-                if(!remote_chats.includes(local_chats[i])) remote_chats.push(local_chats[i]);
-            }
-
-            for(const gameName in local_games) {
-                if(!(gameName in remote_games)) {
-                    remote_games[gameName] = local_games[gameName];
-                }
-            }
-
-            this.chats = remote_chats;
-            this.games = remote_games;
-
-            await this.releaseLock(OVERVIEW);
-        }, OVERVIEW_SYNC_INTERVAL)
     }
 
     async setChat(chatName: string, chat: ChatRoom) {
         const name = RedisStore.CHAT_RESOURCE(chatName);
-        if(!this.chats.includes(chatName)) this.chats.push(chatName);
         await this.client.set(name, chat.serialize());
+
+        await this.pushChatOverview(chatName);
     }
 
     async getChat(chatName: string) {
@@ -113,11 +60,13 @@ export class RedisStore {
 
     async setGame(gameName: string, game: GameRoom) {
         const name = RedisStore.GAME_RESOURCE(gameName);
-        this.games[gameName] = {
+        await this.client.set(name, game.serialize());
+
+        await this.pushGameOverview({
+            title: game.title,
             hoster: game.hoster,
             mapId: game.mapId
-        };
-        await this.client.set(name, game.serialize());
+        })
     }
 
     async getGame(gameName: string) {
@@ -130,7 +79,6 @@ export class RedisStore {
 
     async delGame(gameName: string) {
         const name = RedisStore.GAME_RESOURCE(gameName);
-        delete this.games[gameName];
         await this.client.del(name);
     }
 
@@ -154,6 +102,88 @@ export class RedisStore {
         await this.client.del(name);
     }
 
+    async getGameOverview() {
+        const name = RedisStore.OVERVIEW_RESOURCE('game');
+        let gameOverviewStr = await this.client.get(name);
+        let gameOverview: Game_Overview;
+        if(gameOverviewStr == null) {
+            gameOverview = {}
+        } else {
+            gameOverview = JSON.parse(gameOverviewStr);
+        }
+
+        return gameOverview;
+    }
+
+    async setGameOverview(overview: Game_Overview) {
+        const name = RedisStore.OVERVIEW_RESOURCE('game');
+        await this.client.set(name, JSON.stringify(overview));
+    }
+
+    async pushGameOverview(game: {
+        title: string
+        hoster: string
+        mapId: number
+    }) {
+        const GAME_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('game', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(GAME_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+
+        const gameOverview = await this.getGameOverview();
+        if(!(game.title in gameOverview)) {
+            gameOverview[game.title] = {
+                hoster: game.hoster,
+                mapId: game.mapId,
+            }
+        }
+
+        await this.setGameOverview(gameOverview);
+        await this.releaseLock(GAME_OVERVIEW_LOCK);
+    }
+
+    async getChatOverview() {
+        const name = RedisStore.OVERVIEW_RESOURCE('chat');
+        let chatOverviewStr = await this.client.get(name);
+        let chatOverview: Chat_Overview; 
+        if(chatOverviewStr == null) {
+            chatOverview = {};
+        } else {
+            chatOverview = JSON.parse(chatOverviewStr);
+        }
+
+        return chatOverview;
+    }
+
+    async setChatOverview(overview: Chat_Overview) {
+        const name = RedisStore.OVERVIEW_RESOURCE('chat');
+        await this.client.set(name, JSON.stringify(overview));
+    }
+
+    async pushChatOverview(chat: string) {
+        const CHAT_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('chat', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(CHAT_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+        
+        const chatOverview = await this.getChatOverview();
+
+        if(!(chat in chatOverview)) {
+            chatOverview[chat] = '';
+        }
+
+        await this.setChatOverview(chatOverview);
+        await this.releaseLock(CHAT_OVERVIEW_LOCK);
+    }
+
     async dumpState(username: string) {
         const user = await this.getUser(username);
 
@@ -167,18 +197,20 @@ export class RedisStore {
             user2dump.game = game;
         }
 
-        const chats = this.chats;
+        const chats = Object.keys(await this.getChatOverview());
         const games: {
             title: string
             hoster: string
             mapId: number
         }[] = []
 
-        for(const g in this.games) {
+        const gameOverview = await this.getGameOverview();
+        for(const g in gameOverview) {
+            const game = gameOverview[g];
             games.push({
                 title: g,
-                hoster: this.games[g].hoster,
-                mapId: this.games[g].mapId
+                hoster: game.hoster,
+                mapId: game.mapId
             })
         }
 
@@ -283,6 +315,9 @@ export class RedisStore {
             case 'chat': {
                 lockname = RedisStore.CHAT_RESOURCE(name) + SUFFIX_LOCK;
                 break;
+            }
+            case 'overview': {
+                lockname = RedisStore.OVERVIEW_RESOURCE(name) + SUFFIX_LOCK;
             }
             default: {
                 lockname = lockname + SUFFIX_LOCK;
