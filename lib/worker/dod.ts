@@ -1,5 +1,5 @@
 import { Game } from "../../db/models/game";
-import { CMD, CMD_Autohost_Start_Game, Receipt, Wrapped_Message } from "../interfaces";
+import { CMD, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, Wrapped_Message } from "../interfaces";
 import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState } from "../util";
@@ -472,6 +472,7 @@ export async function hasMap(params: {
     if(game.mapId == mapId) {
         game.hasMap(caller);
     } else {
+        await store.releaseLock(GAME_LOCK);
         return [Notify('LEAVEGAME', seq, 'map id not correct', caller)];
     }
 
@@ -490,13 +491,97 @@ export async function hasMap(params: {
 }
 
 export async function midJoin(params: {
+    [key:string]: any
 }, seq: number, caller: string) {
-   return { } as Receipt;
+
+    if(caller == null) {
+        return [Notify('MIDJOIN', seq, 'caller not exists', caller)];
+    }
+
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('MIDJOIN', seq, 'user not exists', caller)];
+    }
+
+    if(user.game == null) {
+        return [Notify('MIDJOIN', seq, 'joined no game', caller)];
+    }
+
+    const gameName = user.game;
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        return [Notify('MIDJOIN', seq, 'no such game', caller)];
+    }
+
+    if(!game.isStarted) {
+        return [Notify('MIDJOIN', seq, 'game not started', caller)];
+    }
+
+    const cmd: CMD_Autohost_Midjoin = {
+        to: 'autohost',
+        action: 'MIDJOIN',
+        payload: {
+            playerName: caller,
+            isSpec: game.players[caller].isSpec,
+            token: game.engineToken,
+            team: game.players[caller].team,
+            id: game.id,
+            title: game.title
+        }
+    }
+
+    const res = [WrappedCMD('MIDJOIN', seq, cmd, 'client', caller, {
+        state: await store.dumpState(caller)
+    })];
+
+    return res;
 }
 
 export async function killEngine(params: {
 }, seq: number, caller: string) {
-   return { } as Receipt;
+    if(caller == null) {
+        return [Notify('KILLENGINE', seq, 'caller not exists', caller)];
+    }
+
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('KILLENGINE', seq, 'user not exists', caller)];
+    }
+
+    if(user.game == null) {
+        return [Notify('KILLENGINE', seq, 'joined no game', caller)];
+    }
+
+    const gameName = user.game;
+
+    const game = await store.getGame(gameName);
+    if(game == null) {
+        return [Notify('KILLENGINE', seq, 'no such game', caller)];
+    }
+
+    if(!game.isStarted) {
+        return [Notify('KILLENGINE', seq, 'game not started', caller)];
+    }
+
+    if(game.hoster !== caller) {
+        return [Notify('KILLENGINE', seq, 'low privilege', caller)];
+    }
+
+    const cmd: CMD_Autohost_Kill_Engine = {
+        to: 'autohost',
+        action: 'KILLENGINE',
+        payload: {
+            title: game.title,
+            id: game.id
+        }
+    }
+
+    const res = [WrappedCMD('MIDJOIN', seq, cmd, 'client', caller, {
+        state: await store.dumpState(caller)
+    })];
+
+    return res;
 }
 
 export async function setMod(params: {

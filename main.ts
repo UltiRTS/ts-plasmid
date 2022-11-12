@@ -2,9 +2,10 @@ import "reflect-metadata"
 import { randomInt } from "crypto";
 import { Worker, parentPort, threadId } from "worker_threads";
 import { AutohostManager } from "./lib/autohost";
-import { CMD, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
+import { CMD, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
 import { RedisStore } from "./lib/store";
+import { start } from "repl";
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -125,13 +126,38 @@ for(let i=0; i<4; i++) {
                         if(msg.payload.cmd) {
                             let cmd = msg.payload.cmd;
                             if(cmd.to === 'autohost') {
-                                let autohostCmd = cmd as CMD_Autohost_Start_Game;
+                                let autohostCmd = cmd as CMD;
                                 switch(autohostCmd.action) {
                                     case 'STARTGAME': {
-                                        if(autohostCmd.payload.gameConf)
-                                            autohostMgr.start(autohostCmd.payload.gameConf);
+                                        let startCmd = cmd as CMD_Autohost_Start_Game;
+                                        if(startCmd.payload.gameConf)
+                                            autohostMgr.start(startCmd.payload.gameConf);
                                         else 
                                             console.log('empty gameconf')
+
+                                        break;
+                                    }
+                                    case 'MIDJOIN': {
+                                        let midjoinCmd = cmd as CMD_Autohost_Midjoin;
+                                        const payload = midjoinCmd.payload;
+                                        const title = payload.title;
+                                        autohostMgr.midJoin(title, {
+                                            playerName: payload.playerName,
+                                            id: payload.id,
+                                            isSpec: payload.isSpec,
+                                            team: payload.team,
+                                            token: payload.token
+                                        })
+
+                                        break;
+                                    }
+                                    case 'KILLENGINE': {
+                                        let killCmd = cmd as CMD_Autohost_Kill_Engine;
+                                        let payload = killCmd.payload;
+                                        autohostMgr.killEngine({
+                                            id: payload.id,
+                                            title: payload.title
+                                        })
 
                                         break;
                                     }
@@ -187,6 +213,24 @@ autohostMgr.on('gameEnded', (gameName) => {
         caller: '',
         parameters: {
             gameName
+        },
+        payload: {}
+    }
+
+    workers[randomInt(4)].postMessage(internalMsg);
+})
+
+autohostMgr.on('midJoined', (params: {
+    title?: string
+    player?: string
+}) => {
+    const internalMsg: IncommingMsg = {
+        action: 'MIDJOINED',
+        type: 'internal',
+        seq: -1,
+        caller: '',
+        parameters: {
+            ...params
         },
         payload: {}
     }

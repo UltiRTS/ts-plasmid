@@ -9,7 +9,7 @@ import { RedisStore } from "./lib/store";
 import { CallTracker } from "assert";
 
 import { store } from "./lib/worker/shared";
-import { gameEndedHandler, gameStartedHandler } from "./lib/worker/internal";
+import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 
 const clientsHandlers: {
     [index: string]: 
@@ -33,8 +33,8 @@ const clientsHandlers: {
         SETSPEC: setSpec,
         LEAVEGAME: leaveGame,
         HASMAP: hasMap,
-        // MIDJOIN: midJoin,
-        // KILLENGINE: killEngine,
+        MIDJOIN: midJoin,
+        KILLENGINE: killEngine,
         SETMOD: setMod,
         SETAI: setAI,
         DELAI: delAI
@@ -43,11 +43,14 @@ const clientsHandlers: {
 const interalHandlers: {
     [index: string]: (params: {
         gameName?: string
+        title?: string
+        player?: string
         [key: string]: any
     }) => Promise<Wrapped_Message[]>
 } = {
     GAMESTARTED: gameStartedHandler,
-    GAMEENDED: gameEndedHandler
+    GAMEENDED: gameEndedHandler,
+    MIDJOINED: midJoinedHandler
 }
 
 let dbInitialized = false;

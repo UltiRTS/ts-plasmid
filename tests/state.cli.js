@@ -55,6 +55,10 @@ const wsInit = () => {
                 console.log(jsonData.state.user.confirmations);
                 break;
             }
+            case 'MIDJOINED': {
+                console.log('midjoined');
+                break;
+            }
         }
     });
 

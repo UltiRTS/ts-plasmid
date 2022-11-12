@@ -25,6 +25,7 @@ interface AutohostResponse {
         info?: string
         title?: string
         status?: boolean
+        id?: number
         [key: string]: any
     }
 }
@@ -122,7 +123,8 @@ export class AutohostManager extends EventEmitter {
                                 gameName: msg.parameters.title,
                                 payload: {
                                     autohost: autohostIP,
-                                    port: msg.parameters.port
+                                    port: msg.parameters.port,
+                                    id: msg.parameters.id
                                 }
                             })
                         } 

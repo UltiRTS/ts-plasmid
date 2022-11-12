@@ -50,6 +50,24 @@ export interface CMD_Autohost_Start_Game extends CMD {
     }
 }
 
+export interface CMD_Autohost_Midjoin extends CMD {
+    payload: {
+        playerName: string
+        isSpec: boolean
+        token: string
+        team: string
+        id: number
+        title: string
+    }
+}
+
+export interface CMD_Autohost_Kill_Engine extends CMD {
+    payload: {
+        id: number
+        title: string
+    }
+}
+
 export interface Wrapped_Message {
     payload: {
         receipt?: Receipt

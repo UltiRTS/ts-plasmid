@@ -6,12 +6,14 @@ export async function gameStartedHandler(params: {
     gameName?: string
     autohost?: string
     port?: number
+    id?: number
 }) {
     const gameName = params.gameName;
     const autohost = params.autohost;
     const port = params.port;
+    const id = params.id;
 
-    if(gameName == null || autohost == null || port == null) {
+    if(gameName == null || autohost == null || port == null || id == null) {
         return []
     }
 
@@ -33,6 +35,7 @@ export async function gameStartedHandler(params: {
     game.autohostPort = port;
     game.responsibleAutohost = autohost;
     game.isStarted = true;
+    game.id = id;
 
     await store.setGame(gameName, game);
     await store.releaseLock(GAME_LOCK);
@@ -83,4 +86,14 @@ export async function gameEndedHandler(params: {
     }
 
     return res;
+}
+
+export async function midJoinedHandler(parmas: {
+    title?: string
+    player?: string
+}) {
+    const player = parmas.player;
+    if(player == null) return [];
+
+    return [WrappedState('MIDJOINED', -1, await store.dumpState(player), player)]
 }
