@@ -64,6 +64,7 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
 network.on('clean', async (clientID: string) => {
     const seq = clientID2seq[clientID];
     const username = clientID2username[clientID];
+    console.log('trigering clean, user: ', username);
 
     const user = await store.getUser(username); 
 

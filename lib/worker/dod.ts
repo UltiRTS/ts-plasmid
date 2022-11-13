@@ -423,7 +423,7 @@ export async function leaveGame(params: {
     const res = [];
 
     for(const player in game.players) {
-        if(player === 'caller') continue;
+        if(player === caller) continue;
 
         res.push(WrappedState('LEAVEGAME', -1, await store.dumpState(player), player));
     }
