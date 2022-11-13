@@ -9,7 +9,6 @@
     "migrate": "tsc && node dist/db/migrate.js",
     "autohost": "tsc && node dist/tests/autohost.test.js",
     "dev": "nodemon main.ts"
-
   },
   "author": "",
   "license": "ISC",

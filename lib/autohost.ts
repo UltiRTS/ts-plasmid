@@ -7,6 +7,7 @@ import { MetadataArgsStorage } from "typeorm/metadata-args/MetadataArgsStorage";
 import { User } from "../db/models/user";
 import { getRandomInt } from "./util";
 import { randomInt } from "crypto";
+import { createHash } from "crypto";
 
 let dbInitialized = false;
 
@@ -256,7 +257,10 @@ export class AutohostManager extends EventEmitter {
             gameConf.mgr = this.assignAutohost();
             // do load balance here
         }
-        gameConf.id = this.randRoomId(gameConf.mgr);
+
+        const roomHash = createHash('md5').update(gameConf.title).digest('hex')
+        const roomId = parseInt(roomHash, 16) % 8000;
+        gameConf.id = roomId;
         this.clients[gameConf.mgr].hostedId[gameConf.id] = gameConf.title;
         console.log('occupied:', this.clients[gameConf.mgr].hostedId);
         this.hostedGames[gameConf.title] = {
