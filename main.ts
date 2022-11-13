@@ -37,9 +37,10 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
     if(!(['LOGIN'].includes(data.action))) {
         if(!(clientID in clientID2username)) {
             network.emit('postMessage', seq2clientID[data.seq], {
-                action: data.action,
+                action: 'NOTIFY',
                 seq: data.seq,
-                message: 'please login'
+                message: 'please login',
+                from: data.action
             } as Notification)
             return;
         }

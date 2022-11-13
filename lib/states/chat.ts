@@ -29,6 +29,9 @@ export class ChatRoom extends DBChatRoom {
         return this.members.length === 0
     }
     
+    clearChat() {
+        this.lastMessage = {author: '', content: '', time: new Date()};
+    }
 
     say(chat: Chat) {
         this.lastMessage = {

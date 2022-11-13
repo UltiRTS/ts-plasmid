@@ -213,8 +213,6 @@ export async function sayChatHandler(params: {
     await store.setChat(room, chatRoom);
     console.log('saychat: ', chatRoom);
 
-    await store.releaseLock(CHAT_LOCK);
-
     const res = [];
     for(const member of chatRoom.members) {
         if(member === caller) continue;
@@ -223,6 +221,12 @@ export async function sayChatHandler(params: {
     }
 
     res.push(WrappedState('SAYCHAT', seq, await store.dumpState(caller), caller));
+
+    chatRoom.clearChat();
+
+    await store.setChat(room, chatRoom);
+    await store.releaseLock(CHAT_LOCK);
+
 
     return res;
 }

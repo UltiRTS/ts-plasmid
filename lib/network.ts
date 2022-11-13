@@ -95,8 +95,9 @@ export function wrapState(action: string, seq: number, state: State) {
 
 export function wrapReceipt(action: string, seq: number, receipt: Receipt) {
     return {
-        action,
+        action: 'NOTIFY',
         seq,
-        ...receipt
+        ...receipt,
+        from: action
     }
 }
