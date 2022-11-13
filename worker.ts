@@ -11,6 +11,7 @@ import { CallTracker } from "assert";
 import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
+import { addFriendHandler, confirmHandler } from "./lib/worker/messaging";
 
 const clientsHandlers: {
     [index: string]: 
@@ -25,6 +26,10 @@ const clientsHandlers: {
         room?: string
         message?: string
         chatName?: string
+        type?: string
+        confirmationId?: number
+        agree?: boolean
+        friendName?: string
         [key:string]: any
     }, seq: number, caller: string) => Promise<Wrapped_Message[]>
 } = 
@@ -44,7 +49,9 @@ const clientsHandlers: {
         DELAI: delAI,
         JOINCHAT: joinChatRoomHandler,
         SAYCHAT: sayChatHandler,
-        LEAVECHAT: leaveChatRoomHandler
+        LEAVECHAT: leaveChatRoomHandler,
+        ADDFRIEND: addFriendHandler,
+        CLAIMCONFIRM: confirmHandler
 }
 
 const interalHandlers: {

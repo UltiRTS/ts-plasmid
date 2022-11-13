@@ -175,6 +175,9 @@ export async function sayChatHandler(params: {
     const dbChatRoom = await chatRepo.findOne({
         where: {
             id: chatRoom.id 
+        },
+        relations: {
+            chats: true
         }
     })
 
@@ -200,14 +203,8 @@ export async function sayChatHandler(params: {
     chat.room = dbChatRoom;
     chat.createAt = new Date();
 
-    if(dbChatRoom.chats) {
-        dbChatRoom.chats = [
-            ...dbChatRoom.chats,
-            chat
-        ]
-    } else {
-        dbChatRoom.chats = [chat]
-    }
+    dbChatRoom.chats = [ ...dbChatRoom.chats, chat ];
+
     chatRepo.save(dbChatRoom);
     chatRoom.say(chat);
     await store.setChat(room, chatRoom);

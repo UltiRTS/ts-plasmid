@@ -29,12 +29,19 @@ export async function loginHandler(params: {
     const user = await userRepo.findOne({
         where: {
             username
+        },
+        relations: {
+            friends: true,
+            confirmations: true,
         }
     });
 
     if(user == null) {
         const user = new User();
         user.username = username;
+        user.confirmations = [];
+        user.friends = [];
+        user.chats = [];
 
         const creds = User.saltNhash(password);
         user.salt = creds.salt;
