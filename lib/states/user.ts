@@ -37,6 +37,12 @@ export class User extends DBUser {
         }
     }
 
+    // update(user: DBUser) {
+    //     this.confirmations = user.confirmations;
+    //     this.chats = user.chats;
+    //     this.friends = user.friends;
+    // }
+
     serialize() {
         return JSON.stringify(this);
     }

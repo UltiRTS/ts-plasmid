@@ -182,7 +182,7 @@ export class GameRoom {
    * @param {String} actionName name of the poll
    */
   addPoll(playerName: string, actionName: string) {
-    if (!this.polls.hasOwnProperty(actionName)) {
+    if (!(actionName in this.polls)) {
       this.polls[actionName] = new Set();
     }
     this.polls[actionName].add(playerName);
