@@ -5,7 +5,7 @@ import { ChatRoom } from './chat';
 
 
 export class User extends DBUser {
-    chatRooms: {[key: string]: ChatRoom} = {} 
+    chatRooms: string[] = []
     game: string | null = null
 
     constructor(user?: DBUser) {
@@ -62,13 +62,15 @@ export class User extends DBUser {
         }
     }
 
-    assignChat(chat: ChatRoom) {
-        console.log("chat in user:", chat)
-        this.chatRooms[chat.roomName] = chat;
+    joinChat(chatName: string) {
+        if(this.chatRooms.includes(chatName)) return;
+        this.chatRooms.push(chatName);
     }
 
-    leaveChat(chat: ChatRoom) {
-        delete this.chatRooms[chat.roomName];
+    leaveChat(chatName: string) {
+        if(!this.chatRooms.includes(chatName)) return;
+
+        this.chatRooms.splice(this.chatRooms.indexOf(chatName), 1);
     }
 
     leaveGame() {

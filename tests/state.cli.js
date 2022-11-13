@@ -18,14 +18,13 @@ const wsInit = () => {
             if(jsonData.state) {
                 console.log(jsonData.state);
                 // console.log(jsonData.state.user)
-                console.log(jsonData.state.user.game)
             } else {
                 console.log(jsonData);
             }
         }
         switch(jsonData.action) {
             case 'LEAVECHAT': {
-                console.log(jsonData.state.user.chatRooms);
+                // console.log(jsonData.state.user.chatRooms);
                 break;
             }
             case 'SETAI': {
@@ -37,9 +36,9 @@ const wsInit = () => {
                 break;
             }
             case 'SAYCHAT': {
-                for(const room in jsonData.state.user.chatRooms) {
-                    console.log(jsonData.state.user.chatRooms[room]);
-                }
+                // for(const room in jsonData.state.user.chatRooms) {
+                //     console.log(jsonData.state.user.chatRooms[room]);
+                // }
                 break;
             }
             case 'PING': {

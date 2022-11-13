@@ -5,7 +5,6 @@ import { AutohostManager } from "./lib/autohost";
 import { CMD, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
 import { RedisStore } from "./lib/store";
-import { start } from "repl";
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -62,9 +61,11 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
 
 })
 
-network.on('clean', (clientID: string) => {
+network.on('clean', async (clientID: string) => {
     const seq = clientID2seq[clientID];
     const username = clientID2username[clientID];
+
+    const user = await store.getUser(username); 
 
     delete clientID2seq[clientID];
     delete clientID2username[clientID];
@@ -72,7 +73,7 @@ network.on('clean', (clientID: string) => {
     delete username2clientID[username];
 
     // pass cmd to workers to clean the redis cache
-    const internalMsg: IncommingMsg = {
+    const leaveGameMsg: IncommingMsg = {
         action: 'LEAVEGAME',
         type: 'client',
         seq: -1,
@@ -81,7 +82,22 @@ network.on('clean', (clientID: string) => {
         payload: {}
     }
 
-    workers[randomInt(4)].postMessage(internalMsg);
+    workers[randomInt(4)].postMessage(leaveGameMsg);
+
+    if(!user) return;
+    for(const room of user.chatRooms) {
+        const leaveChatMsg: IncommingMsg = {
+            action: 'LEAVECHAT',
+            type: 'client',
+            seq: -1,
+            caller: username,
+            payload: {},
+            parameters: {
+                chatName: room
+            }
+        }
+        workers[randomInt(4)].postMessage(leaveChatMsg);
+    }
 })
 
 for(let i=0; i<4; i++) {

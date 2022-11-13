@@ -10,6 +10,7 @@ import { CallTracker } from "assert";
 
 import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
+import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
 
 const clientsHandlers: {
     [index: string]: 
@@ -21,6 +22,9 @@ const clientsHandlers: {
         team?: string
         mapId?: number
         mod?: string
+        room?: string
+        message?: string
+        chatName?: string
         [key:string]: any
     }, seq: number, caller: string) => Promise<Wrapped_Message[]>
 } = 
@@ -37,7 +41,10 @@ const clientsHandlers: {
         KILLENGINE: killEngine,
         SETMOD: setMod,
         SETAI: setAI,
-        DELAI: delAI
+        DELAI: delAI,
+        JOINCHAT: joinChatRoomHandler,
+        SAYCHAT: sayChatHandler,
+        LEAVECHAT: leaveChatRoomHandler
 }
 
 const interalHandlers: {

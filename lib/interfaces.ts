@@ -1,3 +1,4 @@
+import { ChatRoom } from "./states/chat"
 import { GameRoom } from "./states/room"
 import { User } from "./states/user"
 
@@ -21,8 +22,11 @@ export interface Receipt {
     payload: {[key: string]: any}
 }
 
-export interface User2Dump extends Omit<User, 'game'> {
+export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify'> {
     game: GameRoom | null
+    chatRooms: {
+        [key: string]: ChatRoom
+    }
 }
 
 export interface State {

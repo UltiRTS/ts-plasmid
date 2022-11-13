@@ -229,8 +229,31 @@ export class RedisStore {
 
         let user2dump: User2Dump | null = null;
         if(user) {
-            user2dump = user as User2Dump;
-            user2dump.game = game;
+            const chatRooms: {
+                [key: string]: ChatRoom
+            } = {};
+            for(const chatName of user.chatRooms) {
+                const chatRoom = await this.getChat(chatName);
+                if(chatRoom) 
+                    chatRooms[chatName] = chatRoom;
+            }
+            user2dump = {
+                id: user.id,
+                username: user.username,
+                exp: user.exp,
+                sanity: user.sanity,
+                blocked: user.blocked,
+                hash: '',
+                salt: '',
+                confirmations: user.confirmations,
+                friends: user.friends,
+                chatRooms,
+                game,
+                chats: [],
+                accessLevel: user.accessLevel,
+                winCount: user.winCount,
+                loseCount: user.loseCount
+            }
         }
 
         const chats = Object.keys(await this.getChatOverview());

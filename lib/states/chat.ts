@@ -1,20 +1,28 @@
 import {ChatRoom as DBChatRoom, Chat } from '../../db/models/chat';
-import { User } from './user';
 
 export class ChatRoom extends DBChatRoom {
     lastMessage: {author: string, content: string, time: Date};
     members: string[]
 
-    constructor(chatRoom?: DBChatRoom);
-    constructor(chatRoom: DBChatRoom) {
-        super()
-        this.id = chatRoom.id
-        this.chats = [];
-        this.roomName = chatRoom.roomName;
-        this.password = chatRoom.password;
+    constructor(chatRoom?: DBChatRoom) {
+        super();
+        if(chatRoom) {
+            this.id = chatRoom.id
+            this.chats = [];
+            this.roomName = chatRoom.roomName;
+            this.password = chatRoom.password;
 
-        this.lastMessage = {author: '', content: '', time: new Date()};
-        this.members = []
+            this.lastMessage = {author: '', content: '', time: new Date()};
+            this.members = []
+        } else {
+            this.id = 0;
+            this.chats = [];
+            this.roomName = '';
+            this.password = '';
+
+            this.lastMessage = {author: '', content: '', time: new Date()};
+            this.members = []
+        }
     }
 
     empty() {
@@ -30,15 +38,15 @@ export class ChatRoom extends DBChatRoom {
         }
     }
 
-    join(user: User) {
-        if(this.members.includes(user.username)) return;
+    join(username: string) {
+        if(this.members.includes(username)) return;
 
-        this.members.push(user.username);
+        this.members.push(username);
     }
-    leave(user: User) {
-        if(!this.members.includes(user.username)) return;
+    leave(username: string) {
+        if(!this.members.includes(username)) return;
 
-        this.members.splice(this.members.indexOf(user.username), 1);
+        this.members.splice(this.members.indexOf(username), 1);
     }
     
     serialize() {
@@ -49,6 +57,7 @@ export class ChatRoom extends DBChatRoom {
         try {
             return Object.assign(new ChatRoom(), JSON.parse(str)) as ChatRoom;
         } catch(e) {
+            console.log(e);
             return null;
         }
     }

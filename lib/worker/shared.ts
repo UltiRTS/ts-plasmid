@@ -1,9 +1,8 @@
-import { RedisStore } from "../store";
 import { AppDataSource } from "../../db/datasource";
 import { User } from "../../db/models/user"
+import { ChatRoom } from "../../db/models/chat";
+import { RedisStore } from "../store";
 
-export const store = new RedisStore();
-export const userRepo = AppDataSource.getRepository(User);
 
 let dbInitialized = false;
 
@@ -12,3 +11,7 @@ AppDataSource.initialize().then(() => {
 }).catch(e=> {
     console.log(e)
 })
+
+export const store = new RedisStore();
+export const userRepo = AppDataSource.getRepository(User);
+export const chatRepo = AppDataSource.getRepository(ChatRoom);
