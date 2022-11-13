@@ -9,7 +9,7 @@ export class GameRoom {
   ais: {[key: string]: {team: string}} = {};
   chickens: {[key: string]: {team: string}} = {};
   players: {[key:string]: {isSpec: boolean, team: string, hasmap: boolean}} = {}
-  polls: {[key:string]: Set<string>} = {};
+  polls: {[key:string]: string[]} = {};
   id: number = 0;
   engineToken: string = '';
   password: string = '';
@@ -183,14 +183,16 @@ export class GameRoom {
    */
   addPoll(playerName: string, actionName: string) {
     if (!(actionName in this.polls)) {
-      this.polls[actionName] = new Set();
+      this.polls[actionName] = [];
     }
-    this.polls[actionName].add(playerName);
+    if(!this.polls[actionName].includes(playerName))
+    this.polls[actionName].push(playerName);
   }
   // remove all polls this user has made
   removePoll(playerName: string) {
     for (const poll in this.polls) {
-      this.polls[poll].delete(playerName);
+      if(this.polls[poll].includes(playerName)) 
+        this.polls[poll].splice(this.polls[poll].indexOf(playerName), 1)
     }
   }
 
@@ -203,20 +205,20 @@ export class GameRoom {
     if (!this.polls.hasOwnProperty(actionName)) {
       return 0;
     }
-    return this.polls[actionName].size;
+    return this.polls[actionName].length;
   }
 
   getPolls() {
     const returningPoll: {[key: string]: number} = {};
     for (const poll in this.polls) {
-      returningPoll[poll]= this.polls[poll].size;
+      returningPoll[poll]= this.polls[poll].length;
     }
     return returningPoll;
   }
 
   clearPoll(actionName: string) {
     if(actionName in this.polls) {
-      this.polls[actionName].clear()
+      this.polls[actionName] = [];
     }
   }
 
