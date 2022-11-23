@@ -236,7 +236,12 @@ export class GameRoom {
 
 
   setMapId(mapId: number) {
+    if(mapId === this.mapId) return;
     this.mapId = mapId;
+
+    for(const player in this.players) {
+      this.players[player].hasmap = false;
+    }
   }
 
   configureToStop() {

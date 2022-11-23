@@ -7,6 +7,7 @@ import { ChatRoom } from './chat';
 export class User extends DBUser {
     chatRooms: string[] = []
     game: string | null = null
+    adventure: string | null = null
 
     constructor(user?: DBUser) {
         super();

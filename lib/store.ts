@@ -1,14 +1,16 @@
 import {createHash} from 'crypto';
 import { parse } from 'path';
 import {createClient, RedisClientType, } from 'redis';
-import { Chat_Overview, Game_Overview, State, User2Dump } from './interfaces';
+import { Adv_Overview, Chat_Overview, Game_Overview, State, User2Dump } from './interfaces';
 import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
+import { Adventure } from './worker/rougue/adventure';
 
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
 const PREFIX_CHAT = 'CHAT_';
+const PREFIX_ADV = 'ADVENTURE_';
 
 const SUFFIX_LOCK = '_LOCK';
 
@@ -36,6 +38,27 @@ export class RedisStore {
             this.connected = true;
             console.log('redis client connected')
         })()
+    }
+
+    async setAdventure(advName: string, adv: Adventure) {
+        const name = RedisStore.ADV_RESOURCE(advName);
+        await this.client.set(name, adv.serialize());
+
+        await this.pushAdvOverview(advName);
+    }
+
+    async getAdventure(advName: string) {
+        const name = RedisStore.ADV_RESOURCE(advName)
+
+        const advStr = await this.client.get(name);
+        if(advStr == null) return null
+        else return Adventure.from(advStr);
+    }
+
+    async delAdventure(advName: string) {
+        const name = RedisStore.ADV_RESOURCE(advName);
+        await this.client.del(name);
+        await this.removeAdvOverview(advName);
     }
 
     async setChat(chatName: string, chat: ChatRoom) {
@@ -220,12 +243,70 @@ export class RedisStore {
         await this.releaseLock(CHAT_OVERVIEW_LOCK);
     }
 
+    async getAdvOverview() {
+        const name = RedisStore.OVERVIEW_RESOURCE('adv');
+        let advOverviewStr = await this.client.get(name);
+        let advOverview: Adv_Overview; 
+        if(advOverviewStr == null) {
+            advOverview = {};
+        } else {
+            advOverview = JSON.parse(advOverviewStr);
+        }
+
+        return advOverview;
+    }
+
+    async setAdvOverview(overview: Adv_Overview) {
+        const name = RedisStore.OVERVIEW_RESOURCE('adv');
+        await this.client.set(name, JSON.stringify(overview));
+    }
+
+    async pushAdvOverview(adv: string) {
+        const ADV_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('adv', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(ADV_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+        
+        const advOverview = await this.getAdvOverview();
+
+        if(!(adv in advOverview)) {
+            advOverview[adv] = '';
+        }
+
+        await this.setAdvOverview(advOverview);
+        await this.releaseLock(ADV_OVERVIEW_LOCK);
+    }
+
+    async removeAdvOverview(adv: string) {
+        const ADV_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('adv', 'overview');
+        let lockAcquired = false;
+        while(!lockAcquired) {
+            try {
+                await this.acquireLock(ADV_OVERVIEW_LOCK);
+                lockAcquired = true;
+            } catch {}
+        }
+        
+        const advOverview = await this.getAdvOverview();
+        delete advOverview[adv];
+
+        await this.setAdvOverview(advOverview)
+        await this.releaseLock(ADV_OVERVIEW_LOCK);
+    }
+
     async dumpState(username: string) {
         const user = await this.getUser(username);
 
         const gameName = user?.game;
+        const advName = user?.adventure
         let game: GameRoom | null = null
+        let adventure: Adventure | null = null
         if(gameName) game = await this.getGame(gameName);
+        if(advName) adventure = await this.getAdventure(advName);
 
         let user2dump: User2Dump | null = null;
         if(user) {
@@ -252,7 +333,8 @@ export class RedisStore {
                 chats: [],
                 accessLevel: user.accessLevel,
                 winCount: user.winCount,
-                loseCount: user.loseCount
+                loseCount: user.loseCount,
+                adventure
             }
         }
 
@@ -352,6 +434,10 @@ export class RedisStore {
 
     static CHAT_RESOURCE(title: string) {
         return PREFIX_CHAT + title;
+    }
+
+    static ADV_RESOURCE(title: string) {
+        return PREFIX_ADV + title;
     }
 
     static OVERVIEW_RESOURCE(title: string) {

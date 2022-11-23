@@ -1,7 +1,7 @@
 import { randomInt } from "crypto"
-import { Node } from "./node"
+import { CombatNode, DecisionNode, ExitNode, Node, StoreNode } from "./node"
 
-class Graph {
+export class Floor {
     nodes_count: number
     nodes: Node[] = []
     pp: {[key: string]: number} = {
@@ -11,7 +11,7 @@ class Graph {
         [key: number]: number[]
     } = {}
 
-    constructor(nodes_count: number, partition: {
+    constructor(adventure: string, floor_id: number, nodes_count: number, hardness: number, partition: {
         combat: number
         decision: number
         store: number
@@ -27,18 +27,21 @@ class Graph {
         this.pp.combat = partition.combat / partition_sum;
         this.pp.decision = partition.decision / partition_sum + this.pp.combat;
         this.pp.store = partition.store / partition_sum + this.pp.decision;
-        this.genGraph();
 
-        for(let i=0; i<nodes_count; i++) {
+        for(let i=0; i<nodes_count-1; i++) {
             const r = Math.random(); 
             if(r < this.pp.combat) {
-                this.nodes.push(new Node('combat', i));
+                this.nodes.push(new CombatNode(i, floor_id, adventure));
             } else if(r >= this.pp.combat && r < this.pp.decision) {
-                this.nodes.push(new Node('combat', i));
-            } else if(r >= this.pp.store){
-                this.nodes.push(new Node('combat', i));
+                this.nodes.push(new DecisionNode(i, floor_id));
+            } else {
+                this.nodes.push(new StoreNode(i, floor_id));
             }
         }
+
+        this.nodes.push(new ExitNode(this.nodes_count-1, floor_id));
+
+        this.genGraph();
     }
 
     genGraph() {
@@ -57,6 +60,9 @@ class Graph {
                 while(this.adj_list[i].includes(adj)) adj = randomInt(i+1, this.nodes_count);
                 this.adj_list[i].push(adj);
             }
+
+            console.log(i);
+            this.nodes[i].setChildren(this.adj_list[i]);
         }
         this.adj_list[this.nodes_count-1] = [];
     }
@@ -67,19 +73,30 @@ class Graph {
         return this.adj_list[i].length;
     }
 
-    show() {
-        console.log(this.adj_list)
+    join(player: string, node: number) {
+        for(let i=0; i<this.nodes.length; i++) {
+            this.nodes[i].leave(player);
+        }
+        this.nodes[node].join(player);
     }
+
+    show() {
+        for(let node of this.nodes) {
+            console.log(`node: ${node.type} with ${this.adj_list[node.id]}`); 
+        }
+    }
+
+
 }
 
-const main = () => {
-    const g = new Graph(15, {
-        combat: 0.7,
-        decision: 0.1,
-        store: 0.2
-    });
+// const main = () => {
+//     const g = new Floor('test adventure', 1, 15, 1, {
+//         combat: 0.7,
+//         decision: 0.1,
+//         store: 0.2
+//     });
 
-    g.show();
-}
+//     g.show();
+// }
 
-main();
+// main();

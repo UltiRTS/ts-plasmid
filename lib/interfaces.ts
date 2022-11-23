@@ -1,6 +1,7 @@
 import { ChatRoom } from "./states/chat"
 import { GameRoom } from "./states/room"
 import { User } from "./states/user"
+import { Adventure } from "./worker/rougue/adventure"
 
 export interface GameConf {
     id: number
@@ -22,8 +23,9 @@ export interface Receipt {
     payload: {[key: string]: any}
 }
 
-export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify'> {
+export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure'> {
     game: GameRoom | null
+    adventure: Adventure | null
     chatRooms: {
         [key: string]: ChatRoom
     }
@@ -95,5 +97,9 @@ export interface Game_Overview {
 }
 
 export interface Chat_Overview {
+    [title: string]: string
+}
+
+export interface Adv_Overview {
     [title: string]: string
 }
