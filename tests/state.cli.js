@@ -23,6 +23,10 @@ const wsInit = () => {
             }
         }
         switch(jsonData.action) {
+            case 'JOINADV': {
+                console.log(JSON.stringify(jsonData));
+                break;
+            }
             case 'LEAVECHAT': {
                 // console.log(jsonData.state.user.chatRooms);
                 break;
@@ -339,6 +343,18 @@ const main = async () => {
                     action: 'SETMOD',
                     parameters: {
                         mod
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+
+            case 'joinadv': {
+                const adv = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'JOINADV',
+                    parameters: {
+                        advName: adv
                     },
                     seq: randomInt(0, 1000000)
                 }))

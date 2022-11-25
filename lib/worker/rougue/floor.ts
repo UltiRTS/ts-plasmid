@@ -11,10 +11,19 @@ export class Floor {
         [key: number]: number[]
     } = {}
 
-    constructor(adventure: string, floor_id: number, nodes_count: number, hardness: number, partition: {
+    constructor(adventure?: string, floor_id?: number, nodes_count?: number, hardness?: number, partition?: {
         combat: number
         decision: number
         store: number
+    });
+    constructor(adventure: string = '', floor_id: number = -1, nodes_count: number = 0, hardness: number = 1, partition: {
+        combat: number
+        decision: number
+        store: number
+    } = {
+        combat: 0.7,
+        decision: 0.2,
+        store: 0.1
     }) {
         this.nodes_count = nodes_count;
 
@@ -86,7 +95,40 @@ export class Floor {
         }
     }
 
+    members() {
+        let res: string[] = [];
+        for(const node of this.nodes) {
+            res = res.concat(node.members);
+        }
 
+        return res;
+    }
+
+
+    static from(str: string) {
+        const obj = JSON.parse(str) as Floor;
+        const floor = Object.assign(new Floor(), obj);
+        for(let i=0; i<floor.nodes.length; i++) {
+            let node: Node | null = null;
+            if(floor.nodes[i].type === 'combat') {
+                node = CombatNode.from(JSON.stringify(obj.nodes[i]));
+            } else if(floor.nodes[i].type === 'decision') {
+                node = DecisionNode.from(JSON.stringify(obj.nodes[i]));
+            } else if(floor.nodes[i].type === 'store') {
+                node = StoreNode.from(JSON.stringify(obj.nodes[i]));
+            } else if(floor.nodes[i].type === 'exit') {
+                node = ExitNode.from(JSON.stringify(obj.nodes[i]));
+            }
+ 
+            if(node == null) {
+                node = new Node();
+            }
+
+            floor.nodes[i] = node;
+        }
+        
+        return floor;
+    }
 }
 
 // const main = () => {

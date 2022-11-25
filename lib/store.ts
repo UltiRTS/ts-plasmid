@@ -463,6 +463,11 @@ export class RedisStore {
             }
             case 'overview': {
                 lockname = RedisStore.OVERVIEW_RESOURCE(name) + SUFFIX_LOCK;
+                break;
+            }
+            case 'adv': {
+                lockname = RedisStore.ADV_RESOURCE(name) + SUFFIX_LOCK;
+                break;
             }
             default: {
                 lockname = lockname + SUFFIX_LOCK;

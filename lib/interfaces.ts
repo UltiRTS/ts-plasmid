@@ -23,7 +23,7 @@ export interface Receipt {
     payload: {[key: string]: any}
 }
 
-export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure'> {
+export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure' | 'adventures'> {
     game: GameRoom | null
     adventure: Adventure | null
     chatRooms: {

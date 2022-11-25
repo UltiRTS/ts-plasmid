@@ -251,7 +251,7 @@ export async function startGame(params: {
         const res: Wrapped_Message[] = [];
         for(const player in game.players) {
             if(caller !== player)
-                res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
+                res.push(WrappedState('STARTGAME', -1, await store.dumpState(player), player));
         }
         res.push(
             WrappedCMD('STARTGAME', seq, cmd, 'client', caller, {
@@ -289,7 +289,7 @@ export async function startGame(params: {
             const res: Wrapped_Message[] = [];
             for(const player in game.players) {
                 if(caller !== player)
-                    res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
+                    res.push(WrappedState('STARTGAME', -1, await store.dumpState(player), player));
             }
             res.push(
                 WrappedCMD('STARTGAME', seq, cmd, 'client', caller, {
@@ -304,7 +304,7 @@ export async function startGame(params: {
             const res: Wrapped_Message[] = [];
             for(const player in game.players) {
                 if(caller !== player)
-                    res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
+                    res.push(WrappedState('STARTGAME', -1, await store.dumpState(player), player));
             }
             res.push(
                 WrappedState('STARTGAME', seq, await store.dumpState(caller), caller)

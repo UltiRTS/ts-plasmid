@@ -1,19 +1,23 @@
 import { BlobOptions } from "buffer";
+import { json } from "stream/consumers";
 import { Game } from "../../../db/models/game";
 import { GameRoom } from "../../states/room";
 
 export class Node {
-    id: number
-    type: string
-    floorIn: number
+    id: number = -1
+    type: string = ''
+    floorIn: number = -1 
+    adventure: string = ''
 
     members: string[] = []
     children: number[] = []
 
-    constructor(type: string, id: number, floorIn: number) {
+    constructor(type?: string, id?: number, floorIn?: number, adventure?: string);
+    constructor(type: string, id: number, floorIn: number, adventure: string) {
         this.type = type
         this.id = id;
         this.floorIn = floorIn;
+        this.adventure = adventure
     }
 
     join(player: string) {
@@ -28,17 +32,26 @@ export class Node {
     setChildren(children: number[]) {
         this.children = children;
     }
+
+    static from(str: string) {
+        try {
+            return Object.assign(new Node(), JSON.parse(str));
+        } catch(e) {
+            console.log('simple node from: ', e);
+            return null;
+        }
+    }
 }
 
 export class CombatNode extends Node {
 
-    game: GameRoom
-    incre: number
+    game: GameRoom = new GameRoom()
 
+    constructor(id?: number, floor?: number, adventure?: string);
     constructor(id: number, floor: number, adventure: string) {
-        super('combat', id, floor)
-        this.incre = 0
+        super('combat', id, floor, adventure)
         this.floorIn = floor
+        this.adventure = adventure
         
         this.game = new GameRoom(`rglike-${adventure}-${floor}-${id}`, 'rglike');
     }
@@ -74,13 +87,29 @@ export class CombatNode extends Node {
         if(this.members.includes(player)) 
             this.members.splice(this.members.indexOf(player), 1);
     }
+
+    static from(str: string) {
+        try {
+            const node = Object.assign(new CombatNode(), JSON.parse(str) as CombatNode);
+            const obj = JSON.parse(str) as CombatNode;
+            const game = GameRoom.from(JSON.stringify(obj.game));
+            if(game == null) 
+                node.game = new GameRoom(`rglike-${obj.adventure}-${obj.floorIn}-${obj.id}`, 'rglike');
+            else node.game = game;
+            return node;
+        } catch(e) {
+            console.log('combat node from: ', e);
+            return null;
+        }
+    }
 }
 
 export class DecisionNode extends Node {
     nodesSelected: number[] = []
     
-    constructor(id: number, floor: number) {
-        super('decision', id, floor);
+    constructor(id?: number, floor?: number, adventure?: string);
+    constructor(id: number, floor: number, adventure: string) {
+        super('decision', id, floor, adventure);
     }
 
     selectNode(node: number) {
@@ -89,16 +118,45 @@ export class DecisionNode extends Node {
             return true;
         } else return false;
     }
+
+    static from(str: string) {
+        try {
+            return Object.assign(new DecisionNode(), JSON.parse(str));
+        } catch(e) {
+            console.log('decision node from: ', e);
+            return null;
+        }
+    }
 }
 
 export class StoreNode extends Node {
-    constructor(id: number, floor: number) {
-        super('store', id, floor);
+    constructor(id?: number, floor?: number, adventure?: string);
+    constructor(id: number, floor: number, adventure: string) {
+        super('store', id, floor, adventure);
+    }
+
+    static from(str: string) {
+        try {
+            return Object.assign(new StoreNode(), JSON.parse(str));
+        } catch(e) {
+            console.log('store node from: ', e);
+            return null;
+        }
     }
 }
 
 export class ExitNode extends Node {
-    constructor(id: number, floor: number) {
-        super('exit', id, floor);
+    constructor(id?: number, floor?: number, adventure?: string);
+    constructor(id: number, floor: number, adventure: string) {
+        super('exit', id, floor, adventure);
+    }
+
+    static from(str: string) {
+        try {
+            return Object.assign(new ExitNode(), JSON.parse(str));
+        } catch(e) {
+            console.log('exit node from: ', e);
+            return null;
+        }
     }
 }

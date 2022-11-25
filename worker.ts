@@ -12,6 +12,7 @@ import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
 import { addFriendHandler, confirmHandler } from "./lib/worker/messaging";
+import { joinAdventureHandler } from "./lib/worker/rougue";
 
 const clientsHandlers: {
     [index: string]: 
@@ -51,7 +52,8 @@ const clientsHandlers: {
         SAYCHAT: sayChatHandler,
         LEAVECHAT: leaveChatRoomHandler,
         ADDFRIEND: addFriendHandler,
-        CLAIMCONFIRM: confirmHandler
+        CLAIMCONFIRM: confirmHandler,
+        JOINADV: joinAdventureHandler
 }
 
 const interalHandlers: {
