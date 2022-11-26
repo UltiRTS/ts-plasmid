@@ -12,7 +12,7 @@ import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
 import { addFriendHandler, confirmHandler } from "./lib/worker/messaging";
-import { joinAdventureHandler } from "./lib/worker/rougue";
+import { joinAdventureHandler, moveToHandler } from "./lib/worker/rougue";
 
 const clientsHandlers: {
     [index: string]: 
@@ -31,6 +31,8 @@ const clientsHandlers: {
         confirmationId?: number
         agree?: boolean
         friendName?: string
+        floorIn?: number
+        nodeTo?: number
         [key:string]: any
     }, seq: number, caller: string) => Promise<Wrapped_Message[]>
 } = 
@@ -53,7 +55,9 @@ const clientsHandlers: {
         LEAVECHAT: leaveChatRoomHandler,
         ADDFRIEND: addFriendHandler,
         CLAIMCONFIRM: confirmHandler,
-        JOINADV: joinAdventureHandler
+        JOINADV: joinAdventureHandler,
+        MOVETO: moveToHandler
+
 }
 
 const interalHandlers: {

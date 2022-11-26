@@ -4,6 +4,7 @@ import { RedisStore } from "../store";
 import { store } from "./shared";
 import { randomInt } from "crypto";
 import { Wrapped_Message } from "../interfaces";
+import { PlainObjectToNewEntityTransformer } from "typeorm/query-builder/transformer/PlainObjectToNewEntityTransformer";
 
 export async function joinAdventureHandler(params: {
     advName?: string
@@ -64,6 +65,57 @@ export async function joinAdventureHandler(params: {
     }
 
     res.push(WrappedState('JOINADV', seq, await store.dumpState(caller), caller));
+
+    return res;
+}
+
+export async function moveToHandler(params: {
+    advName?: string
+    floorIn?: number
+    nodeTo?: number
+    [key: string]: any
+}, seq: number, caller: string) {
+    const advName = params.advName;
+    let nodeTo = params.nodeTo;
+    let floorIn = params.floorIn;
+
+    if(advName == null || nodeTo == null || floorIn == null) {
+        return [Notify('MOVETO', seq, 'insufficient parameters', caller)];
+    }
+
+    nodeTo = parseInt(String(nodeTo));
+    floorIn = parseInt(String(floorIn));
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+
+    try {
+        await store.acquireLock(ADV_LOCK);
+    } catch {
+        console.log('adventure lock requried failed');
+        return [Notify('MOVETO', seq, 'adventure lock acquired fail', caller)];
+    }
+
+    let adventure = await store.getAdventure(advName);
+    if(adventure == null) {
+        await store.releaseLock(ADV_LOCK);
+        return [Notify('MOVETO', seq, 'adventure not exists', caller)];
+    }
+
+    const moveRes = adventure.moveTo(caller, floorIn, nodeTo);
+    if(moveRes.status === false) {
+        await store.releaseLock(ADV_LOCK);
+        return [Notify('MOVETO', seq, moveRes.reason, caller)];
+    }
+
+    await store.releaseLock(ADV_LOCK);
+
+    let res: Wrapped_Message[] = [];
+    for(const member of adventure.members()) {
+        if(member === caller) continue;
+        res.push(WrappedState('MOVETO', -1, await store.dumpState(member), member));
+    }
+
+    res.push(WrappedState('MOVETO', seq, await store.dumpState(caller), caller))
 
     return res;
 }

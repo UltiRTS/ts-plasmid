@@ -360,6 +360,22 @@ const main = async () => {
                 }))
                 break;
             }
+
+            case 'moveto': {
+                const adv = cmd[1];
+                const floorIn = cmd[2];
+                const nodeTo = cmd[3];
+                ws.send(JSON.stringify({
+                    action: 'MOVETO',
+                    parameters: {
+                        advName: adv,
+                        floorIn,
+                        nodeTo
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

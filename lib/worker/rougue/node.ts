@@ -46,6 +46,7 @@ export class Node {
 export class CombatNode extends Node {
 
     game: GameRoom = new GameRoom()
+    cleared: boolean = false
 
     constructor(id?: number, floor?: number, adventure?: string);
     constructor(id: number, floor: number, adventure: string) {

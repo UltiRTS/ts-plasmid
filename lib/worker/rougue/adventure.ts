@@ -15,7 +15,7 @@ export class Adventure {
         this.name = name;
         this.floorTotal = floorTotal;
 
-        this.floors.push(this.genFloorPlan());
+        this.floors.push(this.genFloorPlan(0));
     }
 
     members() {
@@ -27,13 +27,24 @@ export class Adventure {
         return res;
     }
 
+    moveTo(player: string, floorIn: number, nodeTo: number) {
+        if(this.floors.length < floorIn) {
+            return {
+                status: false,
+                reason: 'no such floor'
+            }
+        }
+
+        return this.floors[floorIn].moveTo(player, nodeTo);
+    }
+
     // join them to floor 0, node 0
     join(player: string) {
         this.floors[0].join(player, 0);
     }
 
-    genFloorPlan() {
-        const floor = new Floor(this.name, 1, 15, this.hardness, {
+    genFloorPlan(id: number) {
+        const floor = new Floor(this.name, id, 15, this.hardness, {
             combat: 0.7,
             decision: 0.1,
             store: 0.2

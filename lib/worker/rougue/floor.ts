@@ -53,6 +53,48 @@ export class Floor {
         this.genGraph();
     }
 
+    moveTo(player: string, nodeTo: number) {
+        let nodeIn = null;
+        for(const node of this.nodes) {
+            if(node.members.includes(player)) nodeIn = node;
+        }
+        if(nodeIn === null) {
+            return {
+                status: false,
+                reason: 'not in any node'
+            }
+        }
+
+        if(!nodeIn.children.includes(nodeTo)) {
+            console.log(typeof nodeTo);
+            console.log(typeof nodeIn.children[0]);
+            console.log(nodeIn);
+            console.log('includes: ', nodeIn.children.includes(nodeTo));
+            return {
+                status: false,
+                reason: 'current node is not connected with ' + nodeTo
+            }
+        }
+
+        if(nodeIn.type === 'combat') {
+            let combatNode = nodeIn as CombatNode;
+            if(!combatNode.cleared) {
+                return {
+                    status: false,
+                    reason: 'in combat node, not cleared yet'
+                }
+            }
+        }
+
+        nodeIn.leave(player);
+        this.nodes[nodeTo].join(player);
+
+        return {
+            status: true,
+            reason: 'moved'
+        }
+    }
+
     genGraph() {
         for(let i=0; i<this.nodes_count; i++) {
             this.adj_list[i] = [];
