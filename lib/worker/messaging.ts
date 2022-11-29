@@ -1,4 +1,6 @@
 import { Confirmation } from "../../db/models/confirmation";
+import { Confirmation2Dump, Wrapped_Message } from "../interfaces";
+import { RedisStore } from "../store";
 import { Notify, WrappedState } from "../util";
 import { confirmRepo, store, userRepo } from "./shared";
 
@@ -43,10 +45,33 @@ export async function addFriendHandler(params: {
 
     friend.confirmations = [...friend.confirmations, confirmation];
 
-    userRepo.save(friend);
-    confirmRepo.save(confirmation);
+    await userRepo.save(friend);
+    await confirmRepo.save(confirmation);
 
-    return [WrappedState('ADDFRIEND', seq, await store.dumpState(caller), caller)];
+    const friendIncache = await store.getUser(friendName);
+    if(friendIncache !== null) {
+        const FRIEND_LOCK = RedisStore.LOCK_RESOURCE(friendName, 'user');
+        try {
+            await store.acquireLock(FRIEND_LOCK);
+            friendIncache.confirmations2dump = [...friendIncache.confirmations2dump, {
+                id: confirmation.id,
+                text: confirmation.text,
+                type: confirmation.type,
+                payload: confirmation.payload,
+                claimed: confirmation.claimed,
+            } as Confirmation2Dump]
+            await store.setUser(friendName, friendIncache);
+            await store.releaseLock(FRIEND_LOCK);
+        } catch(e) {
+            console.log(e);
+            console.log('acquire lock falied in add friend');
+        }
+    }
+
+
+
+    return [WrappedState('ADDFRIEND', seq, await store.dumpState(caller), caller),  
+        WrappedState('ADDFRIEND', -1, await store.dumpState(friendName), friendName)];
 }
 
 export async function confirmHandler(params: {
@@ -61,10 +86,15 @@ export async function confirmHandler(params: {
         return [Notify('CLAIMCONFIRM', seq, 'insufficient parameters', caller)];
     }
 
+    const res: Wrapped_Message[] = [];
+
     switch(type) {
         case 'friend': {
             let agree = params.agree;
             if(agree == null) agree = false;
+            console.log(agree);
+            console.log(agree === true);
+            console.log(agree === false);
 
             const confirmation = await confirmRepo.findOne({
                 where: {
@@ -74,6 +104,10 @@ export async function confirmHandler(params: {
 
             if(confirmation == null) {
                 return [Notify('CLAIMCONFIRM', seq, 'no such confirmation', caller)];
+            }
+
+            if(confirmation.claimed) {
+                return [Notify('CLAIMCONFIRM', seq, 'confirmation claimed', caller)];
             }
 
             confirmation.claimed = true;
@@ -109,6 +143,9 @@ export async function confirmHandler(params: {
                     return [Notify('CLAIMCONFIRM', seq, 'no such account', caller)];
                 }
 
+                const userInCache = await store.getUser(user.username);
+                const friendInCache = await store.getUser(friend.username);
+
                 let isUserFriend = false;
                 let isFriendFriend = false;
 
@@ -128,17 +165,45 @@ export async function confirmHandler(params: {
 
                 if(!isUserFriend) {
                     user.friends = [...user.friends, friend];
+                    if(userInCache) {
+                        const USER_LOCK = RedisStore.LOCK_RESOURCE(userInCache.username, 'user');
+                        try {
+                            await store.acquireLock(USER_LOCK);
+                            userInCache.friends2dump.push(friend.username);
+                            await store.setUser(userInCache.username, userInCache);
+                            await store.releaseLock(USER_LOCK);
+                        } catch(e) {
+                            console.log('acquire user lock failed in claim');
+                        }
+                    }
                 }
+
                 if(!isFriendFriend) {
                     friend.friends = [...friend.friends, user];
+                    if(friendInCache) {
+                        const USER_LOCK = RedisStore.LOCK_RESOURCE(friendInCache.username, 'user');
+                        try {
+                            await store.acquireLock(USER_LOCK);
+                            friendInCache.friends2dump.push(user.username);
+                            await store.setUser(friendInCache.username, friendInCache);
+                            await store.releaseLock(USER_LOCK);
+                        } catch(e) {
+                            console.log('acquire friend lock failed in claim');
+                        }
+                    }
                 }
 
                 userRepo.save(user);
                 userRepo.save(friend);
 
+                console.log('pushing state dump')
+
+                res.push(WrappedState('CLAIMCONFIRM', -1, await store.dumpState(friend.username), friend.username));
+                res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(user.username), user.username));
             }
             break;
         }
     }
-    return [WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller)];
+
+    return res;
 }

@@ -2,15 +2,23 @@
 import {User as DBUser} from '../../db/models/user';
 import { GameRoom } from './room';
 import { ChatRoom } from './chat';
+import { Confirmation } from '../../db/models/confirmation';
+import { Confirmation2Dump } from '../interfaces';
 
 
-export class User extends DBUser {
+
+export class User extends DBUser  {
     chatRooms: string[] = []
     game: string | null = null
     adventure: string | null = null
 
+    confirmations2dump: Confirmation2Dump[] = []
+    friends2dump: string[] = []
+
     constructor(user?: DBUser) {
         super();
+        this.confirmations = [];
+        this.friends = [];
         if(user) {
             this.id = user.id;
             this.username = user.username;
@@ -21,8 +29,12 @@ export class User extends DBUser {
             // clear sensitive fields
             this.hash = "";
             this.salt = "";
-            this.confirmations = user.confirmations;
-            this.friends = user.friends;
+            for(const confirmation of user.confirmations) {
+                this.confirmations2dump.push(confirmation as Confirmation2Dump)
+            }
+            for(const friend of user.friends) {
+                this.friends2dump.push(friend.username);
+            }
         } else {
             this.id = 0;
             this.username = '';
@@ -34,7 +46,6 @@ export class User extends DBUser {
             this.hash = "";
             this.salt = "";
             this.confirmations = [];
-            this.friends = [];
         }
     }
 

@@ -19,7 +19,7 @@ const wsInit = () => {
                 console.log(jsonData.state);
                 // console.log(jsonData.state.user)
             } else {
-                console.log(jsonData);
+                console.log('json data', jsonData);
             }
         }
         switch(jsonData.action) {
@@ -55,7 +55,7 @@ const wsInit = () => {
                 break;
             }
             case 'CLAIMCONFIRM': {
-                console.log(jsonData.state.user.confirmations);
+                console.log(jsonData);
                 break;
             }
             case 'MIDJOINED': {
@@ -324,7 +324,7 @@ const main = async () => {
             case 'claim': {
                 const confirmationId = cmd[1];
                 const type = cmd[2];
-                const agree = cmd[3];
+                const agree = cmd[3] === 'true';
 
                 ws.send(JSON.stringify({
                     action: 'CLAIMCONFIRM',
