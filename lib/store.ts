@@ -397,7 +397,8 @@ export class RedisStore {
                     reject(new Error('key required failed'))
                 }, ACQUIRE_MAX_AWAIT)
 
-                await sub.subscribe('__keyevent@0__:del', async (key) => {
+
+                const subCallback = async (key: string) => {
                     if(key === resource) {
                         const success = await client_redis.set(resource, '1', {
                             EX: LOCK_EXPIRE_TIME,
@@ -408,9 +409,14 @@ export class RedisStore {
                             await sub.unsubscribe('__keyevent@0__:del')
                             clearTimeout(timeout);
                             resolve(true);
+                        } else {
+                            await sub.unsubscribe('__keyevent@0__:del')
+                            await sub.subscribe('__keyevent@0__:del', subCallback);
                         }
                     }
-                });
+                }
+
+                await sub.subscribe('__keyevent@0__:del', subCallback);
             }
         })
     }
