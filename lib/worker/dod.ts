@@ -4,6 +4,9 @@ import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState } from "../util";
 import { store } from "./shared";
+import {pino} from 'pino';
+
+const logger = pino();
 
 export async function joinGameHandler(params: {
     gameName?: string,
@@ -218,6 +221,7 @@ export async function startGame(params: {
     try {
         await store.acquireLock(GAME_LOCK);
     } catch(e) {
+        logger.info('game lock acquire failed with ' + String(e));
         return [Notify('STARTGAME', seq, 'game lock acquired failed', caller)]
     }
 

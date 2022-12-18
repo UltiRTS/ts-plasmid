@@ -57,7 +57,7 @@ export async function joinChatRoomHandler(params: {
         await store.acquireLock(USER_LOCK);
     } catch(e) {
         await store.releaseLock(CHAT_LOCK);
-        return [Notify('JOINCHAT', seq, 'acquire chat lock failed', caller)];
+        return [Notify('JOINCHAT', seq, 'acquire user lock failed', caller)];
     }
 
     chatRoom.join(caller);

@@ -119,3 +119,10 @@ export async function moveToHandler(params: {
 
     return res;
 }
+
+export async function startGameHandler(params: {
+    advName?: string
+    [key: string]: any
+}, seq: number, caller: string) {
+
+}
