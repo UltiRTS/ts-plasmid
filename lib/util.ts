@@ -2,6 +2,14 @@ import axios, { responseEncoding } from 'axios';
 import {dntpAddr} from '../config';
 import { CMD, Receipt, State, Wrapped_Message} from './interfaces';
 
+import pino from "pino";
+
+const transport = pino.transport({
+  target: 'pino/file',
+  options: { destination: '/tmp/plasmid.log', append: true }
+})
+export const logger = pino(transport);
+
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 export const CMD_PARAMETERS = {

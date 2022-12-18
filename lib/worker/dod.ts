@@ -4,9 +4,15 @@ import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState } from "../util";
 import { store } from "./shared";
-import {pino} from 'pino';
+// import * as pino from "pino";
 
-const logger = pino();
+import pino from "pino";
+
+const transport = pino.transport({
+  target: 'pino/file',
+  options: { destination: '/tmp/plasmid.log', append: true }
+})
+const logger = pino(transport);
 
 export async function joinGameHandler(params: {
     gameName?: string,
@@ -221,7 +227,7 @@ export async function startGame(params: {
     try {
         await store.acquireLock(GAME_LOCK);
     } catch(e) {
-        logger.info('game lock acquire failed with ' + String(e));
+        logger.error(`acquire game lock faild ${e}`)
         return [Notify('STARTGAME', seq, 'game lock acquired failed', caller)]
     }
 
