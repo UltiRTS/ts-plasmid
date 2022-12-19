@@ -17,6 +17,7 @@ const wsInit = () => {
         if(jsonData.action !== 'PING') {
             if(jsonData.state) {
                 console.log(jsonData.state);
+                console.log(jsonData.state.user.confirmations);
                 // console.log(jsonData.state.user)
             } else {
                 console.log('json data', jsonData);
@@ -55,7 +56,7 @@ const wsInit = () => {
                 break;
             }
             case 'CLAIMCONFIRM': {
-                console.log(jsonData);
+                console.log(String(jsonData));
                 break;
             }
             case 'MIDJOINED': {

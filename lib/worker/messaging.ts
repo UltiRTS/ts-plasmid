@@ -113,6 +113,39 @@ export async function confirmHandler(params: {
             confirmation.claimed = true;
             confirmRepo.save(confirmation);
 
+            // START update in cache claimed
+            const user = await userRepo.findOne({
+                where: {
+                    username: caller
+                },
+                relations: {
+                    friends: true
+                }
+            })
+            if(user == null) {
+                return [Notify('CLAIMCONFIRM', seq, 'no such account', caller)];
+            }
+
+            const userInCache = await store.getUser(user.username);
+            if(userInCache) {
+                const USER_LOCK = RedisStore.LOCK_RESOURCE(userInCache.username, 'user');
+                try {
+                    await store.acquireLock(USER_LOCK);
+                    userInCache.confirmations2dump = [...userInCache.confirmations2dump, {
+                        id: confirmation.id,
+                        text: confirmation.text,
+                        type: confirmation.type,
+                        payload: confirmation.payload,
+                        claimed: confirmation.claimed,
+                    } as Confirmation2Dump]
+                    await store.setUser(userInCache.username, userInCache);
+                    await store.releaseLock(USER_LOCK);
+                } catch(e) {
+                    console.log('acquire user lock failed in claim');
+                }
+            }
+            // END in cache claimed
+
             if(agree) {
                 const payload: {
                     targetVal: string
