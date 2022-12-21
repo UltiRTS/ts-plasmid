@@ -138,6 +138,11 @@ export async function confirmHandler(params: {
                         payload: confirmation.payload,
                         claimed: confirmation.claimed,
                     } as Confirmation2Dump]
+
+                    userInCache.confirmations2dump = userInCache.confirmations2dump.filter(c => {
+                        return c.claimed === false
+                    })
+
                     await store.setUser(userInCache.username, userInCache);
                     await store.releaseLock(USER_LOCK);
                 } catch(e) {

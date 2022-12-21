@@ -57,6 +57,10 @@ export async function loginHandler(params: {
         return [WrappedState('LOGIN', seq, await store.dumpState(username), caller)];
     }
 
+    user.confirmations = user.confirmations.filter(c => {
+        return c.claimed === false
+    })
+
     if(!user.verify(password)) {
         await store.releaseLock(RESOURCE_OCCUPIED);
         return [Notify('LOGIN', seq, 'wrong password of username', caller)];
