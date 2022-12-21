@@ -45,6 +45,7 @@ export async function joinChatRoomHandler(params: {
 
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
+    console.log('chat lock', CHAT_LOCK)
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
     try {
@@ -102,6 +103,7 @@ export async function leaveChatRoomHandler(params: {
     }
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
+    console.log(`chat lock name: `, CHAT_LOCK);
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
     try {
@@ -189,6 +191,7 @@ export async function sayChatHandler(params: {
     }
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
+    console.log(`chat lock name: `, CHAT_LOCK);
 
     try {
         await store.acquireLock(CHAT_LOCK);

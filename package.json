@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "watch": "tsc -w",
-    "start": "tsc && cd dist &&node main.js",
+    "start": "redis-cli flushall && tsc && cd dist &&node main.js",
     "migrate": "tsc && node dist/db/migrate.js",
     "autohost": "tsc && node dist/tests/autohost.test.js",
-    "dev": "nodemon main.ts"
+    "dev": "redis-cli flushall && nodemon main.ts"
   },
   "author": "",
   "license": "ISC",
