@@ -66,6 +66,18 @@ export async function loginHandler(params: {
         return [Notify('LOGIN', seq, 'wrong password of username', caller)];
     } else {
         const userState = new StateUser(user);
+        userState.confirmations2dump = []
+        for(const conf of user.confirmations) {
+            if(!conf.claimed) {
+                userState.confirmations2dump.push({
+                    id: conf.id,
+                    text: conf.text,
+                    type: conf.type,
+                    payload: conf.payload,
+                    claimed: conf.claimed
+                })
+            }
+        }
         await store.setUser(username, userState);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
