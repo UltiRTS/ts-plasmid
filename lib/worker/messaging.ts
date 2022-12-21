@@ -131,16 +131,10 @@ export async function confirmHandler(params: {
                 const USER_LOCK = RedisStore.LOCK_RESOURCE(userInCache.username, 'user');
                 try {
                     await store.acquireLock(USER_LOCK);
-                    userInCache.confirmations2dump = [...userInCache.confirmations2dump, {
-                        id: confirmation.id,
-                        text: confirmation.text,
-                        type: confirmation.type,
-                        payload: confirmation.payload,
-                        claimed: confirmation.claimed,
-                    } as Confirmation2Dump]
+                    userInCache.confirmations2dump = [...userInCache.confirmations2dump]
 
                     userInCache.confirmations2dump = userInCache.confirmations2dump.filter(c => {
-                        return c.claimed === false
+                        return c.id !== confirmation.id || c.claimed === false
                     })
 
                     await store.setUser(userInCache.username, userInCache);
