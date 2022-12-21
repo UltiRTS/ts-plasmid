@@ -114,7 +114,7 @@ export async function leaveChatRoomHandler(params: {
         await store.acquireLock(USER_LOCK);
     } catch(e) {
         await store.releaseLock(CHAT_LOCK);
-        return [Notify('LEAVECHAT', seq, 'acquire chat lock failed', caller)];
+        return [Notify('LEAVECHAT', seq, 'acquire user lock failed', caller)];
     }
 
     chatRoom.leave(caller);

@@ -107,7 +107,7 @@ export async function confirmHandler(params: {
             }
 
             if(confirmation.claimed) {
-                return [Notify('CLAIMCONFIRM', seq, 'confirmation claimed', caller)];
+                return [WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller)]
             }
 
             confirmation.claimed = true;
