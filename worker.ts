@@ -14,6 +14,14 @@ import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib
 import { addFriendHandler, confirmHandler } from "./lib/worker/messaging";
 import { joinAdventureHandler, moveToHandler } from "./lib/worker/rougue";
 
+import pino from "pino";
+
+const transport = pino.transport({
+  target: 'pino/file',
+  options: { destination: '/tmp/timer.log', append: true }
+})
+const logger = pino(transport);
+
 const clientsHandlers: {
     [index: string]: 
     (params: {
@@ -89,6 +97,7 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     console.log(msg);
     if(!(msg.action in clientsHandlers) && !(msg.action in interalHandlers)) return;
 
+    console.time(`cmd ${msg.action}`);
 
     switch(msg.type) {
         case 'client': {
@@ -108,4 +117,5 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
         }
     }
 
+    console.timeEnd(`cmd ${msg.action}`);
 })
