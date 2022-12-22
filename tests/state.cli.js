@@ -56,7 +56,7 @@ const wsInit = () => {
                 break;
             }
             case 'CLAIMCONFIRM': {
-                console.log(String(jsonData));
+                console.log('length of confirms:', jsonData.state.user.confirmations.length);
                 break;
             }
             case 'MIDJOINED': {

@@ -134,8 +134,9 @@ export async function confirmHandler(params: {
                     userInCache.confirmations2dump = [...userInCache.confirmations2dump]
 
                     userInCache.confirmations2dump = userInCache.confirmations2dump.filter(c => {
-                        return c.id !== confirmation.id || c.claimed === false
+                        return c.id !== confirmation.id && c.claimed === false
                     })
+                    console.log(userInCache.confirmations2dump);
 
                     await store.setUser(userInCache.username, userInCache);
                     await store.releaseLock(USER_LOCK);
