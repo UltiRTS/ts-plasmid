@@ -6,6 +6,7 @@ import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
 import { Adventure } from './worker/rougue/adventure';
+import { EventEmitter } from 'stream';
 
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
@@ -26,18 +27,25 @@ export class RedisStore {
     client: RedisClientType
     sub: RedisClientType
     connected: boolean
+    emitter: EventEmitter
 
     constructor() {
         this.client = createClient();
         this.sub = this.client.duplicate();
         this.connected = false;
+        this.emitter = new EventEmitter();
 
         (async () => {
             await this.client.connect();
             await this.sub.connect();
             this.connected = true;
-            console.log('redis client connected')
+            this.emitter.emit('initialized')
+            // console.log('redis client connected')
         })()
+    }
+
+    async destroy() {
+        await this.client.quit();
     }
 
     async setAdventure(advName: string, adv: Adventure) {
@@ -381,44 +389,44 @@ export class RedisStore {
     }
 
     async acquireLock(resource: string) {
-        // const sub = this.sub;
-        // const client_redis = this.client;
-        // return new Promise(async (resolve, reject) => {
-        //     const success = await client_redis.set(resource, '1', {
-        //         EX: LOCK_EXPIRE_TIME,
-        //         NX: true
-        //     });
-        //     if(success) {
-        //         // console.log('key', resource, 'acquired');
-        //         resolve(true);
-        //     } else {
-        //         const timeout = setTimeout(async () => {
-        //             await sub.unsubscribe('__keyevent@0__:del')
-        //             reject(new Error('key required failed'))
-        //         }, ACQUIRE_MAX_AWAIT)
+        const sub = this.sub;
+        const client_redis = this.client;
+        return new Promise(async (resolve, reject) => {
+            const success = await client_redis.set(resource, '1', {
+                EX: LOCK_EXPIRE_TIME,
+                NX: true
+            });
+            if(success) {
+                // console.log('key', resource, 'acquired');
+                resolve(true);
+            } else {
+                const timeout = setTimeout(async () => {
+                    await sub.unsubscribe('__keyevent@0__:del')
+                    reject(new Error('key required failed'))
+                }, ACQUIRE_MAX_AWAIT)
 
 
-        //         const subCallback = async (key: string) => {
-        //             if(key === resource) {
-        //                 const success = await client_redis.set(resource, '1', {
-        //                     EX: LOCK_EXPIRE_TIME,
-        //                     NX: true
-        //                 });
-        //                 if(success) {
-        //                     // console.log('key', resource, 'acquired');
-        //                     await sub.unsubscribe('__keyevent@0__:del')
-        //                     clearTimeout(timeout);
-        //                     resolve(true);
-        //                 } else {
-        //                     await sub.unsubscribe('__keyevent@0__:del')
-        //                     await sub.subscribe('__keyevent@0__:del', subCallback);
-        //                 }
-        //             }
-        //         }
+                const subCallback = async (key: string) => {
+                    if(key === resource) {
+                        const success = await client_redis.set(resource, '1', {
+                            EX: LOCK_EXPIRE_TIME,
+                            NX: true
+                        });
+                        if(success) {
+                            // console.log('key', resource, 'acquired');
+                            await sub.unsubscribe('__keyevent@0__:del')
+                            clearTimeout(timeout);
+                            resolve(true);
+                        } else {
+                            await sub.unsubscribe('__keyevent@0__:del')
+                            await sub.subscribe('__keyevent@0__:del', subCallback);
+                        }
+                    }
+                }
 
-        //         await sub.subscribe('__keyevent@0__:del', subCallback);
-        //     }
-        // })
+                await sub.subscribe('__keyevent@0__:del', subCallback);
+            }
+        })
     }
 
     async releaseLock(resource: string) {
