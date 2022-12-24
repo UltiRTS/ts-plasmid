@@ -32,48 +32,42 @@ export async function joinGameHandler(params: {
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
+    const locks = [GAME_LOCK, USER_LOCK];
 
     try {
-        await store.acquireLock(GAME_LOCK);
-    } catch {
-        // console.log('game lock required failed');
-        return [Notify('JOINGAME', seq, 'game lock acquired fail', caller)];
+        await store.acquireLocks(locks);
+    } catch(e) {
+        return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
     }
 
-    try {
-        await store.acquireLock(USER_LOCK);
-    } catch {
-        // console.log('user lock required failed');
-        await store.releaseLock(GAME_LOCK);
-        return [Notify('JOINGAME', seq, 'user lock acquired fail', caller)];
-    }
+
+    // try {
+    //     await store.acquireLock(GAME_LOCK);
+    // } catch {
+    //     // console.log('game lock required failed');
+    //     return [Notify('JOINGAME', seq, 'game lock acquired fail', caller)];
+    // }
+
+    // try {
+    //     await store.acquireLock(USER_LOCK);
+    // } catch {
+    //     // console.log('user lock required failed');
+    //     await store.releaseLock(GAME_LOCK);
+    //     return [Notify('JOINGAME', seq, 'user lock acquired fail', caller)];
+    // }
 
 
     let gameRoom = await store.getGame(gameName)
     const user = await store.getUser(caller);
-    console.log(caller);
-    console.log(user);
 
     if(user == null) {
-        await store.releaseLock(USER_LOCK);
-        await store.releaseLock(GAME_LOCK);
+        await store.releaseLocks(locks);
         return [Notify('JOINGAME', seq, 'user not found', caller)];
     }
 
     if(gameRoom == null) {
         gameRoom = new GameRoom(gameName, caller, mapId)
         gameRoom.password = password;
-        user.game = gameName;
-
-        gameRoom.setPlayer(caller, 'A');
-
-        await store.setGame(gameName, gameRoom);
-        await store.setUser(caller, user);
-
-        await store.releaseLock(GAME_LOCK);
-        await store.releaseLock(USER_LOCK);
-
-        return [WrappedState('JOINGAME', seq, await store.dumpState(caller), caller, ['client', 'all'])]
     }
 
     user.game = gameName;
@@ -81,8 +75,7 @@ export async function joinGameHandler(params: {
     await store.setGame(gameName, gameRoom);
     await store.setUser(caller, user);
 
-    await store.releaseLock(GAME_LOCK);
-    await store.releaseLock(USER_LOCK);
+    await store.releaseLocks(locks);
 
     const res: Wrapped_Message[] = [];
 
@@ -384,13 +377,6 @@ export async function leaveGame(params: {
     }
 
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
-
-    try {
-        await store.acquireLock(USER_LOCK);
-    } catch(e) {
-        return [Notify('LEAVEGAME', seq, 'acquire user lock failed', caller)]
-    }
-
     const user = await store.getUser(caller);
     if(user == null) {
         await store.releaseLock(USER_LOCK);
@@ -403,17 +389,18 @@ export async function leaveGame(params: {
     }
 
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(user.game, 'game');
+
+    const locks = [USER_LOCK, GAME_LOCK];
+
     try {
-        await store.acquireLock(GAME_LOCK);
+        await store.acquireLocks(locks);
     } catch(e) {
-        await store.releaseLock(USER_LOCK);
-        return [Notify('LEAVEGAME', seq, 'acquire game lock failed', caller)]
+        return [Notify('LEAVEGAME', seq, 'acquire leavegame lock failed', caller)]
     }
 
     const game = await store.getGame(user.game);
     if(game == null) {
-        await store.releaseLock(USER_LOCK);
-        await store.releaseLock(GAME_LOCK);
+        await store.releaseLocks(locks);
         return [Notify('LEAVEGAME', seq, 'no such game', caller)];
     }
 
@@ -427,8 +414,7 @@ export async function leaveGame(params: {
     user.game = null;
     await store.setUser(caller, user);
 
-    await store.releaseLock(USER_LOCK);
-    await store.releaseLock(GAME_LOCK);
+    await store.releaseLocks(locks);
 
     const res = [];
 
