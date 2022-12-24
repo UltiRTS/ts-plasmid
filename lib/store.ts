@@ -95,11 +95,11 @@ export class RedisStore {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.set(name, game.serialize());
 
-        await this.pushGameOverview({
-            title: game.title,
-            hoster: game.hoster,
-            mapId: game.mapId
-        })
+        // await this.pushGameOverview({
+        //     title: game.title,
+        //     hoster: game.hoster,
+        //     mapId: game.mapId
+        // })
     }
 
     async getGame(gameName: string) {
@@ -113,7 +113,7 @@ export class RedisStore {
     async delGame(gameName: string) {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.del(name);
-        await this.removeGameOverview(gameName);
+        // await this.removeGameOverview(gameName);
     }
 
 
