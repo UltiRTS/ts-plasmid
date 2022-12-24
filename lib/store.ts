@@ -18,7 +18,7 @@ const SUFFIX_LOCK = '_LOCK';
 
 const LOGIN = 'LOGIN';
 
-const ACQUIRE_MAX_AWAIT = 500;
+const ACQUIRE_MAX_AWAIT = 5000;
 const LOCK_EXPIRE_TIME = 20; // 20s
 
 const OVERVIEW = 'OVERVIEW';

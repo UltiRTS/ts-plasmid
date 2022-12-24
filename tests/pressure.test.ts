@@ -91,11 +91,11 @@ const pressureTest = async () => {
     // const handlerList = [joinChat, sayChat, leaveChat, joinGame, leaveGame];
     const handlerList = [joinGame, leaveGame];
 
-    emitter.on('loggedIn', () => {
+    emitter.on('loggedIn', async () => {
         for(let i=0; i<NUM_CMDS; i++) {
             const cmd2call = handlerList[randomInt(handlerList.length)];
             cmd2call(); 
-            sleep(randomInt(100, 200));
+            // await sleep(randomInt(0, 200));
         }
     })
 
