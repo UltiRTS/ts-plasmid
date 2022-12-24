@@ -94,10 +94,10 @@ AppDataSource.initialize().then(() => {
 })
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
-    console.log(msg);
+    // console.log(msg);
     if(!(msg.action in clientsHandlers) && !(msg.action in interalHandlers)) return;
 
-    console.time(`cmd ${msg.action}`);
+    const time_start = Date.now();
 
     switch(msg.type) {
         case 'client': {
@@ -117,5 +117,6 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
         }
     }
 
-    console.timeEnd(`cmd ${msg.action}`);
+    const time_end = Date.now();
+    console.log(`cmd ${msg.action} consumed ${time_end - time_start}ms`);
 })

@@ -36,14 +36,14 @@ export async function joinGameHandler(params: {
     try {
         await store.acquireLock(GAME_LOCK);
     } catch {
-        console.log('game lock required failed');
+        // console.log('game lock required failed');
         return [Notify('JOINGAME', seq, 'game lock acquired fail', caller)];
     }
 
     try {
         await store.acquireLock(USER_LOCK);
     } catch {
-        console.log('user lock required failed');
+        // console.log('user lock required failed');
         await store.releaseLock(GAME_LOCK);
         return [Notify('JOINGAME', seq, 'user lock acquired fail', caller)];
     }
