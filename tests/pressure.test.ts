@@ -10,10 +10,11 @@ function sleep(ms: number) {
 
 const main = async () => {
     if(isMainThread) {
-        for(let i=0; i<1; i++) {
+        for(let i=0; i<2; i++) {
             new Worker('./tests/pressure.test.ts', {
                 execArgv: ['-r', 'ts-node/register/transpile-only']
             });
+            sleep(50);
         }
     } else {
         pressureTest();

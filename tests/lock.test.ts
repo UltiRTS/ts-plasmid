@@ -15,10 +15,11 @@ if (isMainThread) {
     const lock = 'lock';
 
     store.emitter.on('initialized', async () => {
-        await store.acquireLock(lock);
-        console.log(`thread ${threadId} acquired lock`)
-        sleep(500);
-        await store.releaseLock(lock);
-        console.log(`thread ${threadId} released lock`)
+      console.log('store initialized')
+      await store.acquireLock(lock);
+      console.log(`thread ${threadId} acquired lock`)
+      sleep(500);
+      await store.releaseLock(lock);
+      console.log(`thread ${threadId} released lock`)
     })
 }
