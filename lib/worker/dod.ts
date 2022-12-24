@@ -2,8 +2,9 @@ import { Game } from "../../db/models/game";
 import { CMD, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, Wrapped_Message } from "../interfaces";
 import { GameRoom } from "../states/room";
 import { RedisStore } from "../store";
-import { Notify, WrappedCMD, WrappedState } from "../util";
+import { Notify, WrappedCMD, WrappedState, sleep } from "../util";
 import { store } from "./shared";
+import { threadId } from "worker_threads";
 // import * as pino from "pino";
 
 import pino from "pino";
@@ -36,25 +37,11 @@ export async function joinGameHandler(params: {
 
     try {
         await store.acquireLocks(locks);
+        // console.log(`thread-${threadId} join game locks acquired`)
     } catch(e) {
         return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
     }
 
-
-    // try {
-    //     await store.acquireLock(GAME_LOCK);
-    // } catch {
-    //     // console.log('game lock required failed');
-    //     return [Notify('JOINGAME', seq, 'game lock acquired fail', caller)];
-    // }
-
-    // try {
-    //     await store.acquireLock(USER_LOCK);
-    // } catch {
-    //     // console.log('user lock required failed');
-    //     await store.releaseLock(GAME_LOCK);
-    //     return [Notify('JOINGAME', seq, 'user lock acquired fail', caller)];
-    // }
 
 
     let gameRoom = await store.getGame(gameName)
@@ -76,6 +63,7 @@ export async function joinGameHandler(params: {
     await store.setUser(caller, user);
 
     await store.releaseLocks(locks);
+    // console.log(`thread-${threadId} join game locks released`)
 
     const res: Wrapped_Message[] = [];
 
@@ -390,7 +378,7 @@ export async function leaveGame(params: {
 
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(user.game, 'game');
 
-    const locks = [USER_LOCK, GAME_LOCK];
+    const locks = [GAME_LOCK, USER_LOCK];
 
     try {
         await store.acquireLocks(locks);

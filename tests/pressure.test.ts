@@ -89,7 +89,7 @@ const pressureTest = async () => {
     }
 
     // const handlerList = [joinChat, sayChat, leaveChat, joinGame, leaveGame];
-    const handlerList = [joinGame, leaveGame];
+    const handlerList = [joinGame, ];
 
     emitter.on('loggedIn', async () => {
         for(let i=0; i<NUM_CMDS; i++) {

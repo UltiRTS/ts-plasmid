@@ -36,9 +36,17 @@ export class RedisStore {
         this.connected = false;
         this.emitter = new EventEmitter();
 
+
         (async () => {
             await this.client.connect();
             await this.sub.connect();
+            await this.client.configSet({
+                'notify-keyspace-events': 'KEA'
+            })
+            await this.sub.configSet({
+                'notify-keyspace-events': 'KEA'
+            })
+
             this.connected = true;
             this.emitter.emit('initialized')
             // console.log('redis client connected')
@@ -449,11 +457,9 @@ export class RedisStore {
 
     async releaseLock(resource: string) {
         const client_redis = this.client;
-        return new Promise(async (resolve, reject) => {
-            await client_redis.del(resource);
-            // console.log('key', resource, 'released')
-            resolve(true);
-        })
+        await client_redis.del(resource);
+        // console.log('key', resource, 'released')
+        return true;
     }
 
     async acquireLocks(resources: string[]) {
@@ -478,13 +484,15 @@ export class RedisStore {
                     reject(new Error('key required failed'))
                 }, ACQUIRE_MAX_AWAIT)
 
-                let keyReported = 0;
-
                 const subCallback = async (key: string) => {
-                    if(resources.includes(key)) {
-                        keyReported++;
+                    let acquirable = true;
+                    if(key in resources) {
+                        for(const resource of resources) {
+                            const v = await client_redis.get(resource);
+                            acquirable &&= v === null;
+                        }
                     }
-                    if(keyReported >= resources.length) {
+                    if(acquirable) {
                         const success = await client_redis.mSetNX(m2set);
                         if(success) {
                             // console.log('key', resource, 'acquired');
@@ -507,11 +515,9 @@ export class RedisStore {
 
     async releaseLocks(resources: string[]) {
         const client_redis = this.client;
-        return new Promise(async (resolve, reject) => {
-            await client_redis.del(resources);
-            // console.log('key', resource, 'released')
-            resolve(true);
-        })
+        const res = await client_redis.del(resources);
+        // console.log('key', resource, 'released')
+        return true;
     }
 
     static USER_RESOURCE(username: string) {
