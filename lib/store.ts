@@ -1,4 +1,4 @@
-import {createHash} from 'crypto';
+import {createHash, randomInt} from 'crypto';
 import { parse } from 'path';
 import {createClient, RedisClientType, } from 'redis';
 import { Adv_Overview, Chat_Overview, Game_Overview, State, User2Dump } from './interfaces';
@@ -7,6 +7,7 @@ import { GameRoom } from './states/room';
 import { User } from './states/user';
 import { Adventure } from './worker/rougue/adventure';
 import { EventEmitter } from 'stream';
+import { sleep } from './util';
 
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
@@ -35,9 +36,17 @@ export class RedisStore {
         this.connected = false;
         this.emitter = new EventEmitter();
 
+
         (async () => {
             await this.client.connect();
             await this.sub.connect();
+            await this.client.configSet({
+                'notify-keyspace-events': 'KEA'
+            })
+            await this.sub.configSet({
+                'notify-keyspace-events': 'KEA'
+            })
+
             this.connected = true;
             this.emitter.emit('initialized')
             // console.log('redis client connected')
@@ -94,11 +103,11 @@ export class RedisStore {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.set(name, game.serialize());
 
-        await this.pushGameOverview({
-            title: game.title,
-            hoster: game.hoster,
-            mapId: game.mapId
-        })
+        // await this.pushGameOverview({
+        //     title: game.title,
+        //     hoster: game.hoster,
+        //     mapId: game.mapId
+        // })
     }
 
     async getGame(gameName: string) {
@@ -112,7 +121,7 @@ export class RedisStore {
     async delGame(gameName: string) {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.del(name);
-        await this.removeGameOverview(gameName);
+        // await this.removeGameOverview(gameName);
     }
 
 
@@ -389,6 +398,23 @@ export class RedisStore {
     }
 
     async acquireLock(resource: string) {
+        let retry = 3;
+        while(retry>0) {
+            try {
+                await this._acquireLock(resource);
+                return true;
+            } catch(e) {
+                // deply requiring
+                sleep(randomInt(50, 200));
+            }
+
+            retry--;
+        }
+
+        throw new Error(`acquire ${resource} lock failed`);
+    }
+
+    async _acquireLock(resource: string) {
         const sub = this.sub;
         const client_redis = this.client;
         return new Promise(async (resolve, reject) => {
@@ -431,11 +457,67 @@ export class RedisStore {
 
     async releaseLock(resource: string) {
         const client_redis = this.client;
+        await client_redis.del(resource);
+        // console.log('key', resource, 'released')
+        return true;
+    }
+
+    async acquireLocks(resources: string[]) {
+        const sub = this.sub;
+        const client_redis = this.client;
         return new Promise(async (resolve, reject) => {
-            await client_redis.del(resource);
-            // console.log('key', resource, 'released')
-            resolve(true);
+            const m2set: string[] = [];
+            for(const resource of resources) {
+                m2set.push(resource);
+                m2set.push('1');
+            }
+            const success = await client_redis.mSetNX(m2set);
+            if(success) {
+                // console.log('key', resource, 'acquired');
+                for(const resource of resources) {
+                    await client_redis.expire(resource, 5);
+                }
+                resolve(true);
+            } else {
+                const timeout = setTimeout(async () => {
+                    await sub.unsubscribe('__keyevent@0__:del')
+                    reject(new Error('key required failed'))
+                }, ACQUIRE_MAX_AWAIT)
+
+                const subCallback = async (key: string) => {
+                    let acquirable = true;
+                    if(key in resources) {
+                        for(const resource of resources) {
+                            const v = await client_redis.get(resource);
+                            acquirable &&= v === null;
+                        }
+                    }
+                    if(acquirable) {
+                        const success = await client_redis.mSetNX(m2set);
+                        if(success) {
+                            // console.log('key', resource, 'acquired');
+                            for(const resource of resources) {
+                                await client_redis.expire(resource, 5);
+                            }
+                            clearTimeout(timeout);
+                            resolve(true);
+                        } else {
+                            await sub.unsubscribe('__keyevent@0__:del')
+                            await sub.subscribe('__keyevent@0__:del', subCallback);
+                        }
+                    }
+                }
+
+                await sub.subscribe('__keyevent@0__:del', subCallback);
+            }
         })
+    }
+
+    async releaseLocks(resources: string[]) {
+        const client_redis = this.client;
+        const res = await client_redis.del(resources);
+        // console.log('key', resource, 'released')
+        return true;
     }
 
     static USER_RESOURCE(username: string) {
