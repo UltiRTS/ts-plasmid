@@ -180,17 +180,17 @@ export async function preStartAdventureHandler(params: {
 
     let res: Wrapped_Message[] = [];
     if(recruitAgain) {
-        for(const recruitee of stateAdventure.recruits) {
+        for(const recruitee of stateAdventure.members()) {
             const CMD: CMD_Adventure_recruit = {
                 to: 'client',
                 action: 'ADV_RECRUIT',
                 payload: {
                     advId,
-                    friendName: caller,
+                    friendName: recruitee,
                     firstTime: false
                 }
             }
-            res.push(WrappedCMD('ADV_PRESTART', -1, CMD, 'cmd', recruitee, {}))
+            res.push(WrappedCMD('ADV_PRESTART', -1, CMD, 'cmd', caller, {}))
         }
     }
 
@@ -200,15 +200,73 @@ export async function preStartAdventureHandler(params: {
 }
 
 export async function ready2startHandler(params: {
-    advName?: string
+    advId?: number
     [key: string]: any
 }, seq: number, caller: string) {
 
 }
 
 export async function startGameHandler(params: {
-    advName?: string
+    advId?: number
     [key: string]: any
 }, seq: number, caller: string) {
 
+}
+
+export async function leaveAdventureHandler(params: {
+    advId?: number
+    [key: string]: any
+}, seq: number, caller: string) {
+    const advId = params.advId;
+    if(advId == null) {
+        return [Notify('ADV_LEAVE', seq, 'no such adventure', caller)];
+    }
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+    const locks = [ADV_LOCK, USER_LOCK];
+
+    try {
+        await store.acquireLocks(locks);
+    } catch {
+        return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
+    }
+
+    const adventure = await store.getAdventure(advId);
+    const user = await store.getUser(caller);
+
+    if(adventure == null || user == null) {
+        await store.releaseLocks(locks);
+        return [Notify('ADV_LEAVE', seq, 'adventure/user not exists', caller)];
+    }
+
+    adventure.derecruit(caller);
+    user.adventure = null;
+
+    await store.setUser(caller, user);
+    if(adventure.empty()) {
+        await store.delAdventure(advId);
+        let dbAdventure = await advRepo.findOne({
+            where: {
+                id: adventure.id
+            }
+        })
+        if(dbAdventure != null) {
+            dbAdventure.config = adventure.serialize();
+            await advRepo.save(dbAdventure);
+        }
+    } else {
+        await store.setAdventure(advId, adventure);
+    }
+
+    await store.releaseLocks(locks);
+
+    let res: Wrapped_Message[] = [];
+    for(const member in adventure.members()) {
+        if(member !== caller)
+            res.push(WrappedState('ADV_LEAVE', -1, await store.dumpState(member), member));
+    }
+
+    res.push(WrappedState('ADV_LEAVE', -1, await store.dumpState(caller), caller));
+    return res;
 }

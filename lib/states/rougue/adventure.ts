@@ -30,7 +30,13 @@ export class Adventure {
     }
 
     recruit(player: string) {
-        if(!(player in this.recruits)) this.recruits.push(player);
+        if(!this.recruits.includes(player)) this.recruits.push(player);
+    }
+
+    derecruit(player: string) {
+        if(this.recruits.includes(player)) {
+            this.recruits.splice(this.recruits.indexOf(player), 1);
+        }
     }
 
     moveTo(player: string, floorIn: number, nodeTo: number) {
@@ -42,6 +48,10 @@ export class Adventure {
         }
 
         return this.floors[floorIn].moveTo(player, nodeTo);
+    }
+
+    empty() {
+        return this.recruits.length === 0;
     }
 
     // join them to floor 0, node 0

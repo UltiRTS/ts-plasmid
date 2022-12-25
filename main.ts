@@ -2,7 +2,7 @@ import "reflect-metadata"
 import { randomInt } from "crypto";
 import { Worker, parentPort, threadId } from "worker_threads";
 import { AutohostManager } from "./lib/autohost";
-import { CMD, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
+import { CMD, CMD_Adventure_recruit, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
 import { RedisStore } from "./lib/store";
 
@@ -82,6 +82,20 @@ network.on('clean', async (clientID: string) => {
         caller: username,
         parameters: {},
         payload: {}
+    }
+
+    if(user?.adventure) {
+        const leaveAdvMsg: IncommingMsg = {
+            action: 'ADV_LEAVE',
+            type: 'client',
+            seq: -1,
+            caller: username,
+            parameters: {
+                advId: user.adventure
+            },
+            payload: {}
+        }
+        workers[randomInt(4)].postMessage(leaveAdvMsg);
     }
 
     workers[randomInt(4)].postMessage(leaveGameMsg);
@@ -177,6 +191,27 @@ for(let i=0; i<4; i++) {
                                             title: payload.title
                                         })
 
+                                        break;
+                                    }
+                                }
+                            } else if(cmd.to === 'client') {
+                                switch(cmd.action) {
+                                    case 'ADV_RECRUIT': {
+                                        let recruitCmd = cmd as CMD_Adventure_recruit
+                                        let recruitPayload = recruitCmd.payload;
+                                        const leaveChatMsg: IncommingMsg = {
+                                            action: 'ADV_RECRUIT',
+                                            type: 'client',
+                                            seq: -1,
+                                            caller: msg.client,
+                                            payload: {},
+                                            parameters: {
+                                                advId: recruitPayload.advId,
+                                                friendName: recruitPayload.friendName,
+                                                firstTime: recruitPayload.firstTime
+                                            }
+                                        }
+                                        workers[randomInt(4)].postMessage(leaveChatMsg);
                                         break;
                                     }
                                 }

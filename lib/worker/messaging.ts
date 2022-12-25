@@ -83,8 +83,6 @@ export async function recruitPpl4Adventure(params: {
     const advId = params.advId;
     let firstTime = params.firstTime;
 
-    console.log(advId, friendName);
-
     if(friendName == null || advId == null) {
         return [Notify('ADV_RECRUIT', seq, 'insufficient parameters', caller)];
     }
@@ -134,8 +132,8 @@ export async function recruitPpl4Adventure(params: {
 
     friend.confirmations = [...friend.confirmations, confirmation];
 
-    userRepo.save(friend);
-    confirmRepo.save(confirmation);
+    await userRepo.save(friend);
+    await confirmRepo.save(confirmation);
 
     const friendIncache = await store.getUser(friendName);
     if(friendIncache !== null) {
@@ -375,13 +373,15 @@ export async function confirmHandler(params: {
                 await store.setUser(userInCache.username, userInCache);
             }
 
-            if(!confirmationContent.firstTime) {
-                // logic about resume game
-                adventure.teamHp -= 5
-            }
+            if(agree) {
+                if(!confirmationContent.firstTime) {
+                    // logic about resume game
+                    adventure.teamHp -= 5
+                }
 
-            adventure.join(caller);
-            await store.setAdventure(advId, adventure);
+                adventure.join(caller);
+                await store.setAdventure(advId, adventure);
+            }
 
             await store.releaseLocks(locks);
             res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller));

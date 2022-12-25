@@ -361,6 +361,18 @@ const main = async () => {
                 break;
             }
 
+            case 'leaveadv': {
+                const adv = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'ADV_LEAVE',
+                    parameters: {
+                        advId: parseInt(adv)
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+
             case 'recruit': {
                 const adv = cmd[1];
                 const friendName = cmd[2];
