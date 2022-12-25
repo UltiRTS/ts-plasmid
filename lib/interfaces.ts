@@ -76,6 +76,14 @@ export interface CMD_Autohost_Kill_Engine extends CMD {
     }
 }
 
+export interface CMD_Adventure_recruit extends CMD {
+    payload: {
+        advId: number
+        friendName: string
+        firstTime: boolean
+    }
+}
+
 export interface Wrapped_Message {
     payload: {
         receipt?: Receipt
@@ -124,5 +132,6 @@ export interface ConfirmationContentAddFriend extends ConfirmationContent {
 
 export interface ConfirmationContentAdvRecruit extends ConfirmationContent {
     recruiter: string
-    advName: string
+    advId: number
+    firstTime: boolean
 }

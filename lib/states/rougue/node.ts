@@ -7,13 +7,13 @@ export class Node {
     id: number = -1
     type: string = ''
     floorIn: number = -1 
-    adventure: string = ''
+    adventure: number = -1
 
     members: string[] = []
     children: number[] = []
 
-    constructor(type?: string, id?: number, floorIn?: number, adventure?: string);
-    constructor(type: string, id: number, floorIn: number, adventure: string) {
+    constructor(type?: string, id?: number, floorIn?: number, adventure?: number);
+    constructor(type: string, id: number, floorIn: number, adventure: number) {
         this.type = type
         this.id = id;
         this.floorIn = floorIn;
@@ -48,8 +48,8 @@ export class CombatNode extends Node {
     game: GameRoom = new GameRoom()
     cleared: boolean = false
 
-    constructor(id?: number, floor?: number, adventure?: string);
-    constructor(id: number, floor: number, adventure: string) {
+    constructor(id?: number, floor?: number, adventure?: number);
+    constructor(id: number, floor: number, adventure: number) {
         super('combat', id, floor, adventure)
         this.floorIn = floor
         this.adventure = adventure
@@ -108,8 +108,8 @@ export class CombatNode extends Node {
 export class DecisionNode extends Node {
     nodesSelected: number[] = []
     
-    constructor(id?: number, floor?: number, adventure?: string);
-    constructor(id: number, floor: number, adventure: string) {
+    constructor(id?: number, floor?: number, adventure?: number);
+    constructor(id: number, floor: number, adventure: number) {
         super('decision', id, floor, adventure);
     }
 
@@ -131,8 +131,8 @@ export class DecisionNode extends Node {
 }
 
 export class StoreNode extends Node {
-    constructor(id?: number, floor?: number, adventure?: string);
-    constructor(id: number, floor: number, adventure: string) {
+    constructor(id?: number, floor?: number, adventure?: number);
+    constructor(id: number, floor: number, adventure: number) {
         super('store', id, floor, adventure);
     }
 
@@ -147,8 +147,8 @@ export class StoreNode extends Node {
 }
 
 export class ExitNode extends Node {
-    constructor(id?: number, floor?: number, adventure?: string);
-    constructor(id: number, floor: number, adventure: string) {
+    constructor(id?: number, floor?: number, adventure?: number);
+    constructor(id: number, floor: number, adventure: number) {
         super('exit', id, floor, adventure);
     }
 

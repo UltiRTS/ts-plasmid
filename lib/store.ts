@@ -57,22 +57,23 @@ export class RedisStore {
         await this.client.quit();
     }
 
-    async setAdventure(advName: string, adv: Adventure) {
-        const name = RedisStore.ADV_RESOURCE(advName);
+    async setAdventure(advName: number, adv: Adventure) {
+        const name = RedisStore.ADV_RESOURCE(String(advName));
         await this.client.set(name, adv.serialize());
 
-        await this.pushAdvOverview(advName);
+        await this.pushAdvOverview(String(advName));
     }
 
-    async getAdventure(advName: string) {
-        const name = RedisStore.ADV_RESOURCE(advName)
+    async getAdventure(advName: number) {
+        const name = RedisStore.ADV_RESOURCE(String(advName))
 
         const advStr = await this.client.get(name);
         if(advStr == null) return null
         else return Adventure.from(advStr);
     }
 
-    async delAdventure(advName: string) {
+    async delAdventure(advId: number) {
+        const advName = String(advId);
         const name = RedisStore.ADV_RESOURCE(advName);
         await this.client.del(name);
         await this.removeAdvOverview(advName);

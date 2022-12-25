@@ -3,7 +3,7 @@ import { Floor } from "./floor";
 
 export class Adventure {
     effects: Effect[] = []
-    name: string = ''
+    id: number
     floors: Floor[] = []
     floorTotal: number
     teamHp: number = 300
@@ -12,9 +12,9 @@ export class Adventure {
 
     hardness: number = 1
 
-    constructor(name?: string, floorTotal?: number);
-    constructor(name: string, floorTotal: number) {
-        this.name = name;
+    constructor(id?: number, floorTotal?: number);
+    constructor(id: number, floorTotal: number) {
+        this.id = id;
         this.floorTotal = floorTotal;
 
         this.floors.push(this.genFloorPlan(0));
@@ -30,7 +30,7 @@ export class Adventure {
     }
 
     recruit(player: string) {
-        this.recruits.push(player);
+        if(!(player in this.recruits)) this.recruits.push(player);
     }
 
     moveTo(player: string, floorIn: number, nodeTo: number) {
@@ -53,7 +53,7 @@ export class Adventure {
     }
 
     genFloorPlan(id: number) {
-        const floor = new Floor(this.name, id, 15, this.hardness, {
+        const floor = new Floor(this.id, id, 15, this.hardness, {
             combat: 0.7,
             decision: 0.1,
             store: 0.2

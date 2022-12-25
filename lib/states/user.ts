@@ -10,7 +10,7 @@ import { Confirmation2Dump } from '../interfaces';
 export class User extends DBUser  {
     chatRooms: string[] = []
     game: string | null = null
-    adventure: string | null = null
+    adventure: number | null = null
 
     confirmations2dump: Confirmation2Dump[] = []
     friends2dump: string[] = []

@@ -76,16 +76,20 @@ export async function addFriendHandler(params: {
 
 export async function recruitPpl4Adventure(params: {
     friendName?: string
-    advName?: string
+    advId?: number
+    firstTime?: boolean
 }, seq: number, caller: string) {
     const friendName = params.friendName;
-    const advName = params.advName;
+    const advId = params.advId;
+    let firstTime = params.firstTime;
 
-    if(friendName == null || advName == null) {
+    if(friendName == null || advId == null) {
         return [Notify('ADV_RECRUIT', seq, 'insufficient parameters', caller)];
     }
 
-    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+    if(firstTime == null) firstTime = true;
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
     const locks = [ADV_LOCK, USER_LOCK];
 
@@ -104,7 +108,7 @@ export async function recruitPpl4Adventure(params: {
         }
     })
 
-    const adventure = await store.getAdventure(advName);
+    const adventure = await store.getAdventure(advId);
 
     if(friend == null || adventure == null) {
         return [Notify('ADV_RECRUIT', seq, 'adventure, user may not exist', caller)];
@@ -115,13 +119,14 @@ export async function recruitPpl4Adventure(params: {
     const confirmContent = {
         type: 'adv_recruit',
         recruiter: caller,
-        advName
+        advId,
+        firstTime
     } as ConfirmationContentAdvRecruit
 
     let confirmation = new Confirmation()
     confirmation.payload = JSON.stringify(confirmContent);
     confirmation.claimed = false;
-    confirmation.text = `${caller} has requested to recruit you to ${advName}`
+    confirmation.text = `${caller} has requested to recruit you to ${advId}`
     confirmation.type = 'adv_recruit'
     confirmation.user = friend;
 
@@ -328,9 +333,9 @@ export async function confirmHandler(params: {
             confirmRepo.save(confirmation);
 
             const confirmationContent: ConfirmationContentAdvRecruit = JSON.parse(confirmation.payload);
-            const advName = confirmationContent.advName;
+            const advId = confirmationContent.advId;
 
-            const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+            const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
             const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
             const locks = [ADV_LOCK, USER_LOCK];
 
@@ -349,7 +354,7 @@ export async function confirmHandler(params: {
                     friends: true
                 }
             })
-            const adventure = await store.getAdventure(advName);
+            const adventure = await store.getAdventure(advId);
             if(user == null || adventure == null) {
                 await store.releaseLocks(locks);
                 return [Notify('CLAIMCONFIRM', seq, 'no such account/adventure', caller)];
@@ -363,13 +368,18 @@ export async function confirmHandler(params: {
                     return c.id !== confirmation.id && c.claimed === false
                 })
 
-                userInCache.adventure = advName;
+                userInCache.adventure = advId;
 
                 await store.setUser(userInCache.username, userInCache);
             }
 
+            if(!confirmationContent.firstTime) {
+                // logic about resume game
+                adventure.teamHp -= 5
+            }
+
             adventure.join(caller);
-            await store.setAdventure(advName, adventure);
+            await store.setAdventure(advId, adventure);
 
             await store.releaseLocks(locks);
             res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller));

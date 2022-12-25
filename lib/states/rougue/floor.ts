@@ -11,12 +11,12 @@ export class Floor {
         [key: number]: number[]
     } = {}
 
-    constructor(adventure?: string, floor_id?: number, nodes_count?: number, hardness?: number, partition?: {
+    constructor(adventure?: number, floor_id?: number, nodes_count?: number, hardness?: number, partition?: {
         combat: number
         decision: number
         store: number
     });
-    constructor(adventure: string = '', floor_id: number = -1, nodes_count: number = 0, hardness: number = 1, partition: {
+    constructor(adventure: number = -1, floor_id: number = -1, nodes_count: number = 0, hardness: number = 1, partition: {
         combat: number
         decision: number
         store: number

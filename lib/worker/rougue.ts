@@ -1,22 +1,24 @@
 import { Adventure } from "../states/rougue/adventure";
-import { Notify, WrappedState } from "../util";
+import {Adventure as DBAdventure} from '../../db/models/adventure';
+import { Notify, WrappedCMD, WrappedState } from "../util";
 import { RedisStore } from "../store";
 import { store } from "./shared";
 import { randomInt } from "crypto";
-import { Wrapped_Message } from "../interfaces";
-import { PlainObjectToNewEntityTransformer } from "typeorm/query-builder/transformer/PlainObjectToNewEntityTransformer";
+import { CMD_Adventure_recruit, Wrapped_Message } from "../interfaces";
+
+import { advRepo } from "./shared";
 
 export async function joinAdventureHandler(params: {
-    advName?: string
+    advId?: number
     [key: string]: any
 }, seq: number, caller: string) {
-    const advName = params.advName;
+    const advId = params.advId;
 
-    if(advName == null) {
+    if(advId == null) {
         return [Notify('ADV_JOIN', seq, 'insufficient parameters', caller)];
     }
 
-    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
     const locks = [ADV_LOCK, USER_LOCK];
@@ -28,7 +30,6 @@ export async function joinAdventureHandler(params: {
         return [Notify('ADV_JOIN', seq, 'adventure, user lock acquired fail', caller)];
     }
 
-    let adventure = await store.getAdventure(advName);
     const user = await store.getUser(caller);
 
     if(user == null) {
@@ -36,15 +37,17 @@ export async function joinAdventureHandler(params: {
         return [Notify('ADV_JOIN', seq, 'user not found', caller)];
     }
 
+    const adventure = await store.getAdventure(advId);
+
     if(adventure == null) {
         await store.releaseLocks(locks);
         return [Notify('ADV_JOIN', seq, 'no such adventure', caller)];
     }
 
     adventure.join(caller);
-    user.adventure = adventure.name;
+    user.adventure = adventure.id;
 
-    await store.setAdventure(advName, adventure);
+    await store.setAdventure(advId, adventure);
     await store.setUser(caller, user);
 
     await store.releaseLocks(locks);
@@ -64,23 +67,23 @@ export async function joinAdventureHandler(params: {
 }
 
 export async function moveToHandler(params: {
-    advName?: string
+    advId?: number
     floorIn?: number
     nodeTo?: number
     [key: string]: any
 }, seq: number, caller: string) {
-    const advName = params.advName;
+    const advId = params.advId;
     let nodeTo = params.nodeTo;
     let floorIn = params.floorIn;
 
-    if(advName == null || nodeTo == null || floorIn == null) {
+    if(advId == null || nodeTo == null || floorIn == null) {
         return [Notify('ADV_MOVETO', seq, 'insufficient parameters', caller)];
     }
 
     nodeTo = parseInt(String(nodeTo));
     floorIn = parseInt(String(floorIn));
 
-    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
 
     try {
         await store.acquireLock(ADV_LOCK);
@@ -88,7 +91,7 @@ export async function moveToHandler(params: {
         return [Notify('ADV_MOVETO', seq, 'adventure lock acquired fail', caller)];
     }
 
-    let adventure = await store.getAdventure(advName);
+    let adventure = await store.getAdventure(advId);
     if(adventure == null) {
         await store.releaseLock(ADV_LOCK);
         return [Notify('ADV_MOVETO', seq, 'adventure not exists', caller)];
@@ -114,15 +117,15 @@ export async function moveToHandler(params: {
 }
 
 export async function preStartAdventureHandler(params: {
-    advName?: string
+    advId?: number
     [key: string]: any
 }, seq: number, caller: string) {
-    const advName = params.advName;
-    if(advName == null) {
+    const advId = params.advId;
+    if(advId == null) {
         return [Notify('ADV_PRESTART', seq, 'no sufficient paramester', caller)];
     }
 
-    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
     const locks = [ADV_LOCK, USER_LOCK];
 
@@ -132,14 +135,65 @@ export async function preStartAdventureHandler(params: {
         return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
     }
 
-    const user = await store.getAdventure(caller);
-    const adventure = await store.getAdventure(advName);
+    const user = await store.getUser(caller);
+    let adventure = await advRepo.findOne({
+        where: {
+            id: advId
+        }
+    })
 
     if(user == null) {
+        await store.releaseLocks(locks);
         return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
     }
 
+    let stateAdventure = null;
+    let recruitAgain = false;
+    if(adventure == null) {
+        adventure = new DBAdventure();
+        adventure.config = '';
+        adventure = await advRepo.save(adventure);
 
+        stateAdventure = new Adventure(adventure.id, randomInt(3, 5));
+        stateAdventure.join(caller);
+    } else {
+        stateAdventure = await store.getAdventure(advId);
+        if(stateAdventure == null) {
+            stateAdventure = Adventure.from(adventure.config);
+            recruitAgain = true;
+        }     
+    }
+
+    if(!(caller in stateAdventure.members())) {
+        await store.releaseLocks(locks);
+        return [Notify('ADV_PRESTART', seq, 'user not belongs to adventure', caller)];
+    }
+
+    user.adventure = advId;
+
+    await store.setUser(caller, user);
+    await store.setAdventure(advId, stateAdventure);
+    await store.releaseLocks(locks);
+
+    let res: Wrapped_Message[] = [];
+    if(recruitAgain) {
+        for(const recruitee of stateAdventure.recruits) {
+            const CMD: CMD_Adventure_recruit = {
+                to: 'client',
+                action: 'ADV_RECRUIT',
+                payload: {
+                    advId,
+                    friendName: caller,
+                    firstTime: false
+                }
+            }
+            res.push(WrappedCMD('ADV_START', -1, CMD, 'cmd', recruitee, {}))
+        }
+    }
+
+    res.push(WrappedState('ADV_START', seq, await store.dumpState(caller), caller))
+
+    return res;
 }
 
 export async function ready2startHandler(params: {
