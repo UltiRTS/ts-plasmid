@@ -83,6 +83,8 @@ export async function recruitPpl4Adventure(params: {
     const advId = params.advId;
     let firstTime = params.firstTime;
 
+    console.log(advId, friendName);
+
     if(friendName == null || advId == null) {
         return [Notify('ADV_RECRUIT', seq, 'insufficient parameters', caller)];
     }

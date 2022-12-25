@@ -11,8 +11,8 @@ import { CallTracker } from "assert";
 import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
-import { addFriendHandler, confirmHandler } from "./lib/worker/messaging";
-import { joinAdventureHandler, moveToHandler } from "./lib/worker/rougue";
+import { addFriendHandler, confirmHandler, recruitPpl4Adventure } from "./lib/worker/messaging";
+import { joinAdventureHandler, moveToHandler, preStartAdventureHandler } from "./lib/worker/rougue";
 
 import pino from "pino";
 
@@ -45,27 +45,28 @@ const clientsHandlers: {
     }, seq: number, caller: string) => Promise<Wrapped_Message[]>
 } = 
 { 
-        LOGIN: loginHandler,
-        JOINGAME: joinGameHandler,
-        SETTEAM: setTeam,
-        SETMAP: setMap,
-        STARTGAME: startGame,
-        SETSPEC: setSpec,
-        LEAVEGAME: leaveGame,
-        HASMAP: hasMap,
-        MIDJOIN: midJoin,
-        KILLENGINE: killEngine,
-        SETMOD: setMod,
-        SETAI: setAI,
-        DELAI: delAI,
-        JOINCHAT: joinChatRoomHandler,
-        SAYCHAT: sayChatHandler,
-        LEAVECHAT: leaveChatRoomHandler,
-        ADDFRIEND: addFriendHandler,
-        CLAIMCONFIRM: confirmHandler,
-        JOINADV: joinAdventureHandler,
-        MOVETO: moveToHandler
-
+    LOGIN: loginHandler,
+    JOINGAME: joinGameHandler,
+    SETTEAM: setTeam,
+    SETMAP: setMap,
+    STARTGAME: startGame,
+    SETSPEC: setSpec,
+    LEAVEGAME: leaveGame,
+    HASMAP: hasMap,
+    MIDJOIN: midJoin,
+    KILLENGINE: killEngine,
+    SETMOD: setMod,
+    SETAI: setAI,
+    DELAI: delAI,
+    JOINCHAT: joinChatRoomHandler,
+    SAYCHAT: sayChatHandler,
+    LEAVECHAT: leaveChatRoomHandler,
+    ADDFRIEND: addFriendHandler,
+    CLAIMCONFIRM: confirmHandler,
+    ADV_JOIN: joinAdventureHandler,
+    ADV_MOVETO: moveToHandler,
+    ADV_PRESTART: preStartAdventureHandler,
+    ADV_RECRUIT: recruitPpl4Adventure,
 }
 
 const interalHandlers: {

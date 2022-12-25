@@ -66,10 +66,6 @@ export class Floor {
         }
 
         if(!nodeIn.children.includes(nodeTo)) {
-            console.log(typeof nodeTo);
-            console.log(typeof nodeIn.children[0]);
-            console.log(nodeIn);
-            console.log('includes: ', nodeIn.children.includes(nodeTo));
             return {
                 status: false,
                 reason: 'current node is not connected with ' + nodeTo
@@ -112,7 +108,6 @@ export class Floor {
                 this.adj_list[i].push(adj);
             }
 
-            console.log(i);
             this.nodes[i].setChildren(this.adj_list[i]);
         }
         this.adj_list[this.nodes_count-1] = [];

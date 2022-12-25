@@ -349,13 +349,40 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'startadv': {
+                const adv = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'ADV_PRESTART',
+                    parameters: {
+                        advId: parseInt(adv)
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+
+            case 'recruit': {
+                const adv = cmd[1];
+                const friendName = cmd[2];
+                const firstTime = true;
+                ws.send(JSON.stringify({
+                    action: 'ADV_RECRUIT',
+                    parameters: {
+                        advId: parseInt(adv),
+                        friendName,
+                        firstTime 
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
 
             case 'joinadv': {
                 const adv = cmd[1];
                 ws.send(JSON.stringify({
-                    action: 'JOINADV',
+                    action: 'ADV_JOIN',
                     parameters: {
-                        advName: adv
+                        advId: parseInt(adv)
                     },
                     seq: randomInt(0, 1000000)
                 }))
@@ -367,9 +394,9 @@ const main = async () => {
                 const floorIn = cmd[2];
                 const nodeTo = cmd[3];
                 ws.send(JSON.stringify({
-                    action: 'MOVETO',
+                    action: 'ADV_MOVETO',
                     parameters: {
-                        advName: adv,
+                        advId: parseInt(adv),
                         floorIn,
                         nodeTo
                     },

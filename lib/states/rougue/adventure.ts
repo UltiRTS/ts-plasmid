@@ -46,7 +46,7 @@ export class Adventure {
 
     // join them to floor 0, node 0
     join(player: string) {
-        if(!(player in this.recruits)) {
+        if(!this.recruits.includes(player)) {
             return;
         }
         this.floors[0].join(player, 0);

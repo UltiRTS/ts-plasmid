@@ -120,7 +120,7 @@ export async function preStartAdventureHandler(params: {
     advId?: number
     [key: string]: any
 }, seq: number, caller: string) {
-    const advId = params.advId;
+    let advId = params.advId;
     if(advId == null) {
         return [Notify('ADV_PRESTART', seq, 'no sufficient paramester', caller)];
     }
@@ -154,7 +154,10 @@ export async function preStartAdventureHandler(params: {
         adventure.config = '';
         adventure = await advRepo.save(adventure);
 
+        advId = adventure.id;
+
         stateAdventure = new Adventure(adventure.id, randomInt(3, 5));
+        stateAdventure.recruit(caller);
         stateAdventure.join(caller);
     } else {
         stateAdventure = await store.getAdventure(advId);
@@ -164,7 +167,7 @@ export async function preStartAdventureHandler(params: {
         }     
     }
 
-    if(!(caller in stateAdventure.members())) {
+    if(!stateAdventure.members().includes(caller)) {
         await store.releaseLocks(locks);
         return [Notify('ADV_PRESTART', seq, 'user not belongs to adventure', caller)];
     }
@@ -187,11 +190,11 @@ export async function preStartAdventureHandler(params: {
                     firstTime: false
                 }
             }
-            res.push(WrappedCMD('ADV_START', -1, CMD, 'cmd', recruitee, {}))
+            res.push(WrappedCMD('ADV_PRESTART', -1, CMD, 'cmd', recruitee, {}))
         }
     }
 
-    res.push(WrappedState('ADV_START', seq, await store.dumpState(caller), caller))
+    res.push(WrappedState('ADV_PRESTART', seq, await store.dumpState(caller), caller))
 
     return res;
 }

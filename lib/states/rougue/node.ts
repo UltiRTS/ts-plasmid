@@ -57,10 +57,6 @@ export class CombatNode extends Node {
         this.game = new GameRoom(`rglike-${adventure}-${floor}-${id}`, 'rglike');
     }
 
-    join(player: string) {
-        if(!this.members.includes(player)) this.members.push(player)
-    }
-
     join2play(player: string) {
         this.join(player);
         if(!this.game.isStarted) this.game.setPlayer(player, 'A');
