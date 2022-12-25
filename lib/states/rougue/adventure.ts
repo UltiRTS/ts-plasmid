@@ -8,6 +8,8 @@ export class Adventure {
     floorTotal: number
     teamHp: number = 300
 
+    recruits: string[] = []
+
     hardness: number = 1
 
     constructor(name?: string, floorTotal?: number);
@@ -27,6 +29,10 @@ export class Adventure {
         return res;
     }
 
+    recruit(player: string) {
+        this.recruits.push(player);
+    }
+
     moveTo(player: string, floorIn: number, nodeTo: number) {
         if(this.floors.length < floorIn) {
             return {
@@ -40,6 +46,9 @@ export class Adventure {
 
     // join them to floor 0, node 0
     join(player: string) {
+        if(!(player in this.recruits)) {
+            return;
+        }
         this.floors[0].join(player, 0);
     }
 

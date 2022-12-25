@@ -5,7 +5,7 @@ import { Adv_Overview, Chat_Overview, Game_Overview, State, User2Dump } from './
 import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
-import { Adventure } from './worker/rougue/adventure';
+import { Adventure } from './states/rougue/adventure';
 import { EventEmitter } from 'stream';
 import { sleep } from './util';
 
@@ -103,11 +103,13 @@ export class RedisStore {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.set(name, game.serialize());
 
-        // await this.pushGameOverview({
-        //     title: game.title,
-        //     hoster: game.hoster,
-        //     mapId: game.mapId
-        // })
+        // since it will always acquire game lock before acquire game overview lock
+        // so there will no circular wait exists
+        await this.pushGameOverview({
+            title: game.title,
+            hoster: game.hoster,
+            mapId: game.mapId
+        })
     }
 
     async getGame(gameName: string) {
@@ -121,7 +123,7 @@ export class RedisStore {
     async delGame(gameName: string) {
         const name = RedisStore.GAME_RESOURCE(gameName);
         await this.client.del(name);
-        // await this.removeGameOverview(gameName);
+        await this.removeGameOverview(gameName);
     }
 
 

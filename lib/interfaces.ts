@@ -1,7 +1,7 @@
 import { ChatRoom } from "./states/chat"
 import { GameRoom } from "./states/room"
 import { User } from "./states/user"
-import { Adventure } from "./worker/rougue/adventure"
+import { Adventure } from "./states/rougue/adventure"
 
 export interface GameConf {
     id: number
@@ -112,4 +112,17 @@ export interface Confirmation2Dump {
     type: string
     payload: string
     claimed: boolean
+}
+
+export interface ConfirmationContent {
+    type: string
+}
+
+export interface ConfirmationContentAddFriend extends ConfirmationContent {
+    targetVal: string
+}
+
+export interface ConfirmationContentAdvRecruit extends ConfirmationContent {
+    recruiter: string
+    advName: string
 }

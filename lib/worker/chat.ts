@@ -48,17 +48,11 @@ export async function joinChatRoomHandler(params: {
     console.log('chat lock', CHAT_LOCK)
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
+    const locks = [CHAT_LOCK, USER_LOCK];
     try {
-        await store.acquireLock(CHAT_LOCK);
+        await store.acquireLocks(locks);
     } catch(e) {
         return [Notify('JOINCHAT', seq, 'acquire chat lock failed', caller)];
-    }
-
-    try {
-        await store.acquireLock(USER_LOCK);
-    } catch(e) {
-        await store.releaseLock(CHAT_LOCK);
-        return [Notify('JOINCHAT', seq, 'acquire user lock failed', caller)];
     }
 
     chatRoom.join(caller);
@@ -67,8 +61,7 @@ export async function joinChatRoomHandler(params: {
     user.joinChat(room);
     await store.setUser(caller, user);
 
-    await store.releaseLock(CHAT_LOCK);
-    await store.releaseLock(USER_LOCK);
+    await store.releaseLocks(locks);
 
     const res = [];
     for(const member of chatRoom.members) {
@@ -103,20 +96,14 @@ export async function leaveChatRoomHandler(params: {
     }
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
-    console.log(`chat lock name: `, CHAT_LOCK);
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
-    try {
-        await store.acquireLock(CHAT_LOCK);
-    } catch(e) {
-        return [Notify('LEAVECHAT', seq, 'acquire chat lock failed', caller)];
-    }
+    const locks = [CHAT_LOCK, USER_LOCK];
 
     try {
-        await store.acquireLock(USER_LOCK);
+        await store.acquireLocks(locks);
     } catch(e) {
-        await store.releaseLock(CHAT_LOCK);
-        return [Notify('LEAVECHAT', seq, 'acquire user lock failed', caller)];
+        return [Notify('LEAVECHAT', seq, 'acquire chat or user lock failed', caller)];
     }
 
     chatRoom.leave(caller);
@@ -131,8 +118,7 @@ export async function leaveChatRoomHandler(params: {
         await store.delChat(room);
     }
 
-    await store.releaseLock(CHAT_LOCK);
-    await store.releaseLock(USER_LOCK);
+    await store.releaseLocks(locks);
 
     const res = [];
     for(const member of chatRoom.members) {

@@ -1,5 +1,5 @@
 import { Confirmation } from "../../db/models/confirmation";
-import { Confirmation2Dump, Wrapped_Message } from "../interfaces";
+import { Confirmation2Dump, ConfirmationContentAddFriend, ConfirmationContentAdvRecruit, Wrapped_Message } from "../interfaces";
 import { RedisStore } from "../store";
 import { Notify, WrappedState } from "../util";
 import { confirmRepo, store, userRepo } from "./shared";
@@ -34,7 +34,7 @@ export async function addFriendHandler(params: {
     const confirmContent = {
         type: 'friend',
         targetVal: caller
-    }
+    } as ConfirmationContentAddFriend
 
     let confirmation = new Confirmation()
     confirmation.payload = JSON.stringify(confirmContent);
@@ -74,6 +74,78 @@ export async function addFriendHandler(params: {
         WrappedState('ADDFRIEND', -1, await store.dumpState(friendName), friendName)];
 }
 
+export async function recruitPpl4Adventure(params: {
+    friendName?: string
+    advName?: string
+}, seq: number, caller: string) {
+    const friendName = params.friendName;
+    const advName = params.advName;
+
+    if(friendName == null || advName == null) {
+        return [Notify('ADV_RECRUIT', seq, 'insufficient parameters', caller)];
+    }
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+    const locks = [ADV_LOCK, USER_LOCK];
+
+    try {
+        await store.acquireLocks(locks);
+    } catch {
+        return [Notify('ADV_RECRUIT', seq, 'adventure, user lock acquired fail', caller)];
+    }
+
+    const friend = await userRepo.findOne({
+        where: {
+            username: friendName
+        },
+        relations: {
+            confirmations: true
+        }
+    })
+
+    const adventure = await store.getAdventure(advName);
+
+    if(friend == null || adventure == null) {
+        return [Notify('ADV_RECRUIT', seq, 'adventure, user may not exist', caller)];
+    }
+
+    adventure.recruit(friendName);
+
+    const confirmContent = {
+        type: 'adv_recruit',
+        recruiter: caller,
+        advName
+    } as ConfirmationContentAdvRecruit
+
+    let confirmation = new Confirmation()
+    confirmation.payload = JSON.stringify(confirmContent);
+    confirmation.claimed = false;
+    confirmation.text = `${caller} has requested to recruit you to ${advName}`
+    confirmation.type = 'adv_recruit'
+    confirmation.user = friend;
+
+    friend.confirmations = [...friend.confirmations, confirmation];
+
+    userRepo.save(friend);
+    confirmRepo.save(confirmation);
+
+    const friendIncache = await store.getUser(friendName);
+    if(friendIncache !== null) {
+        friendIncache.confirmations2dump = [...friendIncache.confirmations2dump, {
+            id: confirmation.id,
+            text: confirmation.text,
+            type: confirmation.type,
+            payload: confirmation.payload,
+            claimed: confirmation.claimed,
+        } as Confirmation2Dump]
+        await store.setUser(friendName, friendIncache);
+    }
+
+    return [WrappedState('ADV_RECRUIT', seq, await store.dumpState(caller), caller),  
+        WrappedState('ADV_RECRUIT', -1, await store.dumpState(friendName), friendName)];
+}
+
 export async function confirmHandler(params: {
     type?: string
     confirmationId?: number
@@ -92,9 +164,9 @@ export async function confirmHandler(params: {
         case 'friend': {
             let agree = params.agree;
             if(agree == null) agree = false;
-            console.log(agree);
-            console.log(agree === true);
-            console.log(agree === false);
+            // console.log(agree);
+            // console.log(agree === true);
+            // console.log(agree === false);
 
             const confirmation = await confirmRepo.findOne({
                 where: {
@@ -229,11 +301,78 @@ export async function confirmHandler(params: {
                 userRepo.save(user);
                 userRepo.save(friend);
 
-                console.log('pushing state dump')
-
                 res.push(WrappedState('CLAIMCONFIRM', -1, await store.dumpState(friend.username), friend.username));
                 res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(user.username), user.username));
             }
+            break;
+        }
+        case 'adv_recruit': {
+            let agree = params.agree;
+            if(agree == null) agree = false;
+
+            const confirmation = await confirmRepo.findOne({
+                where: {
+                    id: confirmationId
+                }
+            })
+
+            if(confirmation == null) {
+                return [Notify('CLAIMCONFIRM', seq, 'no such confirmation', caller)];
+            }
+
+            if(confirmation.claimed) {
+                return [WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller)]
+            }
+
+            confirmation.claimed = true;
+            confirmRepo.save(confirmation);
+
+            const confirmationContent: ConfirmationContentAdvRecruit = JSON.parse(confirmation.payload);
+            const advName = confirmationContent.advName;
+
+            const ADV_LOCK = RedisStore.LOCK_RESOURCE(advName, 'adv');
+            const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+            const locks = [ADV_LOCK, USER_LOCK];
+
+            try {
+                await store.acquireLocks(locks);
+            } catch {
+                return [Notify('MOVETO', seq, 'adventure, user lock acquired fail', caller)];
+            }
+
+            // START update in cache claimed
+            const user = await userRepo.findOne({
+                where: {
+                    username: caller
+                },
+                relations: {
+                    friends: true
+                }
+            })
+            const adventure = await store.getAdventure(advName);
+            if(user == null || adventure == null) {
+                await store.releaseLocks(locks);
+                return [Notify('CLAIMCONFIRM', seq, 'no such account/adventure', caller)];
+            }
+
+            const userInCache = await store.getUser(user.username);
+            if(userInCache) {
+                userInCache.confirmations2dump = [...userInCache.confirmations2dump]
+
+                userInCache.confirmations2dump = userInCache.confirmations2dump.filter(c => {
+                    return c.id !== confirmation.id && c.claimed === false
+                })
+
+                userInCache.adventure = advName;
+
+                await store.setUser(userInCache.username, userInCache);
+            }
+
+            adventure.join(caller);
+            await store.setAdventure(advName, adventure);
+
+            await store.releaseLocks(locks);
+            res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(caller), caller));
             break;
         }
     }
