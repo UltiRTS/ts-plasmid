@@ -45,7 +45,6 @@ export async function joinChatRoomHandler(params: {
 
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
-    console.log('chat lock', CHAT_LOCK)
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
     const locks = [CHAT_LOCK, USER_LOCK];

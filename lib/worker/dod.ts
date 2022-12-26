@@ -363,18 +363,16 @@ export async function leaveGame(params: {
         return [Notify('LEAVEGAME', seq, 'caller is empty', caller)]
     }
 
-    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
     const user = await store.getUser(caller);
     if(user == null) {
-        await store.releaseLock(USER_LOCK);
         return [Notify('LEAVEGAME', seq, 'no such user', caller)];
     }
 
     if(user.game == null) {
-        await store.releaseLock(USER_LOCK);
         return [Notify('LEAVEGAME', seq, 'joined no game', caller)];
     }
 
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(user.game, 'game');
 
     const locks = [GAME_LOCK, USER_LOCK];
