@@ -32,6 +32,8 @@ network.on('message', (clientID: string, data: IncommingMsg) => {
 
         clientID2username[clientID] = username;
         username2clientID[username] = clientID;
+
+        store.setOnline(Object.keys(username2clientID));
     }
 
     if(!(['LOGIN'].includes(data.action))) {
@@ -73,6 +75,8 @@ network.on('clean', async (clientID: string) => {
     delete clientID2username[clientID];
     delete seq2clientID[seq];
     delete username2clientID[username];
+
+    store.setOnline(Object.keys(username2clientID));
 
     // pass cmd to workers to clean the redis cache
     const leaveGameMsg: IncommingMsg = {

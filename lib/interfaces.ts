@@ -28,6 +28,7 @@ export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize'
     adventure: Adventure | null
     confirmations: Confirmation2Dump[]
     friends: string[]
+    onlines: string[]
     chatRooms: {
         [key: string]: ChatRoom
     }

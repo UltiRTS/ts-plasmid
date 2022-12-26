@@ -318,15 +318,32 @@ export class RedisStore {
         await this.releaseLock(ADV_OVERVIEW_LOCK);
     }
 
+    // those two methods will be only used in main thread
+    async setOnline(players: string[]) {
+        const UESR_ONLINE_OVERVIEW = RedisStore.OVERVIEW_RESOURCE('user-online');
+        await this.client.set(UESR_ONLINE_OVERVIEW, JSON.stringify(players));
+    }
+
+    async getOnline() {
+        const UESR_ONLINE_OVERVIEW = RedisStore.OVERVIEW_RESOURCE('user-online');
+
+        const onlines = await this.client.get(UESR_ONLINE_OVERVIEW);
+        if(onlines == null) {
+            return []
+        }
+        return Object.assign([], JSON.parse(onlines)) as string[];
+    }
+
     async dumpState(username: string) {
         const user = await this.getUser(username);
-
         const gameName = user?.game;
         const advName = user?.adventure
         let game: GameRoom | null = null
         let adventure: Adventure | null = null
         if(gameName) game = await this.getGame(gameName);
         if(advName) adventure = await this.getAdventure(advName);
+
+        const onlines = await this.getOnline();
 
         let user2dump: User2Dump | null = null;
         if(user) {
@@ -355,7 +372,8 @@ export class RedisStore {
                 winCount: user.winCount,
                 loseCount: user.loseCount,
                 adventure,
-                marks2dump: user.marks2dump
+                marks2dump: user.marks2dump,
+                onlines: onlines.filter(p => user.friends2dump.includes(p))
             }
         }
 
@@ -578,100 +596,3 @@ export class RedisStore {
         return lockname;
     }
 }
-/** 
-{
-    "action": "SETAI",
-    "seq": 511561,
-    "state": {
-        "user": {
-            "chatRooms": {
-                "global": {
-                    "id": 631,
-                    "chats": [],
-                    "roomName": "global",
-                    "password": "",
-                    "lastMessage": {
-                        "author": "",
-                        "content": "",
-                        "time": "2022-11-01T21:43:38.204Z"
-                    },
-                    "members": [
-                        "chan"
-                    ]
-                }
-            },
-            "game": {
-                "roomNotes": "",
-                "title": "test",
-                "hoster": "chan",
-                "mapId": 788,
-                "ais": {
-                    "GPT_0": {
-                        "team": "B"
-                    }
-                },
-                "chickens": {},
-                "players": {
-                    "chan": {
-                        "isSpec": false,
-                        "team": "A",
-                        "hasmap": true
-                    }
-                },
-                "polls": {},
-                "id": 20,
-                "engineToken": "mcBbws37jM",
-                "password": "",
-                "isStarted": false,
-                "responsibleAutohost": "54.255.255.95",
-                "autohostPort": 0,
-                "aiHosters": [
-                    "chan"
-                ],
-                "mod": "mod.sdd"
-            },
-            "id": 2,
-            "username": "chan",
-            "accessLevel": 100,
-            "exp": 0,
-            "sanity": 0,
-            "blocked": false,
-            "hash": "",
-            "salt": "",
-            "confirmations": [
-                {
-                    "id": 93,
-                    "text": "chan has requested to be your friend",
-                    "type": "friend",
-                    "payload": "{\"type\":\"friend\",\"targetVal\":\"chan\"}",
-                    "claimed": false
-                },
-            ],
-            "friends": [
-                {
-                    "id": 1,
-                    "username": "test",
-                    "hash": "",
-                    "salt": "",
-                    "accessLevel": 0,
-                    "exp": 0,
-                    "sanity": 0,
-                    "blocked": false,
-                    "winCount": 266,
-                    "loseCount": 3
-                }
-            ]
-        },
-        "chats": [
-            "global"
-        ],
-        "games": [
-            {
-                "title": "test",
-                "hoster": "chan",
-                "mapId": 788
-            }
-        ]
-    }
-}
-*/
