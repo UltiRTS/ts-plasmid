@@ -179,12 +179,11 @@ export async function setMap(params: {
 
     for(const player in game.players) {
         if(caller !== player)
-            res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
+            res.push(WrappedState('SETMAP', -1, await store.dumpState(player), player));
     }
 
-    res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller));
+    res.push(WrappedState('SETMAP', seq, await store.dumpState(caller), caller));
 
-    await store.releaseLock(GAME_LOCK);
     return res;
 }
 
