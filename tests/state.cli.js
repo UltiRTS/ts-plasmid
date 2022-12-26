@@ -416,6 +416,44 @@ const main = async () => {
                 }))
                 break;
             }
+
+            case 'mark': {
+                const friendName = cmd[1];
+                const text = cmd[2];
+                ws.send(JSON.stringify({
+                    action: 'FRIEND_MARK',
+                    parameters: {
+                        friendName,
+                        text
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'unmark': {
+                const friendName = cmd[1];
+                const markId = parseInt(cmd[2]);
+                ws.send(JSON.stringify({
+                    action: 'FRIEND_UNMARK',
+                    parameters: {
+                        friendName,
+                        markId
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+            case 'removeFriend': {
+                const friendName = cmd[1];
+                ws.send(JSON.stringify({
+                    action: 'FRIEND_REMOVE',
+                    parameters: {
+                        friendName,
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
         }
     }
 

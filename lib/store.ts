@@ -354,7 +354,8 @@ export class RedisStore {
                 accessLevel: user.accessLevel,
                 winCount: user.winCount,
                 loseCount: user.loseCount,
-                adventure
+                adventure,
+                marks2dump: user.marks2dump
             }
         }
 

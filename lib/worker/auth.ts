@@ -33,7 +33,11 @@ export async function loginHandler(params: {
         relations: {
             friends: true,
             confirmations: true,
-        }
+            marks: {
+                target: true,
+                user: true
+            }
+        },
     });
 
     if(user == null) {

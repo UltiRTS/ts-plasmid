@@ -275,6 +275,7 @@ export async function confirmHandler(params: {
 
                 if(!isUserFriend) {
                     user.friends = [...user.friends, friend];
+                    userRepo.save(user);
                     if(userInCache) {
                         const USER_LOCK = RedisStore.LOCK_RESOURCE(userInCache.username, 'user');
                         try {
@@ -289,7 +290,10 @@ export async function confirmHandler(params: {
                 }
 
                 if(!isFriendFriend) {
-                    friend.friends = [...friend.friends, user];
+                    if(friend.username !== user.username) {
+                        friend.friends = [...friend.friends, user];
+                        userRepo.save(friend);
+                    }
                     if(friendInCache) {
                         const USER_LOCK = RedisStore.LOCK_RESOURCE(friendInCache.username, 'user');
                         try {
@@ -303,8 +307,6 @@ export async function confirmHandler(params: {
                     }
                 }
 
-                userRepo.save(user);
-                userRepo.save(friend);
 
                 res.push(WrappedState('CLAIMCONFIRM', -1, await store.dumpState(friend.username), friend.username));
                 res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(user.username), user.username));

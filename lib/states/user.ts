@@ -1,17 +1,16 @@
 
-import {User as DBUser} from '../../db/models/user';
+import {User as DBUser, Mark as DBMark} from '../../db/models/user';
 import { GameRoom } from './room';
 import { ChatRoom } from './chat';
 import { Confirmation } from '../../db/models/confirmation';
-import { Confirmation2Dump } from '../interfaces';
-
+import { Confirmation2Dump, Mark2dump, } from '../interfaces';
 
 
 export class User extends DBUser  {
     chatRooms: string[] = []
     game: string | null = null
     adventure: number | null = null
-
+    marks2dump: Mark2dump[] = []
     confirmations2dump: Confirmation2Dump[] = []
     friends2dump: string[] = []
 
@@ -34,6 +33,13 @@ export class User extends DBUser  {
             }
             for(const friend of user.friends) {
                 this.friends2dump.push(friend.username);
+            }
+            for(const mark of user.marks) {
+                this.marks2dump.push({
+                    id: mark.id,
+                    name: mark.target.username,
+                    mark: mark.mark
+                })
             }
         } else {
             this.id = 0;
