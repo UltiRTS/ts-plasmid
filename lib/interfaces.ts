@@ -23,12 +23,13 @@ export interface Receipt {
     payload: {[key: string]: any}
 }
 
-export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure' | 'adventures' | 'confirmations' | 'friends' | 'confirmations2dump' | 'friends2dump' | 'reverseMarks' | 'marks'> {
+export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure' | 'adventures' | 'confirmations' | 'friends' | 'confirmations2dump' | 'friends2dump' | 'reverseMarks' | 'marks' | 'marks2dump'> {
     game: GameRoom | null
     adventure: Adventure | null
     confirmations: Confirmation2Dump[]
     friends: string[]
-    onlines: string[]
+    friendsOnline: string[]
+    friendsMarked: Mark2dump[]
     chatRooms: {
         [key: string]: ChatRoom
     }

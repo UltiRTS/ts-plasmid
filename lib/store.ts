@@ -372,8 +372,8 @@ export class RedisStore {
                 winCount: user.winCount,
                 loseCount: user.loseCount,
                 adventure,
-                marks2dump: user.marks2dump,
-                onlines: onlines.filter(p => user.friends2dump.includes(p))
+                friendsMarked: user.marks2dump,
+                friendsOnline: onlines.filter(p => user.friends2dump.includes(p))
             }
         }
 

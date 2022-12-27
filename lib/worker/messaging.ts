@@ -308,7 +308,6 @@ export async function confirmHandler(params: {
                 }
 
 
-                res.push(WrappedState('CLAIMCONFIRM', -1, await store.dumpState(friend.username), friend.username));
                 res.push(WrappedState('CLAIMCONFIRM', seq, await store.dumpState(user.username), user.username));
             }
             break;
