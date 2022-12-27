@@ -46,6 +46,7 @@ export async function loginHandler(params: {
         user.confirmations = [];
         user.friends = [];
         user.chats = [];
+        user.marks = [];
 
         const creds = User.saltNhash(password);
         user.salt = creds.salt;

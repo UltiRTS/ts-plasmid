@@ -72,7 +72,7 @@ export async function joinGameHandler(params: {
             res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
     }
 
-    res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller));
+    res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller, ['client', 'all']));
 
     return res;
 }
