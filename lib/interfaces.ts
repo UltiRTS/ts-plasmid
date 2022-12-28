@@ -25,7 +25,7 @@ export interface Receipt {
 
 export interface User2Dump extends Omit<User, 'game' | 'chatRooms' | 'serialize' | 'getState' | 'joinChat' | 'leaveChat' | 'leaveGame' | 'claimConfirmation' | 'verify' | 'adventure' | 'adventures' | 'confirmations' | 'friends' | 'confirmations2dump' | 'friends2dump' | 'reverseMarks' | 'marks' | 'marks2dump'> {
     game: GameRoom | null
-    adventure: Adventure | null
+    rglike: Adventure | null
     confirmations: Confirmation2Dump[]
     friends: string[]
     friendsOnline: string[]

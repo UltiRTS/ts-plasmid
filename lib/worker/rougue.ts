@@ -2,7 +2,7 @@ import { Adventure } from "../states/rougue/adventure";
 import {Adventure as DBAdventure} from '../../db/models/adventure';
 import { Notify, WrappedCMD, WrappedState } from "../util";
 import { RedisStore } from "../store";
-import { store } from "./shared";
+import { store, userRepo } from "./shared";
 import { randomInt } from "crypto";
 import { CMD_Adventure_recruit, Wrapped_Message } from "../interfaces";
 
@@ -116,13 +116,78 @@ export async function moveToHandler(params: {
     return res;
 }
 
-export async function preStartAdventureHandler(params: {
-    advId?: number
-    [key: string]: any
+export async function createAdventureHandler(params: {
 }, seq: number, caller: string) {
-    let advId = params.advId;
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
+    }
+    const existedAdvId = user.adventure;
+    if(existedAdvId) {
+        const existedAdv = await advRepo.findOne({
+            where: {
+                id: existedAdvId
+            }
+        })
+        if(existedAdv) {
+            existedAdv.members = existedAdv.members.filter(m => m.username !== caller);
+            advRepo.save(existedAdv);
+        }
+    } 
+
+    let adv = new DBAdventure();
+    adv.config = '';
+    adv.members = [user];
+    adv = await advRepo.save(adv);
+
+    const stateAdv = new Adventure(adv.id, randomInt(3, 5));
+    stateAdv.recruit(caller);
+    stateAdv.join(caller);
+    
+    const dbUser = await userRepo.findOne({
+        where: {
+            id: user.id
+        },
+        relations: {
+            adventures: true
+        }
+    })
+    if(dbUser) {
+        dbUser.adventures = [...dbUser.adventures, adv];
+        await userRepo.save(dbUser);
+    }
+
+    user.adventure = adv.id;
+
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(adv.id), 'adv');
+    const locks = [USER_LOCK, ADV_LOCK];
+
+    try {
+        await store.acquireLocks(locks);
+    } catch(e) {
+        return [Notify('ADV_CREATE', seq, 'adventure/user lock acquired fail', caller)];
+    }
+
+    await store.setUser(caller, user);
+    await store.setAdventure(adv.id, stateAdv);
+
+    await store.releaseLocks(locks);
+
+    return [WrappedState('ADV_CREATE', seq, await store.dumpState(caller), caller)]
+}
+
+// pass advId to -1 to create new adventure
+export async function preStartAdventureHandler(params: {
+}, seq: number, caller: string) {
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('ADV_PRESTART', seq, 'user not exists', caller)];
+    }
+    const advId = user.adventure;
+
     if(advId == null) {
-        return [Notify('ADV_PRESTART', seq, 'no sufficient paramester', caller)];
+        return [Notify('ADV_PRESTART', seq, 'no related adventure found', caller)];
     }
 
     const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
@@ -135,52 +200,31 @@ export async function preStartAdventureHandler(params: {
         return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
     }
 
-    const user = await store.getUser(caller);
-    let adventure = await advRepo.findOne({
-        where: {
-            id: advId
-        }
-    })
-
-    if(user == null) {
-        await store.releaseLocks(locks);
-        return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
-    }
-
-    let stateAdventure = null;
+    let stateAdv = await store.getAdventure(advId);
     let recruitAgain = false;
-    if(adventure == null) {
-        adventure = new DBAdventure();
-        adventure.config = '';
-        adventure = await advRepo.save(adventure);
+    // load from database, means resume
+    if(stateAdv == null) {
+        let adventure = await advRepo.findOne({
+            where: {
+                id: advId
+            }
+        })
+        if(adventure == null) {
+            await store.releaseLocks(locks);
+            return [Notify('ADV_PRESTART', seq, 'internal error, plz contact admin', caller)];
+        }
 
-        advId = adventure.id;
-
-        stateAdventure = new Adventure(adventure.id, randomInt(3, 5));
-        stateAdventure.recruit(caller);
-        stateAdventure.join(caller);
-    } else {
-        stateAdventure = await store.getAdventure(advId);
-        if(stateAdventure == null) {
-            stateAdventure = Adventure.from(adventure.config);
-            recruitAgain = true;
-        }     
+        stateAdv = Adventure.from(adventure.config);
+        recruitAgain = true;
     }
-
-    if(!stateAdventure.members().includes(caller)) {
-        await store.releaseLocks(locks);
-        return [Notify('ADV_PRESTART', seq, 'user not belongs to adventure', caller)];
-    }
-
-    user.adventure = advId;
 
     await store.setUser(caller, user);
-    await store.setAdventure(advId, stateAdventure);
+    await store.setAdventure(advId, stateAdv);
     await store.releaseLocks(locks);
 
     let res: Wrapped_Message[] = [];
     if(recruitAgain) {
-        for(const recruitee of stateAdventure.members()) {
+        for(const recruitee of stateAdv.members()) {
             const CMD: CMD_Adventure_recruit = {
                 to: 'client',
                 action: 'ADV_RECRUIT',

@@ -349,12 +349,19 @@ const main = async () => {
                 }))
                 break;
             }
+            case 'createAdv': {
+                ws.send(JSON.stringify({
+                    action: 'ADV_CREATE',
+                    parameters: {
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
             case 'startadv': {
-                const adv = cmd[1];
                 ws.send(JSON.stringify({
                     action: 'ADV_PRESTART',
                     parameters: {
-                        advId: parseInt(adv)
                     },
                     seq: randomInt(0, 1000000)
                 }))

@@ -1,8 +1,9 @@
 import { Confirmation } from "../../db/models/confirmation";
 import { Confirmation2Dump, ConfirmationContentAddFriend, ConfirmationContentAdvRecruit, Wrapped_Message } from "../interfaces";
+import { Adventure } from "../states/rougue/adventure";
 import { RedisStore } from "../store";
 import { Notify, WrappedState } from "../util";
-import { confirmRepo, store, userRepo } from "./shared";
+import { advRepo, confirmRepo, store, userRepo } from "./shared";
 
 export async function addFriendHandler(params: {
     friendName?: string
@@ -355,10 +356,28 @@ export async function confirmHandler(params: {
                     friends: true
                 }
             })
-            const adventure = await store.getAdventure(advId);
+            const adventure = await advRepo.findOne({
+                where: {
+                    id: confirmationContent.advId
+                },
+                relations: {
+                    members: true
+                }
+            });
+
+
             if(user == null || adventure == null) {
                 await store.releaseLocks(locks);
                 return [Notify('CLAIMCONFIRM', seq, 'no such account/adventure', caller)];
+            }
+
+            console.log(adventure.members);
+            adventure.members = [...adventure.members, user];
+            advRepo.save(adventure);
+
+            let stateAdv = await store.getAdventure(adventure.id);
+            if(stateAdv == null) {
+                stateAdv = Adventure.from(adventure.config);
             }
 
             const userInCache = await store.getUser(user.username);
@@ -377,11 +396,11 @@ export async function confirmHandler(params: {
             if(agree) {
                 if(!confirmationContent.firstTime) {
                     // logic about resume game
-                    adventure.teamHp -= 5
+                    stateAdv.teamHp -= 5
                 }
 
-                adventure.join(caller);
-                await store.setAdventure(advId, adventure);
+                stateAdv.join(caller);
+                await store.setAdventure(advId, stateAdv);
             }
 
             await store.releaseLocks(locks);

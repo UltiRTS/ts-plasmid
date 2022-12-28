@@ -41,6 +41,14 @@ export class User extends DBUser  {
                     mark: mark.mark
                 })
             }
+            let openAdvs = user.adventures
+                .filter(adv => adv.closed === false)
+                .sort((a, b) => {
+                    return a.createAt > b.createAt?-1:1;
+                })
+            if(openAdvs.length > 0) {
+                this.adventure = openAdvs[0].id;
+            }
         } else {
             this.id = 0;
             this.username = '';
@@ -52,6 +60,8 @@ export class User extends DBUser  {
             this.hash = "";
             this.salt = "";
             this.confirmations = [];
+            this.adventures = [];
+            this.marks = [];
         }
     }
 

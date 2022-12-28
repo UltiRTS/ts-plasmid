@@ -1,9 +1,10 @@
 import { User } from "../../db/models/user"
+import { Adventure } from "../states/rougue/adventure";
 import { User as StateUser } from "../states/user";
 import { RedisStore } from "../store";
 import { Notify, WrappedState, WrappedCMD} from "../util";
 
-import { store } from "./shared";
+import { advRepo, store } from "./shared";
 import { userRepo } from "./shared";
 
 export async function loginHandler(params: {
@@ -35,8 +36,9 @@ export async function loginHandler(params: {
             confirmations: true,
             marks: {
                 target: true,
-                user: true
-            }
+                user: true,
+            },
+            adventures: true
         },
     });
 
@@ -47,6 +49,7 @@ export async function loginHandler(params: {
         user.friends = [];
         user.chats = [];
         user.marks = [];
+        user.adventures = [];
 
         const creds = User.saltNhash(password);
         user.salt = creds.salt;
@@ -72,6 +75,21 @@ export async function loginHandler(params: {
     } else {
         const userState = new StateUser(user);
         userState.confirmations2dump = []
+        if(userState.adventure) {
+            let adv = await store.getAdventure(userState.adventure);
+            if(adv == null) {
+                const dbAdv = await advRepo.findOne({
+                    where: {
+                        id: userState.adventure
+                    }
+                })
+                if(dbAdv) {
+                    adv = Adventure.from(dbAdv.config);
+                    await store.setAdventure(adv.id, adv);
+                }
+            }
+        }
+
         for(const conf of user.confirmations) {
             if(!conf.claimed) {
                 userState.confirmations2dump.push({
