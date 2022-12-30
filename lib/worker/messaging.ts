@@ -148,6 +148,27 @@ export async function recruitPpl4Adventure(params: {
         await store.setUser(friendName, friendIncache);
     }
 
+    // invalidate recruit message after 15min
+    setTimeout(async () => {
+        let retry = 3;
+        while(retry > 0) {
+            try {
+                await store.acquireLocks(locks);
+            } catch(e) {
+                retry--;
+                continue;
+            }
+            const adventure =  await store.getAdventure(advId);
+            if(adventure) {
+                adventure.derecruit(friendName);
+                await store.setAdventure(advId, adventure);
+            }
+
+            await store.releaseLocks(locks);
+            break;
+        }
+    }, 15 * 60 * 1000);
+
     return [WrappedState('ADV_RECRUIT', seq, await store.dumpState(caller), caller),  
         WrappedState('ADV_RECRUIT', -1, await store.dumpState(friendName), friendName)];
 }

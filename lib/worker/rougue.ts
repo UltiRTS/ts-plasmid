@@ -284,7 +284,8 @@ export async function leaveAdventureHandler(params: {
         return [Notify('ADV_LEAVE', seq, 'adventure/user not exists', caller)];
     }
 
-    adventure.derecruit(caller);
+    // adventure.derecruit(caller);
+    adventure.deready(caller);
     user.adventure = null;
 
     await store.setUser(caller, user);
@@ -306,11 +307,53 @@ export async function leaveAdventureHandler(params: {
     await store.releaseLocks(locks);
 
     let res: Wrapped_Message[] = [];
-    for(const member in adventure.members()) {
+    for(const member in adventure.recruits) {
         if(member !== caller)
             res.push(WrappedState('ADV_LEAVE', -1, await store.dumpState(member), member));
     }
 
     res.push(WrappedState('ADV_LEAVE', -1, await store.dumpState(caller), caller));
+    return res;
+}
+
+export async function readyAdventureHandler(params: {
+    [key: string]: any
+}, seq: number, caller: string) {
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('ADV_READY', seq, 'user not exists', caller)];
+    }
+
+    const advId = user.adventure;
+    if(advId == null) {
+        return [Notify('ADV_READY', seq, 'joined no adventure', caller)];
+    }
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
+    try {
+        await store.acquireLock(ADV_LOCK);
+    } catch(e) {
+        return [Notify('ADV_READY', seq, 'acquire adventure lock failed', caller)];
+    }
+
+    const adventure = await store.getAdventure(advId);
+    if(adventure == null) {
+        return [Notify('ADV_READY', seq, 'no such adventure', caller)];
+    }
+
+    adventure.ready(caller);
+
+    await store.setAdventure(advId, adventure);
+
+    await store.releaseLock(ADV_LOCK);
+
+    let res: Wrapped_Message[] = [];
+    for(const recruit of adventure.recruits) {
+        if(recruit !== caller)
+            res.push(WrappedState('ADV_READY', -1, await store.dumpState(recruit), recruit));
+    }
+
+    res.push(WrappedState('ADV_READY', seq, await store.dumpState(caller), caller));
+
     return res;
 }

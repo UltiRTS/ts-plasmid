@@ -9,6 +9,7 @@ export class Adventure {
     teamHp: number = 300
 
     recruits: string[] = []
+    readys: string[] = []
 
     hardness: number = 1
 
@@ -27,6 +28,16 @@ export class Adventure {
         }
 
         return res;
+    }
+
+    ready(player: string) {
+        if(!this.readys.includes(player)) this.readys.push(player);
+    }
+
+    deready(player: string) {
+        if(this.readys.includes(player)) {
+            this.readys.splice(this.readys.indexOf(player), 1);
+        }
     }
 
     recruit(player: string) {
@@ -51,7 +62,7 @@ export class Adventure {
     }
 
     empty() {
-        return this.recruits.length === 0;
+        return this.readys.length === 0;
     }
 
     // join them to floor 0, node 0

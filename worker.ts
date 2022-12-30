@@ -12,7 +12,7 @@ import { store } from "./lib/worker/shared";
 import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
 import { addFriendHandler, confirmHandler, recruitPpl4Adventure } from "./lib/worker/messaging";
-import { createAdventureHandler, joinAdventureHandler, leaveAdventureHandler, moveToHandler, preStartAdventureHandler } from "./lib/worker/rougue";
+import { createAdventureHandler, joinAdventureHandler, leaveAdventureHandler, moveToHandler, preStartAdventureHandler,readyAdventureHandler } from "./lib/worker/rougue";
 
 import pino from "pino";
 import { markFriend, removeFriend, unMarkFriend } from "./lib/worker/friend";
@@ -69,6 +69,7 @@ const clientsHandlers: {
     ADV_CREATE: createAdventureHandler,
     ADV_PRESTART: preStartAdventureHandler,
     ADV_RECRUIT: recruitPpl4Adventure,
+    ADV_READY: readyAdventureHandler,
     ADV_LEAVE: leaveAdventureHandler,
     FRIEND_MARK: markFriend,
     FRIEND_UNMARK: unMarkFriend,
