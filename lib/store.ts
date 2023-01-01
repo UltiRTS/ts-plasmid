@@ -511,7 +511,7 @@ export class RedisStore {
                     if(key in resources) {
                         for(const resource of resources) {
                             const v = await client_redis.get(resource);
-                            acquirable &&= v === null;
+                            acquirable &&= v === null
                         }
                     }
                     if(acquirable) {

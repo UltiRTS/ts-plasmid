@@ -11,6 +11,10 @@ export class Adventure {
     recruits: string[] = []
     readys: string[] = []
 
+    budget: number = 10
+    recruit_ticket: number = 3
+    
+
     hardness: number = 1
 
     constructor(id?: number, floorTotal?: number);
@@ -40,13 +44,31 @@ export class Adventure {
         }
     }
 
-    recruit(player: string) {
-        if(!this.recruits.includes(player)) this.recruits.push(player);
+    recruit(player: string, config: {
+        level: number
+        cost: boolean
+    } = {level:0, cost:false}) {
+        let consumption = 0;
+        if(config.cost) {
+            consumption = Math.floor(0.1 * config.level);
+        }
+
+        if(this.recruit_ticket < 0 || this.budget < consumption) return false;
+        if(!this.recruits.includes(player)) {
+            this.recruits.push(player);
+        }
     }
 
-    derecruit(player: string) {
+    derecruit(player: string, config: {
+        level: number
+        refund: boolean
+    } = {level: 0, refund: false}) {
         if(this.recruits.includes(player)) {
             this.recruits.splice(this.recruits.indexOf(player), 1);
+            if(config.refund) {
+                this.budget += Math.floor(0.1 * config.level);
+                this.recruit_ticket++;
+            }
         }
     }
 
@@ -66,7 +88,17 @@ export class Adventure {
     }
 
     // join them to floor 0, node 0
-    join(player: string) {
+    join(player: string, config: {
+        level: number
+        cost: boolean
+        fund: boolean
+    } = {level: 0, cost: false, fund: false}) {
+
+        if(config.cost) {
+            this.budget -= Math.floor(0.1 * config.level);
+            this.recruit_ticket--;
+        }
+
         if(!this.recruits.includes(player)) {
             return;
         }

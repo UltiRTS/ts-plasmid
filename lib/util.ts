@@ -131,3 +131,7 @@ export function WrappedCMD(receiptOf: string, seq: number, cmd: CMD, extraTarget
         client
     } as Wrapped_Message
 }
+
+export function userLevel(exp: number) {
+    return Math.floor(Math.sqrt(exp*20))
+}

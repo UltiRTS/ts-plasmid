@@ -119,4 +119,8 @@ export class User extends DBUser  {
             }
         }
     }
+
+    level() {
+        return Math.floor(Math.sqrt(this.exp*20))
+    }
 }

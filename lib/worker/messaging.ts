@@ -2,7 +2,7 @@ import { Confirmation } from "../../db/models/confirmation";
 import { Confirmation2Dump, ConfirmationContentAddFriend, ConfirmationContentAdvRecruit, Wrapped_Message } from "../interfaces";
 import { Adventure } from "../states/rougue/adventure";
 import { RedisStore } from "../store";
-import { Notify, WrappedState } from "../util";
+import { Notify, WrappedState, userLevel } from "../util";
 import { advRepo, confirmRepo, store, userRepo } from "./shared";
 
 export async function addFriendHandler(params: {
@@ -115,7 +115,10 @@ export async function recruitPpl4Adventure(params: {
         return [Notify('ADV_RECRUIT', seq, 'adventure, user may not exist', caller)];
     }
 
-    adventure.recruit(friendName);
+    adventure.recruit(friendName, {
+        level: userLevel(friend.exp),
+        cost: true,
+    });
 
     const confirmContent = {
         type: 'adv_recruit',
@@ -160,8 +163,13 @@ export async function recruitPpl4Adventure(params: {
             }
             const adventure =  await store.getAdventure(advId);
             if(adventure) {
-                adventure.derecruit(friendName);
-                await store.setAdventure(advId, adventure);
+                if(!adventure.members().includes(friendName)) {
+                    adventure.derecruit(friendName, {
+                        level: userLevel(friend.exp),
+                        refund: true
+                    });
+                    await store.setAdventure(advId, adventure);
+                }
             }
 
             await store.releaseLocks(locks);
@@ -418,9 +426,15 @@ export async function confirmHandler(params: {
                 if(!confirmationContent.firstTime) {
                     // logic about resume game
                     stateAdv.teamHp -= 5
+                    stateAdv.join(caller);
+                } else {
+                    stateAdv.join(caller, {
+                        level: userLevel(user.exp),
+                        cost: true,
+                        fund: false
+                    });
                 }
 
-                stateAdv.join(caller);
                 await store.setAdventure(advId, stateAdv);
             }
 
