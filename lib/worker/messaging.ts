@@ -77,18 +77,33 @@ export async function addFriendHandler(params: {
 
 export async function recruitPpl4Adventure(params: {
     friendName?: string
-    advId?: number
-    firstTime?: boolean
 }, seq: number, caller: string) {
     const friendName = params.friendName;
-    const advId = params.advId;
-    let firstTime = params.firstTime;
-
-    if(friendName == null || advId == null) {
+    if(friendName == null) {
         return [Notify('ADV_RECRUIT', seq, 'insufficient parameters', caller)];
     }
 
-    if(firstTime == null) firstTime = true;
+    const user = await store.getUser(caller); 
+    if(user == null || user.adventure == null) {
+        return [Notify('ADV_RECRUIT', seq, 'user/adventure may not exists', caller)];
+    } 
+
+    const adventure = await store.getAdventure(user.adventure);
+    const friend = await userRepo.findOne({
+        where: {
+            username: friendName
+        },
+        relations: {
+            confirmations: true
+        }
+    })
+
+
+    if(friend == null || adventure == null) {
+        return [Notify('ADV_RECRUIT', seq, 'adventure, user may not exist', caller)];
+    }
+
+    const advId = adventure?.id;
 
     const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
@@ -100,20 +115,6 @@ export async function recruitPpl4Adventure(params: {
         return [Notify('ADV_RECRUIT', seq, 'adventure, user lock acquired fail', caller)];
     }
 
-    const friend = await userRepo.findOne({
-        where: {
-            username: friendName
-        },
-        relations: {
-            confirmations: true
-        }
-    })
-
-    const adventure = await store.getAdventure(advId);
-
-    if(friend == null || adventure == null) {
-        return [Notify('ADV_RECRUIT', seq, 'adventure, user may not exist', caller)];
-    }
 
     adventure.recruit(friendName, {
         level: userLevel(friend.exp),
@@ -124,7 +125,7 @@ export async function recruitPpl4Adventure(params: {
         type: 'adv_recruit',
         recruiter: caller,
         advId,
-        firstTime
+        firstTime: false
     } as ConfirmationContentAdvRecruit
 
     let confirmation = new Confirmation()
@@ -138,6 +139,8 @@ export async function recruitPpl4Adventure(params: {
 
     await userRepo.save(friend);
     await confirmRepo.save(confirmation);
+
+    await store.releaseLocks(locks);
 
     const friendIncache = await store.getUser(friendName);
     if(friendIncache !== null) {
@@ -199,9 +202,6 @@ export async function confirmHandler(params: {
         case 'friend': {
             let agree = params.agree;
             if(agree == null) agree = false;
-            // console.log(agree);
-            // console.log(agree === true);
-            // console.log(agree === false);
 
             const confirmation = await confirmRepo.findOne({
                 where: {

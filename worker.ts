@@ -9,7 +9,7 @@ import { RedisStore } from "./lib/store";
 import { CallTracker } from "assert";
 
 import { store } from "./lib/worker/shared";
-import { gameEndedHandler, gameStartedHandler, midJoinedHandler } from "./lib/worker/internal";
+import { gameEndedHandler, gameStartedHandler, interalRecruitPpl4Adventure, midJoinedHandler } from "./lib/worker/internal";
 import { joinChatRoomHandler, leaveChatRoomHandler, sayChatHandler } from "./lib/worker/chat";
 import { addFriendHandler, confirmHandler, recruitPpl4Adventure } from "./lib/worker/messaging";
 import { createAdventureHandler, joinAdventureHandler, leaveAdventureHandler, moveToHandler, preStartAdventureHandler,readyAdventureHandler } from "./lib/worker/rougue";
@@ -81,12 +81,15 @@ const interalHandlers: {
         gameName?: string
         title?: string
         player?: string
+        friendName?: string
+        firstTime?: boolean
         [key: string]: any
     }) => Promise<Wrapped_Message[]>
 } = {
     GAMESTARTED: gameStartedHandler,
     GAMEENDED: gameEndedHandler,
-    MIDJOINED: midJoinedHandler
+    MIDJOINED: midJoinedHandler,
+    ADV_RECRUIT: interalRecruitPpl4Adventure
 }
 
 let dbInitialized = false;

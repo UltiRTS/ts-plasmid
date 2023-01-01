@@ -199,20 +199,23 @@ for(let i=0; i<4; i++) {
                                     }
                                 }
                             } else if(cmd.to === 'client') {
+                            } else if(cmd.to === 'internal') {
+                                console.log('internal message get called');
                                 switch(cmd.action) {
                                     case 'ADV_RECRUIT': {
                                         let recruitCmd = cmd as CMD_Adventure_recruit
                                         let recruitPayload = recruitCmd.payload;
                                         const leaveChatMsg: IncommingMsg = {
                                             action: 'ADV_RECRUIT',
-                                            type: 'client',
+                                            type: 'internal',
                                             seq: -1,
                                             caller: msg.client,
                                             payload: {},
                                             parameters: {
                                                 advId: recruitPayload.advId,
                                                 friendName: recruitPayload.friendName,
-                                                firstTime: recruitPayload.firstTime
+                                                firstTime: recruitPayload.firstTime,
+                                                caller: msg.client
                                             }
                                         }
                                         workers[randomInt(4)].postMessage(leaveChatMsg);
