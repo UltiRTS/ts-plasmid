@@ -88,8 +88,46 @@ const pressureTest = async () => {
         }))
     }
 
-    // const handlerList = [joinChat, sayChat, leaveChat, joinGame, leaveGame];
-    const handlerList = [joinGame, ];
+    const advLeave = () => {
+        ws.send(JSON.stringify({
+            action: 'ADV_LEAVE',
+            parameters: {
+            },
+            seq: randomInt(0, 10000000)
+        }))
+    }
+
+    const advCreate = () => {
+        ws.send(JSON.stringify({
+            action: 'ADV_CREATE',
+            parameters: {
+            },
+            seq: randomInt(0, 10000000)
+        }))
+    }
+
+    const advRecruit = () => {
+        ws.send(JSON.stringify({
+            action: 'ADV_CREATE',
+            parameters: {
+                friendName: 'test'
+            },
+            seq: randomInt(0, 10000000)
+        }))
+    }
+
+    const advPreStart = () => {
+        ws.send(JSON.stringify({
+            action: 'ADV_PRESTART',
+            parameters: {
+            },
+            seq: randomInt(0, 10000000)
+        }))
+    }
+
+    // const handlerList = [joinGame];
+    const handlerList = [advLeave, advCreate, advRecruit, advPreStart];
+    // const handlerList = [joinGame, ];
 
     emitter.on('loggedIn', async () => {
         for(let i=0; i<NUM_CMDS; i++) {
@@ -104,7 +142,7 @@ const pressureTest = async () => {
     })
 
     ws.on('open', () => {
-        const username = `test_${threadId}`;
+        const username = `test_${threadId}12`;
         const password = 'test';
         ws.send(JSON.stringify({
             action: 'LOGIN',

@@ -33,16 +33,24 @@ export async function joinGameHandler(params: {
     const GAME_LOCK = RedisStore.LOCK_RESOURCE(gameName, 'game');
     const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
 
+    const res: Wrapped_Message[] = [];
     const locks = [GAME_LOCK, USER_LOCK];
 
     try {
         await store.acquireLocks(locks);
+        // await store.acquireLock(USER_LOCK);
+        // try {
+        //     await store.acquireLock(GAME_LOCK);
+        // } catch(e) {
+        //     await store.releaseLock(USER_LOCK);
+        //     return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
+        // }
         // console.log(`thread-${threadId} join game locks acquired`)
     } catch(e) {
         return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
     }
 
-
+    // console.log(`thread-${threadId} join game locks released`)
 
     let gameRoom = await store.getGame(gameName)
     const user = await store.getUser(caller);
@@ -63,15 +71,11 @@ export async function joinGameHandler(params: {
     await store.setUser(caller, user);
 
     await store.releaseLocks(locks);
-    // console.log(`thread-${threadId} join game locks released`)
-
-    const res: Wrapped_Message[] = [];
 
     for(const player in gameRoom.players) {
         if(caller !== player)
             res.push(WrappedState('JOINGAME', -1, await store.dumpState(player), player));
     }
-
     res.push(WrappedState('JOINGAME', seq, await store.dumpState(caller), caller, ['client', 'all']));
 
     return res;

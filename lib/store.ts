@@ -485,54 +485,17 @@ export class RedisStore {
     }
 
     async acquireLocks(resources: string[]) {
-        const sub = this.sub;
-        const client_redis = this.client;
-        return new Promise(async (resolve, reject) => {
-            const m2set: string[] = [];
-            for(const resource of resources) {
-                m2set.push(resource);
-                m2set.push('1');
-            }
-            const success = await client_redis.mSetNX(m2set);
-            if(success) {
-                // console.log('key', resource, 'acquired');
-                for(const resource of resources) {
-                    await client_redis.expire(resource, 5);
-                }
-                resolve(true);
-            } else {
-                const timeout = setTimeout(async () => {
-                    await sub.unsubscribe('__keyevent@0__:del')
-                    reject(new Error('key required failed'))
-                }, ACQUIRE_MAX_AWAIT)
+        const locks = resources.sort();
+        for(let i=0; i<locks.length; i++) {
+            const lock = locks[i];
+            try {
+                await this.acquireLock(lock);
+            } catch(e) {
+                for(let j=0; j<i; j++) await this.releaseLock(locks[j]);
 
-                const subCallback = async (key: string) => {
-                    let acquirable = true;
-                    if(key in resources) {
-                        for(const resource of resources) {
-                            const v = await client_redis.get(resource);
-                            acquirable &&= v === null
-                        }
-                    }
-                    if(acquirable) {
-                        const success = await client_redis.mSetNX(m2set);
-                        if(success) {
-                            // console.log('key', resource, 'acquired');
-                            for(const resource of resources) {
-                                await client_redis.expire(resource, 5);
-                            }
-                            clearTimeout(timeout);
-                            resolve(true);
-                        } else {
-                            await sub.unsubscribe('__keyevent@0__:del')
-                            await sub.subscribe('__keyevent@0__:del', subCallback);
-                        }
-                    }
-                }
-
-                await sub.subscribe('__keyevent@0__:del', subCallback);
+                throw new Error('key acquire failed');
             }
-        })
+        }
     }
 
     async releaseLocks(resources: string[]) {
