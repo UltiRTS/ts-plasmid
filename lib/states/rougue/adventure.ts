@@ -84,7 +84,7 @@ export class Adventure {
     }
 
     empty() {
-        return this.readys.length === 0;
+        return this.recruits.length === 0;
     }
 
     // join them to floor 0, node 0

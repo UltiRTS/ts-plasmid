@@ -86,6 +86,7 @@ export async function loginHandler(params: {
                 if(dbAdv) {
                     adv = Adventure.from(dbAdv.config);
                     await store.setAdventure(adv.id, adv);
+                    console.log(adv.recruits);
                 }
             }
         }

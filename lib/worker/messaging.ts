@@ -121,6 +121,8 @@ export async function recruitPpl4Adventure(params: {
         cost: true,
     });
 
+    await store.setAdventure(advId, adventure);
+
     const confirmContent = {
         type: 'adv_recruit',
         recruiter: caller,
@@ -140,7 +142,6 @@ export async function recruitPpl4Adventure(params: {
     await userRepo.save(friend);
     await confirmRepo.save(confirmation);
 
-    await store.releaseLocks(locks);
 
     const friendIncache = await store.getUser(friendName);
     if(friendIncache !== null) {
@@ -153,6 +154,8 @@ export async function recruitPpl4Adventure(params: {
         } as Confirmation2Dump]
         await store.setUser(friendName, friendIncache);
     }
+
+    await store.releaseLocks(locks);
 
     // invalidate recruit message after 15min
     setTimeout(async () => {
@@ -382,7 +385,8 @@ export async function confirmHandler(params: {
                     username: caller
                 },
                 relations: {
-                    friends: true
+                    friends: true,
+                    adventures: true
                 }
             })
             const adventure = await advRepo.findOne({
@@ -400,7 +404,9 @@ export async function confirmHandler(params: {
                 return [Notify('CLAIMCONFIRM', seq, 'no such account/adventure', caller)];
             }
 
-            console.log(adventure.members);
+            user.adventures = [...user.adventures, adventure];
+            userRepo.save(user);
+
             adventure.members = [...adventure.members, user];
             advRepo.save(adventure);
 

@@ -152,6 +152,8 @@ export async function interalRecruitPpl4Adventure(params: {
         cost: true,
     });
 
+    await store.setAdventure(advId, adventure);
+
     const confirmContent = {
         type: 'adv_recruit',
         recruiter: caller,
@@ -186,6 +188,7 @@ export async function interalRecruitPpl4Adventure(params: {
     }
 
     // invalidate recruit message after 15min
+    // TODO: need to implement adv_forfeit to make this valid
     setTimeout(async () => {
         let retry = 3;
         while(retry > 0) {

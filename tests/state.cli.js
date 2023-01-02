@@ -381,15 +381,11 @@ const main = async () => {
             }
 
             case 'recruit': {
-                const adv = cmd[1];
-                const friendName = cmd[2];
-                const firstTime = true;
+                const friendName = cmd[1];
                 ws.send(JSON.stringify({
                     action: 'ADV_RECRUIT',
                     parameters: {
-                        advId: parseInt(adv),
                         friendName,
-                        firstTime 
                     },
                     seq: randomInt(0, 1000000)
                 }))

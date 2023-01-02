@@ -120,13 +120,16 @@ export async function createAdventureHandler(params: {
 }, seq: number, caller: string) {
     const user = await store.getUser(caller);
     if(user == null) {
-        return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
+        return [Notify('ADV_CREATE', seq, 'adventure/user lock acquired fail', caller)];
     }
     const existedAdvId = user.adventure;
     if(existedAdvId) {
         const existedAdv = await advRepo.findOne({
             where: {
                 id: existedAdvId
+            },
+            relations: {
+                members: true
             }
         })
         if(existedAdv) {
@@ -201,32 +204,33 @@ export async function preStartAdventureHandler(params: {
     }
 
     let stateAdv = await store.getAdventure(advId);
-    let recruitAgain = false;
-    // load from database, means resume
-    if(stateAdv == null) {
-        let adventure = await advRepo.findOne({
-            where: {
-                id: advId
-            }
-        })
-        if(adventure == null) {
-            await store.releaseLocks(locks);
-            return [Notify('ADV_PRESTART', seq, 'internal error, plz contact admin', caller)];
-        }
 
-        stateAdv = Adventure.from(adventure.config);
-        recruitAgain = true;
+    if(stateAdv == null) {
+        await store.releaseLocks(locks);
+        return [Notify('ADV_PRESTART', seq, 'no such adventure', caller)];
     }
+
+    stateAdv.recruit(caller);
+
+    let recruitAgain = false;
+
+    const members = stateAdv.members().sort();
+    const recruits = stateAdv.recruits.sort();
+
+    if(recruits.length < members.length) recruitAgain = true;
 
     await store.setUser(caller, user);
     await store.setAdventure(advId, stateAdv);
     await store.releaseLocks(locks);
 
+
     let res: Wrapped_Message[] = [];
     if(recruitAgain) {
         for(const recruitee of stateAdv.members()) {
+            if(recruitee === caller) continue;
+
             const CMD: CMD_Adventure_recruit = {
-                to: 'client',
+                to: 'internal',
                 action: 'ADV_RECRUIT',
                 payload: {
                     advId,
@@ -273,6 +277,7 @@ export async function leaveAdventureHandler(params: {
     try {
         await store.acquireLocks(locks);
     } catch {
+        console.log('lock failed');
         return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
     }
 
@@ -281,16 +286,21 @@ export async function leaveAdventureHandler(params: {
 
     if(adventure == null || user == null) {
         await store.releaseLocks(locks);
+        console.log('adventure not aexits');
         return [Notify('ADV_LEAVE', seq, 'adventure/user not exists', caller)];
     }
 
-    // adventure.derecruit(caller);
+    adventure.derecruit(caller);
     adventure.deready(caller);
     user.adventure = null;
+    await store.setAdventure(advId, adventure);
+
+    console.log(`decruiting ${caller}`);
 
     await store.setUser(caller, user);
     if(adventure.empty()) {
         await store.delAdventure(advId);
+        console.log('deleting adventure');
         let dbAdventure = await advRepo.findOne({
             where: {
                 id: adventure.id
@@ -300,8 +310,6 @@ export async function leaveAdventureHandler(params: {
             dbAdventure.config = adventure.serialize();
             await advRepo.save(dbAdventure);
         }
-    } else {
-        await store.setAdventure(advId, adventure);
     }
 
     await store.releaseLocks(locks);
