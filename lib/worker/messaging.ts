@@ -127,7 +127,8 @@ export async function recruitPpl4Adventure(params: {
         type: 'adv_recruit',
         recruiter: caller,
         advId,
-        firstTime: false
+        firstTime: false,
+        floorOn: adventure.floorOn(caller)
     } as ConfirmationContentAdvRecruit
 
     let confirmation = new Confirmation()

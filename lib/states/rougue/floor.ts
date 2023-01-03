@@ -147,6 +147,14 @@ export class Floor {
         }
     }
 
+    isIn(player: string) {
+        for(const node of this.nodes) {
+            if(node.isIn(player)) return true;
+        }
+
+        return false;
+    }
+
 
     static from(str: string) {
         const obj = JSON.parse(str) as Floor;

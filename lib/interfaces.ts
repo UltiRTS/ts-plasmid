@@ -142,4 +142,5 @@ export interface ConfirmationContentAdvRecruit extends ConfirmationContent {
     recruiter: string
     advId: number
     firstTime: boolean
+    floorOn: number
 }

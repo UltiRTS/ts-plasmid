@@ -29,6 +29,10 @@ export class Node {
             this.members.splice(this.members.indexOf(player), 1);
     }
 
+    isIn(player: string) {
+        return this.members.includes(player);
+    }
+
     setChildren(children: number[]) {
         this.children = children;
     }

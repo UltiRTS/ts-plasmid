@@ -129,6 +129,14 @@ export class Adventure {
         return JSON.stringify(this);
     }
 
+    floorOn(player: string) {
+        for(let i=0; i<this.floors.length; i++) {
+            if(this.floors[i].isIn(player)) return i;
+        }
+
+        return -1;
+    }
+
     static from(str: string) {
         // TODO: recursive Object assign to bind related functions to object
         const obj = JSON.parse(str) as Adventure;
