@@ -44,6 +44,10 @@ export class Adventure {
         }
     }
 
+    ready2start() {
+        return this.recruits.length === this.readys.length;
+    }
+
     recruit(player: string, config: {
         level: number
         cost: boolean
@@ -81,6 +85,12 @@ export class Adventure {
         }
 
         return this.floors[floorIn].moveTo(player, nodeTo);
+    }
+
+    leave(player: string) {
+        for(const floor of this.floors) {
+            floor.leave(player);
+        }
     }
 
     empty() {

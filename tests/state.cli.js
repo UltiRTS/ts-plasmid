@@ -380,6 +380,17 @@ const main = async () => {
                 break;
             }
 
+            case 'forfeitAdv': {
+                ws.send(JSON.stringify({
+                    action: 'ADV_FORFEIT',
+                    parameters: {
+                    },
+                    seq: randomInt(0, 1000000)
+                }))
+                break;
+            }
+
+
             case 'recruit': {
                 const friendName = cmd[1];
                 ws.send(JSON.stringify({

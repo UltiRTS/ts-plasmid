@@ -371,6 +371,7 @@ export async function readyAdventureHandler(params: {
 
     const adventure = await store.getAdventure(advId);
     if(adventure == null) {
+        await store.releaseLock(ADV_LOCK);
         return [Notify('ADV_READY', seq, 'no such adventure', caller)];
     }
 
@@ -387,6 +388,89 @@ export async function readyAdventureHandler(params: {
     }
 
     res.push(WrappedState('ADV_READY', seq, await store.dumpState(caller), caller));
+
+    return res;
+}
+
+
+export async function forfeitAdventureHandler(params: {
+    [key: string]: any
+}, seq: number, caller: string) {
+    const user = await store.getUser(caller);
+    if(user == null) {
+        return [Notify('ADV_FORFEIT', seq, 'user not exists', caller)];
+    }
+
+    const advId = user.adventure;
+    if(advId == null) {
+        return [Notify('ADV_FORFEIT', seq, 'joined no adventure', caller)];
+    }
+
+    const ADV_LOCK = RedisStore.LOCK_RESOURCE(String(advId), 'adv');
+    const USER_LOCK = RedisStore.LOCK_RESOURCE(caller, 'user');
+    const locks = [ADV_LOCK, USER_LOCK];
+
+    try {
+        await store.acquireLocks(locks);
+    } catch(e) {
+        return [Notify('ADV_FORFEIT', seq, 'acquire adventure lock failed', caller)];
+    }
+
+    const adventure = await store.getAdventure(advId);
+    if(adventure == null) {
+        await store.releaseLocks(locks);
+        return [Notify('ADV_FORFEIT', seq, 'no such adventure/user', caller)];
+    }
+
+    adventure.deready(caller);
+    adventure.derecruit(caller);
+    adventure.leave(caller);
+
+    user.adventure = null;
+
+    await store.setUser(caller, user);
+    await store.setAdventure(advId, adventure);
+    await store.releaseLocks(locks);
+
+
+    const dbAdventure = await advRepo.findOne({
+        where: {
+            id: advId
+        },
+        relations: {
+            members: true
+        }
+    })
+    const dbUser = await userRepo.findOne({
+        where: {
+            username: caller
+        },
+        relations: {
+            adventures: true
+        }
+    })
+    
+    if(dbAdventure) {
+        dbAdventure.members = dbAdventure.members.filter(m => {
+            m.username !== caller;
+        })
+        advRepo.save(dbAdventure);
+    }
+
+    if(dbUser) {
+        dbUser.adventures = dbUser.adventures.filter(adv => {
+            adv.id !== advId;
+        })
+        userRepo.save(dbUser);
+    }
+
+    let res: Wrapped_Message[] = [];
+    for(const recruit of adventure.recruits) {
+        if(recruit !== caller)
+            res.push(WrappedState('ADV_FORFEIT', -1, await store.dumpState(recruit), recruit));
+    }
+
+    res.push(WrappedState('ADV_FORFEIT', seq, await store.dumpState(caller), caller));
 
     return res;
 }

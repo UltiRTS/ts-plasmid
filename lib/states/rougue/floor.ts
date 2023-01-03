@@ -141,6 +141,12 @@ export class Floor {
         return res;
     }
 
+    leave(player: string) {
+        for(const node of this.nodes) {
+            node.leave(player);
+        }
+    }
+
 
     static from(str: string) {
         const obj = JSON.parse(str) as Floor;
