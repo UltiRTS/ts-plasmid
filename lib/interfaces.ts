@@ -143,4 +143,8 @@ export interface ConfirmationContentAdvRecruit extends ConfirmationContent {
     advId: number
     firstTime: boolean
     floorOn: number
+    team: [{
+        username: string
+        level: number
+    }]
 }

@@ -123,12 +123,33 @@ export async function recruitPpl4Adventure(params: {
 
     await store.setAdventure(advId, adventure);
 
+    const teamInfo: {
+        username: string
+        level: number
+    }[] = []
+
+    for(const member of adventure.members()) {
+        const m = await store.getUser(member);
+        if(m) {
+            teamInfo.push({
+                username: member,
+                level: userLevel(m.exp)
+            })
+        } else {
+            teamInfo.push({
+                username: member,
+                level: -1
+            })
+        }
+    }
+
     const confirmContent = {
         type: 'adv_recruit',
         recruiter: caller,
         advId,
         firstTime: false,
-        floorOn: adventure.floorOn(caller)
+        floorOn: adventure.floorOn(caller),
+        team: teamInfo
     } as ConfirmationContentAdvRecruit
 
     let confirmation = new Confirmation()
