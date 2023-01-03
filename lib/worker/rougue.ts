@@ -223,6 +223,7 @@ export async function preStartAdventureHandler(params: {
     await store.setAdventure(advId, stateAdv);
     await store.releaseLocks(locks);
 
+    console.log(stateAdv.recruits);
 
     let res: Wrapped_Message[] = [];
     if(recruitAgain) {
@@ -243,6 +244,30 @@ export async function preStartAdventureHandler(params: {
     }
 
     res.push(WrappedState('ADV_PRESTART', seq, await store.dumpState(caller), caller))
+
+    setTimeout(async () => {
+        let retry = 3;
+        while(retry > 0) {
+            try {
+                await store.acquireLock(ADV_LOCK);
+            } catch(e) {
+                retry--;
+            }
+
+            const adventure = await store.getAdventure(advId);
+            if(adventure == null) {
+                return;
+            }
+            if(!adventure.ready2start()) {
+                adventure.readys = [];
+            }
+
+            await store.setAdventure(advId, adventure);
+            await store.releaseLock(ADV_LOCK);
+
+            break;
+        }
+    }, 30*60*1000);
 
     return res;
 }
