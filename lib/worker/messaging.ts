@@ -116,10 +116,10 @@ export async function recruitPpl4Adventure(params: {
     }
 
 
-    adventure.recruit(friendName, {
-        level: userLevel(friend.exp),
-        cost: true,
-    });
+    // adventure.recruit(friendName, {
+    //     level: userLevel(friend.exp),
+    //     cost: true,
+    // });
 
     await store.setAdventure(advId, adventure);
 
@@ -432,8 +432,10 @@ export async function confirmHandler(params: {
                 if(!confirmationContent.firstTime) {
                     // logic about resume game
                     stateAdv.teamHp -= 5
+                    stateAdv.recruit(caller);
                     stateAdv.join(caller);
                 } else {
+                    stateAdv.recruit(caller);
                     stateAdv.join(caller, {
                         level: userLevel(user.exp),
                         cost: true,
