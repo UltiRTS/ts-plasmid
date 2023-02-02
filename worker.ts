@@ -16,7 +16,7 @@ import { createAdventureHandler, forfeitAdventureHandler, joinAdventureHandler, 
 
 import pino from "pino";
 import { markFriend, removeFriend, unMarkFriend } from "./lib/worker/friend";
-
+AppDataSource.initialize().then(() => console.log('worker connected to db'))
 const transport = pino.transport({
   target: 'pino/file',
   options: { destination: '/tmp/timer.log', append: true }
@@ -99,11 +99,7 @@ function toParent(msgs: Wrapped_Message[]) {
     parentPort?.postMessage(msgs);
 }
 
-AppDataSource.initialize().then(() => {
-    dbInitialized = true;
-}).catch(e=> {
-    console.log(e)
-})
+
 
 parentPort?.on('message', async (msg: IncommingMsg) => {
     // console.log(msg);

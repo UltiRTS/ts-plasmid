@@ -6,14 +6,6 @@ import { Confirmation } from "../../db/models/confirmation";
 import { Adventure } from "../../db/models/adventure";
 
 
-let dbInitialized = false;
-
-AppDataSource.initialize().then(() => {
-    dbInitialized = true;
-}).catch(e=> {
-    console.log(e)
-})
-
 export const store = new RedisStore();
 export const userRepo = AppDataSource.getRepository(User);
 export const chatRepo = AppDataSource.getRepository(ChatRoom);
