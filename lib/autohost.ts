@@ -11,11 +11,11 @@ import { createHash } from "crypto";
 
 let dbInitialized = false;
 
-AppDataSource.initialize().then(() => {
-    dbInitialized = true;
-}).catch(e => {
-    console.log('db init failed', e);
-})
+// AppDataSource.initialize().then(() => {
+//     dbInitialized = true;
+// }).catch(e => {
+//     console.log('db init failed', e);
+// })
 
 const gameRepo = AppDataSource.getRepository(Game);
 const userRepo = AppDataSource.getRepository(User);

@@ -5,6 +5,7 @@ import { AutohostManager } from "./lib/autohost";
 import { CMD, CMD_Adventure_recruit, CMD_Autohost_Kill_Engine, CMD_Autohost_Midjoin, CMD_Autohost_Start_Game, Receipt, State, Wrapped_Message } from "./lib/interfaces";
 import { Network, IncommingMsg, Notification, wrapReceipt, wrapState} from "./lib/network";
 import { RedisStore } from "./lib/store";
+import { AppDataSource } from "./db/datasource";
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -15,112 +16,170 @@ const seq2clientID: {[key: number]: string} = {}
 const clientID2username: {[key: string]: string} = {}
 const username2clientID: {[key: string]: string} = {}
 
-const autohostMgr = new AutohostManager([], {
-   port: 5000 
-});
+const autohostMgr = new AutohostManager([], { port: 5000 });
+const main = () => {
+  network.on('message', (clientID: string, data: IncommingMsg) => {
 
-network.on('message', (clientID: string, data: IncommingMsg) => {
+      clientID2seq[clientID] = data.seq;
+      seq2clientID[data.seq] = clientID;
 
-    clientID2seq[clientID] = data.seq;
-    seq2clientID[data.seq] = clientID;
+      const workerId = randomInt(4);
 
-    const workerId = randomInt(4);
+      // if action is login and the user is not logged in, set the clientID to username
+      if(data.action === 'LOGIN' && !(data.parameters.username in username2clientID)) {
+          const username = data.parameters.username;
 
-    // if action is login and the user is not logged in, set the clientID to username
-    if(data.action === 'LOGIN' && !(data.parameters.username in username2clientID)) {
-        const username = data.parameters.username;
+          clientID2username[clientID] = username;
+          username2clientID[username] = clientID;
 
-        clientID2username[clientID] = username;
-        username2clientID[username] = clientID;
+          store.setOnline(Object.keys(username2clientID));
+      }
 
-        store.setOnline(Object.keys(username2clientID));
-    }
+      if(!(['LOGIN'].includes(data.action))) {
+          if(!(clientID in clientID2username)) {
+              network.emit('postMessage', seq2clientID[data.seq], {
+                  action: 'NOTIFY',
+                  seq: data.seq,
+                  message: 'please login',
+                  from: data.action
+              } as Notification)
+              return;
+          }
+      }
 
-    if(!(['LOGIN'].includes(data.action))) {
-        if(!(clientID in clientID2username)) {
-            network.emit('postMessage', seq2clientID[data.seq], {
-                action: 'NOTIFY',
-                seq: data.seq,
-                message: 'please login',
-                from: data.action
-            } as Notification)
-            return;
-        }
-    }
+      data.caller = clientID2username[clientID];
+      data.type = 'client';
 
-    data.caller = clientID2username[clientID];
-    data.type = 'client';
+      workers[workerId].postMessage(data)
 
-    workers[workerId].postMessage(data)
+      // clear temporary caller set
+      if(data.action === 'LOGIN') {
+          const username = data.parameters.username;
 
-    // clear temporary caller set
-    if(data.action === 'LOGIN') {
-        const username = data.parameters.username;
-
-        delete clientID2username[clientID];
-        delete username2clientID[username];
-    }
+          delete clientID2username[clientID];
+          delete username2clientID[username];
+      }
 
 
-})
+  })
 
-network.on('clean', async (clientID: string) => {
-    const seq = clientID2seq[clientID];
-    const username = clientID2username[clientID];
-    console.log('trigering clean, user: ', username);
+  network.on('clean', async (clientID: string) => {
+      const seq = clientID2seq[clientID];
+      const username = clientID2username[clientID];
+      console.log('trigering clean, user: ', username);
 
-    const user = await store.getUser(username); 
+      const user = await store.getUser(username); 
 
-    delete clientID2seq[clientID];
-    delete clientID2username[clientID];
-    delete seq2clientID[seq];
-    delete username2clientID[username];
+      delete clientID2seq[clientID];
+      delete clientID2username[clientID];
+      delete seq2clientID[seq];
+      delete username2clientID[username];
 
-    store.setOnline(Object.keys(username2clientID));
+      store.setOnline(Object.keys(username2clientID));
 
-    // pass cmd to workers to clean the redis cache
-    const leaveGameMsg: IncommingMsg = {
-        action: 'LEAVEGAME',
-        type: 'client',
-        seq: -1,
-        caller: username,
-        parameters: {},
-        payload: {}
-    }
+      // pass cmd to workers to clean the redis cache
+      const leaveGameMsg: IncommingMsg = {
+          action: 'LEAVEGAME',
+          type: 'client',
+          seq: -1,
+          caller: username,
+          parameters: {},
+          payload: {}
+      }
 
-    if(user?.adventure) {
-        const leaveAdvMsg: IncommingMsg = {
-            action: 'ADV_LEAVE',
-            type: 'client',
-            seq: -1,
-            caller: username,
-            parameters: {
-                advId: user.adventure
-            },
-            payload: {}
-        }
-        workers[randomInt(4)].postMessage(leaveAdvMsg);
-    }
+      if(user?.adventure) {
+          const leaveAdvMsg: IncommingMsg = {
+              action: 'ADV_LEAVE',
+              type: 'client',
+              seq: -1,
+              caller: username,
+              parameters: {
+                  advId: user.adventure
+              },
+              payload: {}
+          }
+          workers[randomInt(4)].postMessage(leaveAdvMsg);
+      }
 
-    workers[randomInt(4)].postMessage(leaveGameMsg);
+      workers[randomInt(4)].postMessage(leaveGameMsg);
 
-    if(!user) return;
-    for(const room of user.chatRooms) {
-        const leaveChatMsg: IncommingMsg = {
-            action: 'LEAVECHAT',
-            type: 'client',
-            seq: -1,
-            caller: username,
-            payload: {},
-            parameters: {
-                chatName: room
-            }
-        }
-        workers[randomInt(4)].postMessage(leaveChatMsg);
-    }
-})
+      if(!user) return;
+      for(const room of user.chatRooms) {
+          const leaveChatMsg: IncommingMsg = {
+              action: 'LEAVECHAT',
+              type: 'client',
+              seq: -1,
+              caller: username,
+              payload: {},
+              parameters: {
+                  chatName: room
+              }
+          }
+          workers[randomInt(4)].postMessage(leaveChatMsg);
+      }
+  })
 
-for(let i=0; i<4; i++) {
+
+  autohostMgr.on('gameStarted', (msg: {
+      gameName: string,
+      payload: {
+          autohost: string
+          port: number
+      }
+  }) => {
+      const internalMsg: IncommingMsg = {
+          action: 'GAMESTARTED',
+          type: 'internal',
+          seq: -1,
+          caller: '',
+          parameters: {
+              ...msg.payload,
+              gameName: msg.gameName
+          },
+          payload: {}
+      }
+
+      workers[randomInt(4)].postMessage(internalMsg);
+  })
+
+  autohostMgr.on('gameEnded', (gameName) => {
+      const internalMsg: IncommingMsg = {
+          action: 'GAMEENDED',
+          type: 'internal',
+          seq: -1,
+          caller: '',
+          parameters: {
+              gameName
+          },
+          payload: {}
+      }
+
+      workers[randomInt(4)].postMessage(internalMsg);
+  })
+
+  autohostMgr.on('midJoined', (params: {
+      title?: string
+      player?: string
+  }) => {
+      const internalMsg: IncommingMsg = {
+          action: 'MIDJOINED',
+          type: 'internal',
+          seq: -1,
+          caller: '',
+          parameters: {
+              ...params
+          },
+          payload: {}
+      }
+
+      workers[randomInt(4)].postMessage(internalMsg);
+  })
+
+  initializeWorkers()
+}
+
+const initializeWorkers = () => {
+  for(let i=0; i<4; i++) {
     let worker = new Worker('./worker.ts', {
         execArgv: ['-r', 'ts-node/register/transpile-only']
     });
@@ -242,58 +301,11 @@ for(let i=0; i<4; i++) {
 
     workers.push(worker);
 }
+}
 
-autohostMgr.on('gameStarted', (msg: {
-    gameName: string,
-    payload: {
-        autohost: string
-        port: number
-    }
-}) => {
-    const internalMsg: IncommingMsg = {
-        action: 'GAMESTARTED',
-        type: 'internal',
-        seq: -1,
-        caller: '',
-        parameters: {
-            ...msg.payload,
-            gameName: msg.gameName
-        },
-        payload: {}
-    }
-
-    workers[randomInt(4)].postMessage(internalMsg);
-})
-
-autohostMgr.on('gameEnded', (gameName) => {
-    const internalMsg: IncommingMsg = {
-        action: 'GAMEENDED',
-        type: 'internal',
-        seq: -1,
-        caller: '',
-        parameters: {
-            gameName
-        },
-        payload: {}
-    }
-
-    workers[randomInt(4)].postMessage(internalMsg);
-})
-
-autohostMgr.on('midJoined', (params: {
-    title?: string
-    player?: string
-}) => {
-    const internalMsg: IncommingMsg = {
-        action: 'MIDJOINED',
-        type: 'internal',
-        seq: -1,
-        caller: '',
-        parameters: {
-            ...params
-        },
-        payload: {}
-    }
-
-    workers[randomInt(4)].postMessage(internalMsg);
-})
+AppDataSource.initialize()
+  .then(() => {
+    if (process.env.NODE_ENV !== "production") AppDataSource.synchronize() 
+  })
+  .then(main)
+  .catch(e => { console.log('db init failed', e) })
