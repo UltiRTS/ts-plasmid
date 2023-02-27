@@ -8,7 +8,9 @@
     "start": "redis-cli flushall && tsc && cd dist &&node main.js",
     "migrate": "tsc && node dist/db/migrate.js",
     "autohost": "tsc && node dist/tests/autohost.test.js",
-    "dev": "redis-cli flushall && nodemon main.ts"
+    "dev": "redis-cli flushall; NODE_ENV=development nodemon main.ts",
+    "dev-noflush": "nodemon main.ts",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",
@@ -28,7 +30,6 @@
     "pino": "^8.8.0",
     "redis": "^4.3.1",
     "reflect-metadata": "^0.1.13",
-    "sqlite3": "^5.0.8",
     "typeorm": "^0.3.6",
     "ws": "^8.6.0"
   }

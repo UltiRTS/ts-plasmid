@@ -179,10 +179,11 @@ const main = () => {
 }
 
 const initializeWorkers = () => {
+  
   for(let i=0; i<4; i++) {
-    let worker = new Worker('./worker.ts', {
+    let worker = process.env.NODE_ENV === "development" ? new Worker("./worker.ts", {
         execArgv: ['-r', 'ts-node/register/transpile-only']
-    });
+    }) : new Worker("./worker.js");
     worker.on('online', () => {
         console.log(`Worker ${worker.threadId} online`);
     })

@@ -8,7 +8,7 @@ import { User } from './states/user';
 import { Adventure } from './states/rougue/adventure';
 import { EventEmitter } from 'stream';
 import { sleep } from './util';
-
+import {redisConf} from '../config'
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
 const PREFIX_CHAT = 'CHAT_';
@@ -31,7 +31,7 @@ export class RedisStore {
     emitter: EventEmitter
 
     constructor() {
-        this.client = createClient();
+        this.client = createClient({socket: {...redisConf, tls: false}});
         this.sub = this.client.duplicate();
         this.connected = false;
         this.emitter = new EventEmitter();
