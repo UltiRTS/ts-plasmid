@@ -356,7 +356,6 @@ const initializeWorkers = () => {
             }
             case 'all': {
               if (!msg.payload.state) break;
-
               const users = Object.keys(username2clientID);
               for (const user of users) {
                 network.emit(
