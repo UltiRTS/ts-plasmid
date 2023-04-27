@@ -10,6 +10,7 @@
     "autohost": "tsc && node dist/tests/autohost.test.js",
     "dev": "redis-cli flushall; NODE_ENV=development nodemon main.ts",
     "dev-noflush": "nodemon main.ts",
+    "migration": "tsc && typeorm dist/db/migration.js",
     "build": "tsc"
   },
   "author": "",

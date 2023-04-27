@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { randomInt } from 'crypto';
 import { Worker, parentPort, threadId } from 'worker_threads';
 import { AutohostManager } from './lib/autohost';
+import { migrate } from './db/migrate';
 import {
   CMD,
   CMD_Adventure_recruit,
@@ -351,7 +352,10 @@ const initializeWorkers = () => {
 
 AppDataSource.initialize()
   .then(() => {
-    if (process.env.NODE_ENV !== 'production') AppDataSource.synchronize();
+    if (process.env.NODE_ENV !== 'production') {
+      AppDataSource.synchronize();
+      console.log('db init success');
+    }
   })
   .then(main)
   .catch((e) => {
