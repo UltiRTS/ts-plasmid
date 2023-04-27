@@ -7,6 +7,7 @@ import { randomInt } from 'crypto';
 import { Worker, parentPort, threadId } from 'worker_threads';
 import { TypeORMError } from 'typeorm';
 import { AutohostManager } from './lib/autohost';
+import { migrate } from './db/migrate';
 import {
   CMD,
   CMD_Adventure_recruit,

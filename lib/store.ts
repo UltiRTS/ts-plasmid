@@ -136,7 +136,7 @@ export class RedisStore {
 
   async setUser(username: string, user: User) {
     const name = RedisStore.USER_RESOURCE(username);
-
+    console.log('REDIS STORE SET USER: ', user);
     await this.client.set(name, user.serialize());
   }
 
@@ -360,6 +360,7 @@ export class RedisStore {
         const chatRoom = await this.getChat(chatName);
         if (chatRoom) chatRooms[chatName] = chatRoom;
       }
+      console.log(`BBBBB User Inv: ${user.inventory}`);
       user2dump = {
         id: user.id,
         username: user.username,
