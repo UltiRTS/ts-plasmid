@@ -8,6 +8,6 @@ FROM node:18-alpine
 WORKDIR /plasmid
 COPY package*.json /plasmid/
 COPY --from=build /plasmid/dist /plasmid/dist
-RUN npm i --production
+RUN npm i --omit=dev
 EXPOSE 5000
 CMD ["node", "dist/main.js"]

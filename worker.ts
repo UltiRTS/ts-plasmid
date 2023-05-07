@@ -1,5 +1,7 @@
 import "reflect-metadata"
-import { parentPort } from "worker_threads";
+import { parentPort, threadId } from "worker_threads";
+import os from 'os';
+import path from 'path';
 import { IncommingMsg } from "./lib/network";
 import {AppDataSource} from './db/datasource';
 import { loginHandler } from "./lib/worker/auth";
@@ -16,13 +18,32 @@ import { createAdventureHandler, forfeitAdventureHandler, joinAdventureHandler, 
 
 import pino from "pino";
 import { markFriend, removeFriend, unMarkFriend } from "./lib/worker/friend";
-AppDataSource.initialize().then(() => console.log('worker connected to db'))
-const transport = pino.transport({
-  target: 'pino/file',
-  options: { destination: '/tmp/timer.log', append: true }
-})
-const logger = pino(transport);
 
+const transport = pino.transport({
+    targets: [
+        {
+            target: 'pino/file',
+            options: { destination: path.join(os.tmpdir(), 'timer.log'), append: true },
+            level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+        },
+        {
+            target: 'pino-pretty',
+            options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
+            level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+        }
+    ]
+})
+const logger = pino({
+    name: 'plasmid-worker',
+}, transport);
+
+AppDataSource.initialize()
+.then(() => {
+    logger.info(`worker #${threadId} connected to db`)
+})
+.catch(e => {
+    logger.error({ error: e }, 'worker #${threadId} failed to connect to db')
+})
 const clientsHandlers: {
     [index: string]: 
     (params: {

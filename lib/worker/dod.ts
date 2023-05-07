@@ -5,13 +5,15 @@ import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState, sleep } from "../util";
 import { store } from "./shared";
 import { threadId } from "worker_threads";
+import os from 'os';
+import path from 'path';
 // import * as pino from "pino";
 
 import pino from "pino";
 
 const transport = pino.transport({
   target: 'pino/file',
-  options: { destination: '/tmp/plasmid.log', append: true }
+  options: { destination: path.join(os.tmpdir(), 'plasmid.log'), append: true }
 })
 const logger = pino(transport);
 
