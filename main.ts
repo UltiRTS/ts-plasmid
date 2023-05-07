@@ -1,8 +1,11 @@
 /** @format */
 
 import 'reflect-metadata';
+import os from 'os';
+import path from 'path';
 import { randomInt } from 'crypto';
 import { Worker, parentPort, threadId } from 'worker_threads';
+import { TypeORMError } from 'typeorm';
 import { AutohostManager } from './lib/autohost';
 import {
   CMD,
@@ -23,6 +26,7 @@ import {
 } from './lib/network';
 import { RedisStore } from './lib/store';
 import { AppDataSource } from './db/datasource';
+import { logger } from './lib/util';
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -35,6 +39,9 @@ const username2clientID: { [key: string]: string } = {};
 
 const autohostMgr = new AutohostManager([], { port: 5000 });
 const main = () => {
+  logger.info('starting main feature...');
+
+  logger.debug('registering network event handlers...');
   network.on('message', (clientID: string, data: IncommingMsg) => {
     clientID2seq[clientID] = data.seq;
     seq2clientID[data.seq] = clientID;
@@ -83,7 +90,7 @@ const main = () => {
   network.on('clean', async (clientID: string) => {
     const seq = clientID2seq[clientID];
     const username = clientID2username[clientID];
-    console.log('trigering clean, user: ', username);
+    logger.info(`trigering clean, user: ${username}`);
 
     const user = await store.getUser(username);
 
@@ -136,6 +143,7 @@ const main = () => {
     }
   });
 
+  logger.info('registering autohost event handlers...');
   autohostMgr.on(
     'gameStarted',
     (msg: {
@@ -190,8 +198,16 @@ const main = () => {
 
     workers[randomInt(4)].postMessage(internalMsg);
   });
-
+  logger.info('autohost event handlers registered');
   initializeWorkers();
+  logger.info('waiting for workers to be ready...');
+  Promise.all(workers.map(worker => {
+    return new Promise(resolve => {
+      worker.once('online', resolve);
+    })
+  })).then(() => {
+    logger.info('all workers are ready, server is ready to accept connections');
+  })
 };
 
 const handleClientMsg = (msg: Wrapped_Message) => {
@@ -245,7 +261,7 @@ function handlCmd(msg: Wrapped_Message) {
         let startCmd = cmd as CMD_Autohost_Start_Game;
         if (startCmd.payload.gameConf)
           autohostMgr.start(startCmd.payload.gameConf);
-        else console.log('empty gameconf');
+        else logger.info('empty gameconf');
 
         break;
       }
@@ -276,7 +292,7 @@ function handlCmd(msg: Wrapped_Message) {
     }
   } else if (cmd.to === 'client') {
   } else if (cmd.to === 'internal') {
-    console.log('internal message get called');
+    logger.info('internal message get called');
     switch (cmd.action) {
       case 'ADV_RECRUIT': {
         let recruitCmd = cmd as CMD_Adventure_recruit;
@@ -302,19 +318,29 @@ function handlCmd(msg: Wrapped_Message) {
 }
 
 const initializeWorkers = () => {
-  for (let i = 0; i < 4; i++) {
+  logger.info('initializing workers...')
+  let workerPoolSize = Number.parseInt(process.env.PLASMID_WORKER_POOL_SIZE ?? "") || os.cpus().length;
+  if (workerPoolSize < 1) {
+    logger.warn('worker pool size is less than 1, setting to default(1)');
+    workerPoolSize = 1;
+  }
+  for (let i = 0; i < workerPoolSize; i++) {
     let worker =
       process.env.NODE_ENV === 'development'
-        ? new Worker('./worker.ts', {
+        ? new Worker(path.join(__dirname, './worker.ts'), {
             execArgv: ['-r', 'ts-node/register/transpile-only'],
           })
-        : new Worker('./worker.js');
+        : new Worker(path.join(__dirname, 'worker.js'));
     worker.on('online', () => {
-      console.log(`Worker ${worker.threadId} online`);
+      logger.info(`Worker #${worker.threadId} online`);
     });
-    worker.on('exit', (code) => {
-      console.log(`worker ${worker.threadId} exited with code ${code}`);
-    });
+    worker.on('error', (err) => {
+      logger.error({ error: err }, `Worker #${worker.threadId} error: ${err.message}`);
+    })
+    // worker's threadId is -1 when exited
+    // worker.on('exit', (code) => {
+    //   logger.info(`worker #${worker.threadId} exited with code ${code}`);
+    // });
     worker.on('message', async (msgs: Wrapped_Message[]) => {
       for (const msg of msgs) {
         for (const target of msg.targets) {
@@ -348,13 +374,18 @@ const initializeWorkers = () => {
 
     workers.push(worker);
   }
+  logger.info(`workers initialized, available workers: ${workers.length}`);
 };
 
 AppDataSource.initialize()
   .then(() => {
+    logger.info('db initialized');
     if (process.env.NODE_ENV !== 'production') AppDataSource.synchronize();
   })
   .then(main)
   .catch((e) => {
-    console.log('db init failed', e);
+    if (e instanceof TypeORMError) {
+      logger.error({ error: e }, 'db failed');
+    }
+    logger.error({ error: e }, 'unexpected error')
   });

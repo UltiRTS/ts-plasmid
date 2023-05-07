@@ -1,2 +1,14 @@
-node_modules
-dist
+# IDE files
+.vscode/
+.idea/
+.fleet/
+
+# node_modules
+node_modules/
+
+# build files
+dist/
+
+# data and log files
+data/
+log/
