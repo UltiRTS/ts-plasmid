@@ -1,0 +1,39 @@
+version: '3'
+services:
+  plasmid:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PLASMID_DB_HOST=mysql
+      - PLASMID_DB_USER=chan
+      - PLASMID_DB_PASSWORD=Diy.2002
+      - PLASMID_DB_NAME=plasmid
+      - PLASMID_REDIS_HOST=redis
+      - PLASMID_REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=plasmid
+      - MYSQL_USER=chan
+      - MYSQL_PASSWORD=Diy.2002
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      timeout: 20s
+      retries: 10
+  redis:
+    image: redis:3.2
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
