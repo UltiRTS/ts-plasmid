@@ -1,5 +1,5 @@
-import {ChatRoom as DBChatRoom, Chat } from '../../db/models/chat';
-
+import {ChatRoom as DBChatRoom, Chat } from '@/db/models/chat';
+import { businessLogger as logger } from '@/lib/logger'
 export class ChatRoom extends DBChatRoom {
     lastMessage: {author: string, content: string, time: Date};
     members: string[]
@@ -60,7 +60,7 @@ export class ChatRoom extends DBChatRoom {
         try {
             return Object.assign(new ChatRoom(), JSON.parse(str)) as ChatRoom;
         } catch(e) {
-            console.log(e);
+            logger.error(e);
             return null;
         }
     }

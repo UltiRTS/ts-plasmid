@@ -1,8 +1,9 @@
-import { User } from "../../db/models/user"
-import { Adventure } from "../states/rougue/adventure";
-import { User as StateUser } from "../states/user";
-import { RedisStore } from "../store";
-import { Notify, WrappedState, WrappedCMD} from "../util";
+import { User } from "@/db/models/user"
+import { Adventure } from "@/lib/states/rougue/adventure";
+import { User as StateUser } from "@/lib/states/user";
+import { RedisStore } from "@/lib/store";
+import { Notify, WrappedState, WrappedCMD} from "@/lib/util";
+import { businessLogger as logger } from "@/lib/logger";
 
 import { advRepo, store } from "./shared";
 import { userRepo } from "./shared";
@@ -59,7 +60,7 @@ export async function loginHandler(params: {
 
         const userState = new StateUser(user);
         await store.setUser(username, userState);
-        console.log('getting inside auth: ', await store.getUser(username));
+        logger.info(`getting inside auth: ${await store.getUser(username)}`);
 
         await store.releaseLock(RESOURCE_OCCUPIED);
         return [WrappedState('LOGIN', seq, await store.dumpState(username), caller)];
@@ -86,7 +87,7 @@ export async function loginHandler(params: {
                 if(dbAdv) {
                     adv = Adventure.from(dbAdv.config);
                     await store.setAdventure(adv.id, adv);
-                    console.log(adv.recruits);
+                    logger.info(adv.recruits);
                 }
             }
         }

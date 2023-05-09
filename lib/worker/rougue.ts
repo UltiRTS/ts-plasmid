@@ -7,6 +7,7 @@ import { randomInt } from "crypto";
 import { CMD_Adventure_recruit, Wrapped_Message } from "../interfaces";
 
 import { advRepo } from "./shared";
+import { businessLogger as logger } from "@/lib/logger";
 
 export async function joinAdventureHandler(params: {
     advId?: number
@@ -223,7 +224,7 @@ export async function preStartAdventureHandler(params: {
     await store.setAdventure(advId, stateAdv);
     await store.releaseLocks(locks);
 
-    console.log(stateAdv.recruits);
+    logger.info(stateAdv.recruits);
 
     let res: Wrapped_Message[] = [];
     if(recruitAgain) {
@@ -302,7 +303,7 @@ export async function leaveAdventureHandler(params: {
     try {
         await store.acquireLocks(locks);
     } catch {
-        console.log('lock failed');
+        logger.error('lock failed');
         return [Notify('ADV_PRESTART', seq, 'adventure/user lock acquired fail', caller)];
     }
 
@@ -311,7 +312,7 @@ export async function leaveAdventureHandler(params: {
 
     if(adventure == null || user == null) {
         await store.releaseLocks(locks);
-        console.log('adventure not aexits');
+        logger.info('adventure not aexits');
         return [Notify('ADV_LEAVE', seq, 'adventure/user not exists', caller)];
     }
 
@@ -320,12 +321,12 @@ export async function leaveAdventureHandler(params: {
     user.adventure = null;
     await store.setAdventure(advId, adventure);
 
-    console.log(`decruiting ${caller}`);
+    logger.info(`decruiting ${caller}`);
 
     await store.setUser(caller, user);
     if(adventure.empty()) {
         await store.delAdventure(advId);
-        console.log('deleting adventure');
+        logger.info('deleting adventure');
         let dbAdventure = await advRepo.findOne({
             where: {
                 id: adventure.id

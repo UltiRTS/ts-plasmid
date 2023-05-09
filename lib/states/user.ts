@@ -1,9 +1,10 @@
 
-import {User as DBUser, Mark as DBMark} from '../../db/models/user';
+import {User as DBUser, Mark as DBMark} from '@/db/models/user';
 import { GameRoom } from './room';
 import { ChatRoom } from './chat';
-import { Confirmation } from '../../db/models/confirmation';
-import { Confirmation2Dump, Mark2dump, } from '../interfaces';
+import { Confirmation } from '@/db/models/confirmation';
+import { Confirmation2Dump, Mark2dump, } from '@/lib/interfaces';
+import { businessLogger as logger } from '@/lib/logger'
 
 
 export class User extends DBUser  {
@@ -115,7 +116,7 @@ export class User extends DBUser  {
         for(let i=0; i<this.confirmations.length; i++) {
             if(this.confirmations[i].id === id) {
                 this.confirmations[i].claimed = true;
-                console.log(this.confirmations[i]);
+                logger.info(this.confirmations[i]);
             }
         }
     }
