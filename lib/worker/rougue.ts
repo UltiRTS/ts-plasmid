@@ -7,7 +7,7 @@ import { randomInt } from "crypto";
 import { CMD_Adventure_recruit, Wrapped_Message } from "../interfaces";
 
 import { advRepo } from "./shared";
-import { businessLogger as logger } from "@/lib/logger";
+import { businessLogger as logger } from "lib/logger";
 
 export async function joinAdventureHandler(params: {
     advId?: number

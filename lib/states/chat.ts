@@ -1,5 +1,5 @@
-import {ChatRoom as DBChatRoom, Chat } from '@/db/models/chat';
-import { businessLogger as logger } from '@/lib/logger'
+import {ChatRoom as DBChatRoom, Chat } from 'db/models/chat';
+import { businessLogger as logger } from 'lib/logger'
 export class ChatRoom extends DBChatRoom {
     lastMessage: {author: string, content: string, time: Date};
     members: string[]

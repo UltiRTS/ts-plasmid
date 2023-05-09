@@ -1,6 +1,6 @@
 import { randomInt } from "crypto"
 import { CombatNode, DecisionNode, ExitNode, Node, StoreNode } from "./node"
-import { businessLogger as logger } from '@/lib/logger'
+import { businessLogger as logger } from 'lib/logger'
 
 export class Floor {
     nodes_count: number

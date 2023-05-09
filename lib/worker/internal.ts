@@ -3,7 +3,7 @@ import { Notify, WrappedState, userLevel } from "../util";
 import { RedisStore } from "../store";
 import { Confirmation } from "../../db/models/confirmation";
 import {Confirmation2Dump, ConfirmationContentAdvRecruit} from '../interfaces';
-import { businessLogger as logger } from "@/lib/logger";
+import { businessLogger as logger } from "lib/logger";
 
 export async function gameStartedHandler(params: {
     gameName?: string

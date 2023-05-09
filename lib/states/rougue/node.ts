@@ -1,8 +1,8 @@
 import { BlobOptions } from "buffer";
 import { json } from "stream/consumers";
-import { Game } from "@/db/models/game";
-import { GameRoom } from "@/lib/states/room";
-import { businessLogger as logger } from '@/lib/logger';
+import { Game } from "db/models/game";
+import { GameRoom } from "lib/states/room";
+import { businessLogger as logger } from 'lib/logger';
 
 export class Node {
     id: number = -1

@@ -5,7 +5,7 @@ import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState, sleep } from "../util";
 import { store } from "./shared";
 import { threadId } from "worker_threads";
-import { businessLogger as logger } from "@/lib/logger";
+import { businessLogger as logger } from "lib/logger";
 
 export async function joinGameHandler(params: {
     gameName?: string,

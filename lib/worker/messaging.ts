@@ -4,7 +4,7 @@ import { Adventure } from "../states/rougue/adventure";
 import { RedisStore } from "../store";
 import { Notify, WrappedState, userLevel } from "../util";
 import { advRepo, confirmRepo, store, userRepo } from "./shared";
-import { businessLogger as logger } from "@/lib/logger";
+import { businessLogger as logger } from "lib/logger";
 
 export async function addFriendHandler(params: {
     friendName?: string

@@ -26,7 +26,7 @@ import {
 } from './lib/network';
 import { RedisStore } from './lib/store';
 import { AppDataSource } from './db/datasource';
-import { mainLogger as logger } from '@/lib/logger';
+import { mainLogger as logger } from 'lib/logger';
 
 const network = new Network(8081);
 const workers: Worker[] = [];

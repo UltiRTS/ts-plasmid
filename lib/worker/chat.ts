@@ -4,7 +4,7 @@ import { Chat, ChatRoom as DBChatRoom } from "../../db/models/chat";
 import { RedisStore } from "../store";
 import { Notify, WrappedState } from "../util";
 import { store, chatRepo, userRepo } from "./shared";
-import { businessLogger as logger } from "@/lib/logger";
+import { businessLogger as logger } from "lib/logger";
 
 
 export async function joinChatRoomHandler(params: {
