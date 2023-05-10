@@ -4,6 +4,7 @@ services:
     build: .
     ports:
       - "5000:5000"
+      - "8081:8081"
     environment:
       - PLASMID_DB_HOST=mysql
       - PLASMID_DB_USER=chan
