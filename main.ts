@@ -7,6 +7,7 @@ import { randomInt } from 'crypto';
 import { Worker, parentPort, threadId } from 'worker_threads';
 import { TypeORMError } from 'typeorm';
 import { AutohostManager } from './lib/autohost';
+import { migrate } from './db/migrate';
 import {
   CMD,
   CMD_Adventure_recruit,
@@ -356,7 +357,6 @@ const initializeWorkers = () => {
             }
             case 'all': {
               if (!msg.payload.state) break;
-
               const users = Object.keys(username2clientID);
               for (const user of users) {
                 network.emit(
