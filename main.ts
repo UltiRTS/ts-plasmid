@@ -1,33 +1,33 @@
 /** @format */
 
 import 'reflect-metadata';
-import os from 'os';
-import path from 'path';
-import { randomInt } from 'crypto';
-import { Worker, parentPort, threadId } from 'worker_threads';
+import os from 'node:os';
+import path from 'node:path';
+import { randomInt } from 'node:crypto';
+import { Worker } from 'node:worker_threads';
 import { TypeORMError } from 'typeorm';
+import { mainLogger as logger } from 'lib/logger';
 import { AutohostManager } from './lib/autohost';
-import { migrate } from './db/migrate';
-import {
+import type {
   CMD,
   CMD_Adventure_recruit,
   CMD_Autohost_Kill_Engine,
   CMD_Autohost_Midjoin,
   CMD_Autohost_Start_Game,
-  Receipt,
-  State,
   Wrapped_Message,
 } from './lib/interfaces';
-import {
-  Network,
+
+import type {
   IncommingMsg,
   Notification,
+} from './lib/network';
+import {
+  Network,
   wrapReceipt,
   wrapState,
 } from './lib/network';
 import { RedisStore } from './lib/store';
 import { AppDataSource } from './db/datasource';
-import { mainLogger as logger } from 'lib/logger';
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -39,7 +39,7 @@ const clientID2username: { [key: string]: string } = {};
 const username2clientID: { [key: string]: string } = {};
 
 const autohostMgr = new AutohostManager([], { port: 5000 });
-const main = () => {
+function main() {
   logger.info('starting main feature...');
 
   logger.debug('registering network event handlers...');
@@ -51,8 +51,8 @@ const main = () => {
 
     // if action is login and the user is not logged in, set the clientID to username
     if (
-      data.action === 'LOGIN' &&
-      !(data.parameters.username in username2clientID)
+      data.action === 'LOGIN'
+      && !(data.parameters.username in username2clientID)
     ) {
       const username = data.parameters.username;
 
@@ -128,7 +128,8 @@ const main = () => {
 
     workers[randomInt(4)].postMessage(leaveGameMsg);
 
-    if (!user) return;
+    if (!user)
+      return;
     for (const room of user.chatRooms) {
       const leaveChatMsg: IncommingMsg = {
         action: 'LEAVECHAT',
@@ -148,11 +149,11 @@ const main = () => {
   autohostMgr.on(
     'gameStarted',
     (msg: {
-      gameName: string;
+      gameName: string
       payload: {
-        autohost: string;
-        port: number;
-      };
+        autohost: string
+        port: number
+      }
     }) => {
       const internalMsg: IncommingMsg = {
         action: 'GAMESTARTED',
@@ -167,7 +168,7 @@ const main = () => {
       };
 
       workers[randomInt(4)].postMessage(internalMsg);
-    }
+    },
   );
 
   autohostMgr.on('gameEnded', (gameName) => {
@@ -202,16 +203,16 @@ const main = () => {
   logger.info('autohost event handlers registered');
   initializeWorkers();
   logger.info('waiting for workers to be ready...');
-  Promise.all(workers.map(worker => {
-    return new Promise(resolve => {
+  Promise.all(workers.map((worker) => {
+    return new Promise((resolve) => {
       worker.once('online', resolve);
-    })
+    });
   })).then(() => {
     logger.info('all workers are ready, server is ready to accept connections');
-  })
-};
+  });
+}
 
-const handleClientMsg = (msg: Wrapped_Message) => {
+function handleClientMsg(msg: Wrapped_Message) {
   if (msg.receiptOf === 'LOGIN') {
     const clientID = seq2clientID[msg.seq];
     username2clientID[msg.client] = clientID;
@@ -219,17 +220,18 @@ const handleClientMsg = (msg: Wrapped_Message) => {
   }
 
   if (msg.payload.receipt) {
-    if (msg.seq !== -1)
+    if (msg.seq !== -1) {
       network.emit(
         'postMessage',
         seq2clientID[msg.seq],
-        wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt)
+        wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt),
       );
+    }
     else if (msg.client !== '' && username2clientID[msg.client] != null) {
       network.emit(
         'postMessage',
         username2clientID[msg.client],
-        wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt)
+        wrapReceipt(msg.receiptOf, msg.seq, msg.payload.receipt),
       );
     }
   }
@@ -238,28 +240,29 @@ const handleClientMsg = (msg: Wrapped_Message) => {
       network.emit(
         'postMessage',
         seq2clientID[msg.seq],
-        wrapState(msg.receiptOf, msg.seq, msg.payload.state)
+        wrapState(msg.receiptOf, msg.seq, msg.payload.state),
       );
-    } else if (msg.client !== '' && username2clientID[msg.client] != null) {
+    }
+    else if (msg.client !== '' && username2clientID[msg.client] != null) {
       network.emit(
         'postMessage',
         username2clientID[msg.client],
-        wrapState(msg.receiptOf, msg.seq, msg.payload.state)
+        wrapState(msg.receiptOf, msg.seq, msg.payload.state),
       );
     }
   }
-};
+}
 
 function handlCmd(msg: Wrapped_Message) {
-  if (!msg.payload.cmd) {
+  if (!msg.payload.cmd)
     return;
-  }
-  let cmd = msg.payload.cmd;
+
+  const cmd = msg.payload.cmd;
   if (cmd.to === 'autohost') {
-    let autohostCmd = cmd as CMD;
+    const autohostCmd = cmd as CMD;
     switch (autohostCmd.action) {
       case 'STARTGAME': {
-        let startCmd = cmd as CMD_Autohost_Start_Game;
+        const startCmd = cmd as CMD_Autohost_Start_Game;
         if (startCmd.payload.gameConf)
           autohostMgr.start(startCmd.payload.gameConf);
         else logger.info('empty gameconf');
@@ -267,7 +270,7 @@ function handlCmd(msg: Wrapped_Message) {
         break;
       }
       case 'MIDJOIN': {
-        let midjoinCmd = cmd as CMD_Autohost_Midjoin;
+        const midjoinCmd = cmd as CMD_Autohost_Midjoin;
         const payload = midjoinCmd.payload;
         const title = payload.title;
         autohostMgr.midJoin(title, {
@@ -281,8 +284,8 @@ function handlCmd(msg: Wrapped_Message) {
         break;
       }
       case 'KILLENGINE': {
-        let killCmd = cmd as CMD_Autohost_Kill_Engine;
-        let payload = killCmd.payload;
+        const killCmd = cmd as CMD_Autohost_Kill_Engine;
+        const payload = killCmd.payload;
         autohostMgr.killEngine({
           id: payload.id,
           title: payload.title,
@@ -291,13 +294,15 @@ function handlCmd(msg: Wrapped_Message) {
         break;
       }
     }
-  } else if (cmd.to === 'client') {
-  } else if (cmd.to === 'internal') {
+  }
+  else if (cmd.to === 'client') {
+  }
+  else if (cmd.to === 'internal') {
     logger.info('internal message get called');
     switch (cmd.action) {
       case 'ADV_RECRUIT': {
-        let recruitCmd = cmd as CMD_Adventure_recruit;
-        let recruitPayload = recruitCmd.payload;
+        const recruitCmd = cmd as CMD_Adventure_recruit;
+        const recruitPayload = recruitCmd.payload;
         const leaveChatMsg: IncommingMsg = {
           action: 'ADV_RECRUIT',
           type: 'internal',
@@ -318,26 +323,26 @@ function handlCmd(msg: Wrapped_Message) {
   }
 }
 
-const initializeWorkers = () => {
-  logger.info('initializing workers...')
-  let workerPoolSize = Number.parseInt(process.env.PLASMID_WORKER_POOL_SIZE ?? "") || os.cpus().length;
+function initializeWorkers() {
+  logger.info('initializing workers...');
+  let workerPoolSize = Number.parseInt(process.env.PLASMID_WORKER_POOL_SIZE ?? '') || os.cpus().length;
   if (workerPoolSize < 1) {
     logger.warn('worker pool size is less than 1, setting to default(1)');
     workerPoolSize = 1;
   }
   for (let i = 0; i < workerPoolSize; i++) {
-    let worker =
-      process.env.NODE_ENV === 'development'
+    const worker
+      = process.env.NODE_ENV === 'development'
         ? new Worker(path.join(__dirname, './worker.ts'), {
-            execArgv: ['-r', 'ts-node/register/transpile-only'],
-          })
+          execArgv: ['-r', 'ts-node/register/transpile-only'],
+        })
         : new Worker(path.join(__dirname, 'worker.js'));
     worker.on('online', () => {
       logger.info(`Worker #${worker.threadId} online`);
     });
     worker.on('error', (err) => {
       logger.error({ error: err }, `Worker #${worker.threadId} error: ${err.message}`);
-    })
+    });
     // worker's threadId is -1 when exited
     // worker.on('exit', (code) => {
     //   logger.info(`worker #${worker.threadId} exited with code ${code}`);
@@ -356,13 +361,14 @@ const initializeWorkers = () => {
               break;
             }
             case 'all': {
-              if (!msg.payload.state) break;
+              if (!msg.payload.state)
+                break;
               const users = Object.keys(username2clientID);
               for (const user of users) {
                 network.emit(
                   'postMessage',
                   username2clientID[user],
-                  wrapState('DUMP2ALL', -1, await store.dumpState(user))
+                  wrapState('DUMP2ALL', -1, await store.dumpState(user)),
                 );
               }
               break;
@@ -375,17 +381,18 @@ const initializeWorkers = () => {
     workers.push(worker);
   }
   logger.info(`workers initialized, available workers: ${workers.length}`);
-};
+}
 
 AppDataSource.initialize()
   .then(() => {
     logger.info('db initialized');
-    if (process.env.NODE_ENV !== 'production') AppDataSource.synchronize();
+    if (process.env.NODE_ENV !== 'production')
+      AppDataSource.synchronize();
   })
   .then(main)
   .catch((e) => {
-    if (e instanceof TypeORMError) {
+    if (e instanceof TypeORMError)
       logger.error({ error: e }, 'db failed');
-    }
-    logger.error({ error: e }, 'unexpected error')
+
+    logger.error({ error: e }, 'unexpected error');
   });

@@ -1,11 +1,9 @@
 import 'reflect-metadata';
-import { parentPort, threadId } from 'worker_threads';
-import os from 'os';
-import path from 'path';
-import { IncommingMsg } from './lib/network';
+import { parentPort, threadId } from 'node:worker_threads';
+import type { IncommingMsg } from './lib/network';
 import { AppDataSource } from './db/datasource';
 import { loginHandler } from './lib/worker/auth';
-import { CMD, Receipt, State, Wrapped_Message } from './lib/interfaces';
+import type { Wrapped_Message } from './lib/interfaces';
 import {
   delAI,
   hasMap,
@@ -20,10 +18,7 @@ import {
   setTeam,
   startGame,
 } from './lib/worker/dod';
-import { RedisStore } from './lib/store';
-import { CallTracker } from 'assert';
 
-import { store } from './lib/worker/shared';
 import {
   gameEndedHandler,
   gameStartedHandler,
@@ -50,9 +45,9 @@ import {
   readyAdventureHandler,
 } from './lib/worker/rougue';
 
-import { markFriend, removeFriend, unMarkFriend } from "./lib/worker/friend";
+import { markFriend, removeFriend, unMarkFriend } from './lib/worker/friend';
 
-import { workerLogger as logger } from "./lib/logger";
+import { workerLogger as logger } from './lib/logger';
 
 AppDataSource.initialize()
   .then(() => {
@@ -64,27 +59,27 @@ AppDataSource.initialize()
 const clientsHandlers: {
   [index: string]: (
     params: {
-      username?: string;
-      password?: string;
-      gameName?: string;
-      player?: string;
-      team?: string;
-      mapId?: number;
-      mod?: string;
-      room?: string;
-      message?: string;
-      chatName?: string;
-      type?: string;
-      confirmationId?: number;
-      agree?: boolean;
-      friendName?: string;
-      floorIn?: number;
-      nodeTo?: number;
-      [key: string]: any;
+      username?: string
+      password?: string
+      gameName?: string
+      player?: string
+      team?: string
+      mapId?: number
+      mod?: string
+      room?: string
+      message?: string
+      chatName?: string
+      type?: string
+      confirmationId?: number
+      agree?: boolean
+      friendName?: string
+      floorIn?: number
+      nodeTo?: number
+      [key: string]: any
     },
     seq: number,
     caller: string
-  ) => Promise<Wrapped_Message[]>;
+  ) => Promise<Wrapped_Message[]>
 } = {
   LOGIN: loginHandler,
   JOINGAME: joinGameHandler,
@@ -119,13 +114,13 @@ const clientsHandlers: {
 
 const interalHandlers: {
   [index: string]: (params: {
-    gameName?: string;
-    title?: string;
-    player?: string;
-    friendName?: string;
-    firstTime?: boolean;
-    [key: string]: any;
-  }) => Promise<Wrapped_Message[]>;
+    gameName?: string
+    title?: string
+    player?: string
+    friendName?: string
+    firstTime?: boolean
+    [key: string]: any
+  }) => Promise<Wrapped_Message[]>
 } = {
   GAMESTARTED: gameStartedHandler,
   GAMEENDED: gameEndedHandler,
@@ -133,7 +128,7 @@ const interalHandlers: {
   ADV_RECRUIT: interalRecruitPpl4Adventure,
 };
 
-let dbInitialized = false;
+const dbInitialized = false;
 
 function toParent(msgs: Wrapped_Message[]) {
   parentPort?.postMessage(msgs);
@@ -164,6 +159,6 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     }
   }
 
-    const time_end = Date.now();
-    logger.info(`cmd ${msg.action} consumed ${time_end - time_start}ms`);
+  const time_end = Date.now();
+  logger.info(`cmd ${msg.action} consumed ${time_end - time_start}ms`);
 });

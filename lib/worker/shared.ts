@@ -1,7 +1,7 @@
 /** @format */
 
 import { AppDataSource } from '../../db/datasource';
-import { Mark, User, InventoryItem } from '../../db/models/user';
+import { InventoryItem, Mark, User } from '../../db/models/user';
 import { ChatRoom } from '../../db/models/chat';
 import { RedisStore } from '../store';
 import { Confirmation } from '../../db/models/confirmation';

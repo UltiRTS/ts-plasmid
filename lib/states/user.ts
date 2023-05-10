@@ -1,12 +1,7 @@
 /** @format */
 
-import { User as DBUser, Mark as DBMark } from 'db/models/user';
-import { Confirmation } from 'db/models/confirmation';
-import { Confirmation2Dump, Mark2dump } from 'lib/interfaces';
-import { businessLogger as logger } from 'lib/logger'
-
-import { GameRoom } from './room';
-import { ChatRoom } from './chat';
+import { User as DBUser } from 'db/models/user';
+import type { Confirmation2Dump, Mark2dump } from 'lib/interfaces';
 
 export class User extends DBUser {
   chatRooms: string[] = [];
@@ -31,12 +26,12 @@ export class User extends DBUser {
       // clear sensitive fields
       this.hash = '';
       this.salt = '';
-      for (const confirmation of user.confirmations) {
+      for (const confirmation of user.confirmations)
         this.confirmations2dump.push(confirmation as Confirmation2Dump);
-      }
-      for (const friend of user.friends) {
+
+      for (const friend of user.friends)
         this.friends2dump.push(friend.username);
-      }
+
       for (const mark of user.marks) {
         this.marks2dump.push({
           id: mark.id,
@@ -44,15 +39,15 @@ export class User extends DBUser {
           mark: mark.mark,
         });
       }
-      let openAdvs = user.adventures
-        .filter((adv) => adv.closed === false)
+      const openAdvs = user.adventures
+        .filter(adv => adv.closed === false)
         .sort((a, b) => {
           return a.createAt > b.createAt ? -1 : 1;
         });
-      if (openAdvs.length > 0) {
+      if (openAdvs.length > 0)
         this.adventure = openAdvs[0].id;
-      }
-    } else {
+    }
+    else {
       this.id = 0;
       this.username = '';
       this.accessLevel = 0;
@@ -83,7 +78,8 @@ export class User extends DBUser {
     try {
       // const dbUser = Object.assign(new DBUser(), JSON.parse(str)) as User;
       return Object.assign(new User(), JSON.parse(str)) as User;
-    } catch (e) {
+    }
+    catch (e) {
       return null;
     }
   }
@@ -101,12 +97,14 @@ export class User extends DBUser {
   }
 
   joinChat(chatName: string) {
-    if (this.chatRooms.includes(chatName)) return;
+    if (this.chatRooms.includes(chatName))
+      return;
     this.chatRooms.push(chatName);
   }
 
   leaveChat(chatName: string) {
-    if (!this.chatRooms.includes(chatName)) return;
+    if (!this.chatRooms.includes(chatName))
+      return;
 
     this.chatRooms.splice(this.chatRooms.indexOf(chatName), 1);
   }

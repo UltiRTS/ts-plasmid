@@ -1,29 +1,29 @@
-import { randomInt } from "crypto";
-import { GameConf } from "../interfaces";
+import { randomInt } from 'node:crypto';
+import type { GameConf } from '../interfaces';
 
 export class GameRoom {
-  roomNotes: string = '';
-  title: string = '';
-  hoster: string = '';
-  mapId: number = 0;
-  ais: {[key: string]: {team: string}} = {};
-  chickens: {[key: string]: {team: string}} = {};
-  players: {[key:string]: {isSpec: boolean, team: string, hasmap: boolean}} = {}
-  polls: {[key:string]: string[]} = {};
-  id: number = 0;
-  engineToken: string = '';
-  password: string = '';
-  isStarted: boolean = false;
-  responsibleAutohost: string = '::ffff:127.0.0.1';
-  autohostPort: number = 0;
+  roomNotes = '';
+  title = '';
+  hoster = '';
+  mapId = 0;
+  ais: { [key: string]: { team: string } } = {};
+  chickens: { [key: string]: { team: string } } = {};
+  players: { [key: string]: { isSpec: boolean; team: string; hasmap: boolean } } = {};
+  polls: { [key: string]: string[] } = {};
+  id = 0;
+  engineToken = '';
+  password = '';
+  isStarted = false;
+  responsibleAutohost = '::ffff:127.0.0.1';
+  autohostPort = 0;
   aiHosters: string[] = [];
-  mod: string = 'mod.sdd'
+  mod = 'mod.sdd';
 
   constructor(title?: string, hoster?: string, mapId?: number, ID?: number, password?: string, autohost?: string);
   constructor(title: string, hoster: string, mapId: number, ID: number, password: string, autohost: string) {
     this.hoster = hoster;
     this.aiHosters = [hoster];
-    this.players[hoster] = {isSpec: false, team: 'A', hasmap: false};
+    this.players[hoster] = { isSpec: false, team: 'A', hasmap: false };
     this.title = title;
     this.mapId = mapId;
     this.id = ID;
@@ -36,9 +36,9 @@ export class GameRoom {
       let result = '';
       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       const charactersLength = characters.length;
-      for ( let i = 0; i < length; i++ ) {
+      for (let i = 0; i < length; i++)
         result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      }
+
       return result;
     }
   }
@@ -50,13 +50,14 @@ export class GameRoom {
   static from(str: string) {
     try {
       return Object.assign(new GameRoom(), JSON.parse(str)) as GameRoom;
-    } catch(e) {
+    }
+    catch (e) {
       return null;
     }
   }
 
   empty() {
-    return Object.keys(this.players).length === 0
+    return Object.keys(this.players).length === 0;
   }
 
   setRoomNotes(notes: string) {
@@ -72,11 +73,10 @@ export class GameRoom {
   }
 
   setPlayer(playerName: string, team: string) {
-    if(this.players[playerName]) {
+    if (this.players[playerName])
       this.players[playerName].team = team;
-    } else {
-      this.players[playerName]={'team': team, 'isSpec': false, 'hasmap': false};
-    }
+    else
+      this.players[playerName] = { team, isSpec: false, hasmap: false };
   }
 
   hasMap(player: string) {
@@ -85,9 +85,9 @@ export class GameRoom {
 
   ready() {
     let ready = true;
-    for(const player in this.players) {
-      ready = ready && this.players[player].hasmap
-    }
+    for (const player in this.players)
+      ready = ready && this.players[player].hasmap;
+
     return ready;
   }
 
@@ -98,18 +98,20 @@ export class GameRoom {
 
   removePlayer(playerName: string) {
     delete this.players[playerName];
-    if(playerName === this.hoster && !this.empty()) {
+    if (playerName === this.hoster && !this.empty()) {
       const players = Object.keys(this.players);
       this.hoster = players[randomInt(players.length)];
     }
   }
 
   setAI(aiName: string, team: string) {
-    this.ais[aiName]={'team': team};
+    this.ais[aiName] = { team };
   }
+
   setChicken(chickenName: string, team: string) {
-    this.chickens[chickenName]={'team': team};
+    this.chickens[chickenName] = { team };
   }
+
   checkStarted() {
     return this.isStarted;
   }
@@ -123,7 +125,7 @@ export class GameRoom {
   }
 
   setPlayerMapStatus(playerName: string, hasMap: boolean) {
-    this.players[playerName].hasmap=hasMap;
+    this.players[playerName].hasmap = hasMap;
   }
 
   getPlayerCount() {
@@ -145,20 +147,18 @@ export class GameRoom {
   }
 
   setSpec(player: string) {
-    if(this.players[player]) {
+    if (this.players[player])
       this.players[player].isSpec = !this.players[player].isSpec;
-    }
   }
 
   getPort() {
-    return this.id+6000;
+    return this.id + 6000;
   }
 
   getTitle() {
     return this.title;
   }
 
- 
   getID() {
     return this.id;
   }
@@ -182,17 +182,18 @@ export class GameRoom {
    * @param {String} actionName name of the poll
    */
   addPoll(playerName: string, actionName: string) {
-    if (!(actionName in this.polls)) {
+    if (!(actionName in this.polls))
       this.polls[actionName] = [];
-    }
-    if(!this.polls[actionName].includes(playerName))
-    this.polls[actionName].push(playerName);
+
+    if (!this.polls[actionName].includes(playerName))
+      this.polls[actionName].push(playerName);
   }
+
   // remove all polls this user has made
   removePoll(playerName: string) {
     for (const poll in this.polls) {
-      if(this.polls[poll].includes(playerName)) 
-        this.polls[poll].splice(this.polls[poll].indexOf(playerName), 1)
+      if (this.polls[poll].includes(playerName))
+        this.polls[poll].splice(this.polls[poll].indexOf(playerName), 1);
     }
   }
 
@@ -202,24 +203,23 @@ export class GameRoom {
    * @param {String} actionName
    */
   getPollCount(actionName: string) {
-    if (!this.polls.hasOwnProperty(actionName)) {
+    if (!this.polls.hasOwnProperty(actionName))
       return 0;
-    }
+
     return this.polls[actionName].length;
   }
 
   getPolls() {
-    const returningPoll: {[key: string]: number} = {};
-    for (const poll in this.polls) {
-      returningPoll[poll]= this.polls[poll].length;
-    }
+    const returningPoll: { [key: string]: number } = {};
+    for (const poll in this.polls)
+      returningPoll[poll] = this.polls[poll].length;
+
     return returningPoll;
   }
 
   clearPoll(actionName: string) {
-    if(actionName in this.polls) {
+    if (actionName in this.polls)
       this.polls[actionName] = [];
-    }
   }
 
   setPasswd(passwd: string) {
@@ -234,14 +234,13 @@ export class GameRoom {
     return this.mapId;
   }
 
-
   setMapId(mapId: number) {
-    if(mapId === this.mapId) return;
+    if (mapId === this.mapId)
+      return;
     this.mapId = mapId;
 
-    for(const player in this.players) {
+    for (const player in this.players)
       this.players[player].hasmap = false;
-    }
   }
 
   configureToStop() {
@@ -259,18 +258,18 @@ export class GameRoom {
       mgr: this.responsibleAutohost,
       team: {},
       mapId: this.mapId,
-      aiHosters: []
+      aiHosters: [],
     };
-    engineLaunchObj['id']=this.id;
-    engineLaunchObj['title']=this.title;
-    engineLaunchObj['mgr']=this.responsibleAutohost;
-    engineLaunchObj['team']={};
+    engineLaunchObj.id = this.id;
+    engineLaunchObj.title = this.title;
+    engineLaunchObj.mgr = this.responsibleAutohost;
+    engineLaunchObj.team = {};
 
-    engineLaunchObj['mapId'] = this.mapId;
-    engineLaunchObj['aiHosters'] = [];
-    engineLaunchObj['mod'] = this.mod;
+    engineLaunchObj.mapId = this.mapId;
+    engineLaunchObj.aiHosters = [];
+    engineLaunchObj.mod = this.mod;
 
-    const teamMapping: {[key: string]: number} = {};
+    const teamMapping: { [key: string]: number } = {};
     let teamCount = 0;
 
     // the below discoveres new letters and assign those with a number
@@ -303,23 +302,22 @@ export class GameRoom {
     for (const player in this.players) {
       const playerName = player;
       let team;
-      if (this.players[player].isSpec) {
+      if (this.players[player].isSpec)
         team = 0;
-      } else {
+      else
         team = teamMapping[this.players[player].team];
-      }
 
       engineLaunchObj.team[playerName] = {
         index: count,
         isAI: false,
         isChicken: false,
         isSpectator: this.players[player].isSpec,
-        team: team,
+        team,
       };
 
-      if (player in this.aiHosters) {
-        engineLaunchObj['aiHosters'].push(count);
-      }
+      if (player in this.aiHosters)
+        engineLaunchObj.aiHosters.push(count);
+
       count++;
     }
     // the below handles AI configs

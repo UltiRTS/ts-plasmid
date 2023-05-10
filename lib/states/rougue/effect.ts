@@ -1,5 +1,5 @@
 export class Effect {
-    constructor() {
-        
-    }
+  constructor() {
+
+  }
 }

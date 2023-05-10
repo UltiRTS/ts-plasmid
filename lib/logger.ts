@@ -1,6 +1,6 @@
+import os from 'node:os';
+import path from 'node:path';
 import pino from 'pino';
-import os from 'os';
-import path from 'path';
 
 const level = process.env.NODE_ENV === 'development' ? 'debug' : 'info';
 
@@ -13,11 +13,11 @@ const mainTransport = pino.transport({
     },
     {
       target: 'pino-pretty',
-      options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
+      options: { colorize: true, translateTime: 'yyyy-mm-dd\'T\'HH:MM:sso' },
       level,
     },
   ],
-})
+});
 
 const workerTransport = pino.transport({
   targets: [
@@ -28,11 +28,11 @@ const workerTransport = pino.transport({
     },
     {
       target: 'pino-pretty',
-      options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
+      options: { colorize: true, translateTime: 'yyyy-mm-dd\'T\'HH:MM:sso' },
       level,
     },
   ],
-})
+});
 
 const businessTransport = pino.transport({
   targets: [
@@ -43,11 +43,11 @@ const businessTransport = pino.transport({
     },
     {
       target: 'pino-pretty',
-      options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
+      options: { colorize: true, translateTime: 'yyyy-mm-dd\'T\'HH:MM:sso' },
       level,
     },
   ],
-})
+});
 
 export const mainLogger = pino({
   name: 'plasmid-main',

@@ -1,9 +1,11 @@
 /** @format */
 
-import { createHash, randomInt } from 'crypto';
-import { parse } from 'path';
-import { createClient, RedisClientType } from 'redis';
-import {
+import { randomInt } from 'node:crypto';
+import { EventEmitter } from 'node:stream';
+import type { RedisClientType } from 'redis';
+import { createClient } from 'redis';
+import { redisConf } from '../config';
+import type {
   Adv_Overview,
   Chat_Overview,
   Game_Overview,
@@ -14,9 +16,8 @@ import { ChatRoom } from './states/chat';
 import { GameRoom } from './states/room';
 import { User } from './states/user';
 import { Adventure } from './states/rougue/adventure';
-import { EventEmitter } from 'stream';
 import { sleep } from './util';
-import { redisConf } from '../config';
+
 const PREFIX_USER = 'USER_';
 const PREFIX_GAME = 'GAME_';
 const PREFIX_CHAT = 'CHAT_';
@@ -75,7 +76,8 @@ export class RedisStore {
     const name = RedisStore.ADV_RESOURCE(String(advName));
 
     const advStr = await this.client.get(name);
-    if (advStr == null) return null;
+    if (advStr == null)
+      return null;
     else return Adventure.from(advStr);
   }
 
@@ -97,7 +99,8 @@ export class RedisStore {
     const name = RedisStore.CHAT_RESOURCE(chatName);
 
     const chatStr = await this.client.get(name);
-    if (chatStr == null) return null;
+    if (chatStr == null)
+      return null;
     else return ChatRoom.from(chatStr);
   }
 
@@ -124,7 +127,8 @@ export class RedisStore {
     const name = RedisStore.GAME_RESOURCE(gameName);
 
     const gameStr = await this.client.get(name);
-    if (gameStr == null) return null;
+    if (gameStr == null)
+      return null;
     else return GameRoom.from(gameStr);
   }
 
@@ -144,7 +148,8 @@ export class RedisStore {
     const name = RedisStore.USER_RESOURCE(username);
 
     const userStr = await this.client.get(name);
-    if (userStr == null) return null;
+    if (userStr == null)
+      return null;
     else return User.from(userStr);
   }
 
@@ -155,13 +160,12 @@ export class RedisStore {
 
   async getGameOverview() {
     const name = RedisStore.OVERVIEW_RESOURCE('game');
-    let gameOverviewStr = await this.client.get(name);
+    const gameOverviewStr = await this.client.get(name);
     let gameOverview: Game_Overview;
-    if (gameOverviewStr == null) {
+    if (gameOverviewStr == null)
       gameOverview = {};
-    } else {
+    else
       gameOverview = JSON.parse(gameOverviewStr);
-    }
 
     return gameOverview;
   }
@@ -172,9 +176,9 @@ export class RedisStore {
   }
 
   async pushGameOverview(game: {
-    title: string;
-    hoster: string;
-    mapId: number;
+    title: string
+    hoster: string
+    mapId: number
   }) {
     const GAME_OVERVIEW_LOCK = RedisStore.LOCK_RESOURCE('game', 'overview');
     let lockAcquired = false;
@@ -182,7 +186,8 @@ export class RedisStore {
       try {
         await this.acquireLock(GAME_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const gameOverview = await this.getGameOverview();
@@ -204,7 +209,8 @@ export class RedisStore {
       try {
         await this.acquireLock(GAME_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const gameOverview = await this.getGameOverview();
@@ -216,13 +222,12 @@ export class RedisStore {
 
   async getChatOverview() {
     const name = RedisStore.OVERVIEW_RESOURCE('chat');
-    let chatOverviewStr = await this.client.get(name);
+    const chatOverviewStr = await this.client.get(name);
     let chatOverview: Chat_Overview;
-    if (chatOverviewStr == null) {
+    if (chatOverviewStr == null)
       chatOverview = {};
-    } else {
+    else
       chatOverview = JSON.parse(chatOverviewStr);
-    }
 
     return chatOverview;
   }
@@ -239,14 +244,14 @@ export class RedisStore {
       try {
         await this.acquireLock(CHAT_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const chatOverview = await this.getChatOverview();
 
-    if (!(chat in chatOverview)) {
+    if (!(chat in chatOverview))
       chatOverview[chat] = '';
-    }
 
     await this.setChatOverview(chatOverview);
     await this.releaseLock(CHAT_OVERVIEW_LOCK);
@@ -259,7 +264,8 @@ export class RedisStore {
       try {
         await this.acquireLock(CHAT_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const chatOverview = await this.getChatOverview();
@@ -271,13 +277,12 @@ export class RedisStore {
 
   async getAdvOverview() {
     const name = RedisStore.OVERVIEW_RESOURCE('adv');
-    let advOverviewStr = await this.client.get(name);
+    const advOverviewStr = await this.client.get(name);
     let advOverview: Adv_Overview;
-    if (advOverviewStr == null) {
+    if (advOverviewStr == null)
       advOverview = {};
-    } else {
+    else
       advOverview = JSON.parse(advOverviewStr);
-    }
 
     return advOverview;
   }
@@ -294,14 +299,14 @@ export class RedisStore {
       try {
         await this.acquireLock(ADV_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const advOverview = await this.getAdvOverview();
 
-    if (!(adv in advOverview)) {
+    if (!(adv in advOverview))
       advOverview[adv] = '';
-    }
 
     await this.setAdvOverview(advOverview);
     await this.releaseLock(ADV_OVERVIEW_LOCK);
@@ -314,7 +319,8 @@ export class RedisStore {
       try {
         await this.acquireLock(ADV_OVERVIEW_LOCK);
         lockAcquired = true;
-      } catch {}
+      }
+      catch {}
     }
 
     const advOverview = await this.getAdvOverview();
@@ -334,9 +340,9 @@ export class RedisStore {
     const UESR_ONLINE_OVERVIEW = RedisStore.OVERVIEW_RESOURCE('user-online');
 
     const onlines = await this.client.get(UESR_ONLINE_OVERVIEW);
-    if (onlines == null) {
+    if (onlines == null)
       return [];
-    }
+
     return Object.assign([], JSON.parse(onlines)) as string[];
   }
 
@@ -346,19 +352,22 @@ export class RedisStore {
     const advName = user?.adventure;
     let game: GameRoom | null = null;
     let adventure: Adventure | null = null;
-    if (gameName) game = await this.getGame(gameName);
-    if (advName) adventure = await this.getAdventure(advName);
+    if (gameName)
+      game = await this.getGame(gameName);
+    if (advName)
+      adventure = await this.getAdventure(advName);
 
     const onlines = await this.getOnline();
 
     let user2dump: User2Dump | null = null;
     if (user) {
       const chatRooms: {
-        [key: string]: ChatRoom;
+        [key: string]: ChatRoom
       } = {};
       for (const chatName of user.chatRooms) {
         const chatRoom = await this.getChat(chatName);
-        if (chatRoom) chatRooms[chatName] = chatRoom;
+        if (chatRoom)
+          chatRooms[chatName] = chatRoom;
       }
       console.log(`BBBBB User Inv: ${user.inventory}`);
       user2dump = {
@@ -378,16 +387,16 @@ export class RedisStore {
         loseCount: user.loseCount,
         rglike: adventure,
         friendsMarked: user.marks2dump,
-        friendsOnline: onlines.filter((p) => user.friends2dump.includes(p)),
+        friendsOnline: onlines.filter(p => user.friends2dump.includes(p)),
         inventory: user.inventory,
       };
     }
 
     const chats = Object.keys(await this.getChatOverview());
     const games: {
-      title: string;
-      hoster: string;
-      mapId: number;
+      title: string
+      hoster: string
+      mapId: number
     }[] = [];
 
     const gameOverview = await this.getGameOverview();
@@ -411,8 +420,8 @@ export class RedisStore {
 
   async setLoginStatus(username: string, status: boolean) {
     const tableStr = await this.client.get(LOGIN);
-    const table: { [key: string]: boolean } =
-      tableStr == null ? {} : JSON.parse(tableStr);
+    const table: { [key: string]: boolean }
+      = tableStr == null ? {} : JSON.parse(tableStr);
 
     table[username] = status;
 
@@ -421,8 +430,8 @@ export class RedisStore {
 
   async getLoginStatus(username: string) {
     const tableStr = await this.client.get(LOGIN);
-    const table: { [key: string]: boolean } =
-      tableStr == null ? {} : JSON.parse(tableStr);
+    const table: { [key: string]: boolean }
+      = tableStr == null ? {} : JSON.parse(tableStr);
 
     return table[username] == null ? false : table[username];
   }
@@ -433,7 +442,8 @@ export class RedisStore {
       try {
         await this._acquireLock(resource);
         return true;
-      } catch (e) {
+      }
+      catch (e) {
         // deply requiring
         sleep(randomInt(50, 200));
       }
@@ -455,7 +465,8 @@ export class RedisStore {
       if (success) {
         // console.log('key', resource, 'acquired');
         resolve(true);
-      } else {
+      }
+      else {
         const timeout = setTimeout(async () => {
           await sub.unsubscribe('__keyevent@0__:del');
           reject(new Error('key required failed'));
@@ -472,7 +483,8 @@ export class RedisStore {
               await sub.unsubscribe('__keyevent@0__:del');
               clearTimeout(timeout);
               resolve(true);
-            } else {
+            }
+            else {
               await sub.unsubscribe('__keyevent@0__:del');
               await sub.subscribe('__keyevent@0__:del', subCallback);
             }
@@ -497,7 +509,8 @@ export class RedisStore {
       const lock = locks[i];
       try {
         await this.acquireLock(lock);
-      } catch (e) {
+      }
+      catch (e) {
         for (let j = 0; j < i; j++) await this.releaseLock(locks[j]);
 
         throw new Error('key acquire failed');

@@ -1,7 +1,7 @@
-import { createClient} from "redis";
+import { createClient } from 'redis';
 
-const main = async () => {
-    const client = createClient();
+async function main() {
+  const client = createClient();
 
-    client.set('a', '1');
+  client.set('a', '1');
 }

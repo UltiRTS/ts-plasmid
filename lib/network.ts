@@ -1,104 +1,100 @@
-import {WebSocketServer, WebSocket} from 'ws';
-import { randomString } from "./util";
-import {EventEmitter} from "events";
-import { Receipt, State } from './interfaces';
+import { EventEmitter } from 'node:events';
+import type { WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
+import { randomString } from './util';
+import type { Receipt, State } from './interfaces';
 import { workerLogger as logger } from './logger';
 
 export interface IncommingMsg {
-    action: string,
-    seq: number,
-    type: string,
-    caller: string,
-    parameters: {[key: string]: any},
-    payload: {[key: string]: any}
+  action: string
+  seq: number
+  type: string
+  caller: string
+  parameters: { [key: string]: any }
+  payload: { [key: string]: any }
 }
 
 export interface Notification {
-    action: string,
-    seq: number,
-    message: string
+  action: string
+  seq: number
+  message: string
 }
 
 export class Network extends EventEmitter {
-    server: WebSocketServer;
-    clients: {[id: string]: WebSocket};
+  server: WebSocketServer;
+  clients: { [id: string]: WebSocket };
 
-    constructor(port: number, options={}) {
-        super(options);
+  constructor(port: number, options = {}) {
+    super(options);
 
-        this.server = new WebSocketServer({port: port});
-        this.clients = {};
+    this.server = new WebSocketServer({ port });
+    this.clients = {};
 
-        this.server.on('connection', (ws, req) => {
-            let clientID = randomString(16);
-            let pingPongCount = 0;
-            while(clientID in this.clients) {
-                clientID = randomString(16);
-            }
+    this.server.on('connection', (ws, req) => {
+      let clientID = randomString(16);
+      let pingPongCount = 0;
+      while (clientID in this.clients)
+        clientID = randomString(16);
 
-            this.clients[clientID] = ws;
+      this.clients[clientID] = ws;
 
-            let pingPongInterval = setInterval(() => {
-                if(pingPongCount > 3) {
-                    ws.terminate();
-                    clearInterval(pingPongInterval);
-                }
-                pingPongCount++;
-                ws.send(JSON.stringify({
-                    action: 'PING',
-                    parameters: {},
-                }));
-            }, 3000);
+      const pingPongInterval = setInterval(() => {
+        if (pingPongCount > 3) {
+          ws.terminate();
+          clearInterval(pingPongInterval);
+        }
+        pingPongCount++;
+        ws.send(JSON.stringify({
+          action: 'PING',
+          parameters: {},
+        }));
+      }, 3000);
 
-            ws.on('message', (msg) => {
-                const data = JSON.parse(msg.toString());
-                switch(data.action) {
-                    case 'PONG':
-                        pingPongCount = 0;
-                        break;
-                    default: 
-                        this.emit('message', clientID, data);
-                }
-            })
+      ws.on('message', (msg) => {
+        const data = JSON.parse(msg.toString());
+        switch (data.action) {
+          case 'PONG':
+            pingPongCount = 0;
+            break;
+          default:
+            this.emit('message', clientID, data);
+        }
+      });
 
-            ws.on('close', (ws: WebSocket, code: number) => {
-                this.emit('clean', clientID);
-                // clearInterval(pingPongInterval);
-                delete this.clients[clientID];
+      ws.on('close', (ws: WebSocket, code: number) => {
+        this.emit('clean', clientID);
+        // clearInterval(pingPongInterval);
+        delete this.clients[clientID];
 
-                logger.info(`Client ${clientID} disconnected with code ${code}`);
-            })
+        logger.info(`Client ${clientID} disconnected with code ${code}`);
+      });
+    });
 
-        })
+    this.on('postMessage', (clientID: string, msg: Object) => {
+      if (clientID in this.clients)
+        this.clients[clientID].send(JSON.stringify(msg));
+    });
 
-        this.on('postMessage', (clientID: string, msg: Object) => {
-            if(clientID in this.clients) {
-                this.clients[clientID].send(JSON.stringify(msg));
-            }
-        })
-
-        this.on('dump2all', (msg: Object) => {
-            for(let clientID in this.clients) {
-                this.clients[clientID].send(JSON.stringify(msg));
-            }
-        })
-    }
-
+    this.on('dump2all', (msg: Object) => {
+      for (const clientID in this.clients)
+        this.clients[clientID].send(JSON.stringify(msg));
+    });
+  }
 }
 
 export function wrapState(action: string, seq: number, state: State) {
-    return {
-        action,
-        seq,
-        state
-    }
-} 
+  return {
+    action,
+    seq,
+    state,
+  };
+}
 
 export function wrapReceipt(action: string, seq: number, receipt: Receipt) {
-    return {
-        action: 'NOTIFY',
-        seq,
-        ...receipt,
-        from: action
-    }
+  return {
+    action: 'NOTIFY',
+    seq,
+    ...receipt,
+    from: action,
+  };
 }

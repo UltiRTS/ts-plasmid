@@ -3,8 +3,8 @@ services:
   plasmid:
     build: .
     ports:
-      - "5000:5000"
-      - "8081:8081"
+      - '5000:5000'
+      - '8081:8081'
     environment:
       - PLASMID_DB_HOST=mysql
       - PLASMID_DB_USER=chan
@@ -25,7 +25,7 @@ services:
       - MYSQL_USER=chan
       - MYSQL_PASSWORD=Diy.2002
     ports:
-      - "3306:3306"
+      - '3306:3306'
     healthcheck:
       test: mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
       timeout: 20s
@@ -33,8 +33,8 @@ services:
   redis:
     image: redis:3.2
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [CMD, redis-cli, ping]
       timeout: 20s
       retries: 10
