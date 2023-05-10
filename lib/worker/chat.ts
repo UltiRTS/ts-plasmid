@@ -4,6 +4,7 @@ import { Chat, ChatRoom as DBChatRoom } from "../../db/models/chat";
 import { RedisStore } from "../store";
 import { Notify, WrappedState } from "../util";
 import { store, chatRepo, userRepo } from "./shared";
+import { businessLogger as logger } from "lib/logger";
 
 
 export async function joinChatRoomHandler(params: {
@@ -29,7 +30,7 @@ export async function joinChatRoomHandler(params: {
         dbChatRoom.password = password;
         dbChatRoom = await chatRepo.save(dbChatRoom);
 
-        console.log('constructing chat');
+        logger.info('constructing chat');
         chatRoom = new ChatRoom(dbChatRoom);  
         newRoom = true;
     } else {
@@ -109,7 +110,7 @@ export async function leaveChatRoomHandler(params: {
     user.leaveChat(room);
 
     await store.setUser(caller, user);
-    console.log('leave chat: ', chatRoom);
+    logger.info(`leave chat: ${chatRoom}`);
 
     if(!chatRoom.empty()) {
         await store.setChat(room, chatRoom);
@@ -158,7 +159,7 @@ export async function sayChatHandler(params: {
         }
     })
 
-    console.log('id of chat:', chatRoom.id);
+    logger.info(`id of chat: ${chatRoom.id}`);
     const dbChatRoom = await chatRepo.findOne({
         where: {
             id: chatRoom.id 
@@ -176,7 +177,7 @@ export async function sayChatHandler(params: {
     }
 
     const CHAT_LOCK = RedisStore.LOCK_RESOURCE(room, 'chat');
-    console.log(`chat lock name: `, CHAT_LOCK);
+    logger.info(`chat lock name: ${CHAT_LOCK}`);
 
     try {
         await store.acquireLock(CHAT_LOCK);
@@ -196,7 +197,7 @@ export async function sayChatHandler(params: {
     chatRepo.save(dbChatRoom);
     chatRoom.say(chat);
     await store.setChat(room, chatRoom);
-    console.log('saychat: ', chatRoom);
+    logger.info(`saychat: ${chatRoom}`);
 
     const res = [];
     for(const member of chatRoom.members) {

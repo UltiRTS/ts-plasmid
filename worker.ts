@@ -1,5 +1,3 @@
-/** @format */
-
 import 'reflect-metadata';
 import { parentPort, threadId } from 'worker_threads';
 import os from 'os';
@@ -52,33 +50,9 @@ import {
   readyAdventureHandler,
 } from './lib/worker/rougue';
 
-import pino from 'pino';
-import { markFriend, removeFriend, unMarkFriend } from './lib/worker/friend';
-AppDataSource.initialize().then(() => console.log('worker connected to db'));
+import { markFriend, removeFriend, unMarkFriend } from "./lib/worker/friend";
 
-const transport = pino.transport({
-  targets: [
-    {
-      target: 'pino/file',
-      options: {
-        destination: path.join(os.tmpdir(), 'timer.log'),
-        append: true,
-      },
-      level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-    },
-    {
-      target: 'pino-pretty',
-      options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
-      level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-    },
-  ],
-});
-const logger = pino(
-  {
-    name: 'plasmid-worker',
-  },
-  transport
-);
+import { workerLogger as logger } from "./lib/logger";
 
 AppDataSource.initialize()
   .then(() => {
@@ -171,18 +145,17 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     return;
 
   const time_start = Date.now();
-
   switch (msg.type) {
     case 'client': {
       const action = msg.action;
-      console.log('AAA Client Action');
+      logger.info('AAA Client Action');
       const hanlder = clientsHandlers[action];
       const resp = await hanlder(msg.parameters, msg.seq, msg.caller);
       toParent(resp);
       break;
     }
     case 'internal': {
-      console.log('interal: ', msg);
+      logger.info(`interal: ${msg}`);
       const action = msg.action;
       const hanlder = interalHandlers[action];
       const resp = await hanlder(msg.parameters);
@@ -191,6 +164,6 @@ parentPort?.on('message', async (msg: IncommingMsg) => {
     }
   }
 
-  const time_end = Date.now();
-  console.log(`cmd ${msg.action} consumed ${time_end - time_start}ms`);
+    const time_end = Date.now();
+    logger.info(`cmd ${msg.action} consumed ${time_end - time_start}ms`);
 });

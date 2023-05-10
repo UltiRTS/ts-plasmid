@@ -5,17 +5,7 @@ import { RedisStore } from "../store";
 import { Notify, WrappedCMD, WrappedState, sleep } from "../util";
 import { store } from "./shared";
 import { threadId } from "worker_threads";
-import os from 'os';
-import path from 'path';
-// import * as pino from "pino";
-
-import pino from "pino";
-
-const transport = pino.transport({
-  target: 'pino/file',
-  options: { destination: path.join(os.tmpdir(), 'plasmid.log'), append: true }
-})
-const logger = pino(transport);
+import { businessLogger as logger } from "lib/logger";
 
 export async function joinGameHandler(params: {
     gameName?: string,
@@ -47,12 +37,12 @@ export async function joinGameHandler(params: {
         //     await store.releaseLock(USER_LOCK);
         //     return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
         // }
-        // console.log(`thread-${threadId} join game locks acquired`)
+        // logger.info(`thread-${threadId} join game locks acquired`)
     } catch(e) {
         return [Notify('JOINGAME', seq, 'joingame lock acquired fail', caller)];
     }
 
-    // console.log(`thread-${threadId} join game locks released`)
+    // logger.info(`thread-${threadId} join game locks released`)
 
     let gameRoom = await store.getGame(gameName)
     const user = await store.getUser(caller);
@@ -168,14 +158,14 @@ export async function setMap(params: {
         game.clearPoll(poll);
         game.setMapId(mapId);
 
-        console.log('map set');
+        logger.info('map set');
     } else {
         game.addPoll(caller, poll);
         if(game.getPollCount(poll) > game.getPlayerCount() / 2) {
             game.clearPoll(poll);
             game.setMapId(mapId);
         }
-        console.log('poll added');
+        logger.info('poll added');
     }
 
     await store.setGame(gameName, game);

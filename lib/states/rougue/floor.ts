@@ -1,5 +1,6 @@
 import { randomInt } from "crypto"
 import { CombatNode, DecisionNode, ExitNode, Node, StoreNode } from "./node"
+import { businessLogger as logger } from 'lib/logger'
 
 export class Floor {
     nodes_count: number
@@ -128,7 +129,7 @@ export class Floor {
 
     show() {
         for(let node of this.nodes) {
-            console.log(`node: ${node.type} with ${this.adj_list[node.id]}`); 
+            logger.info(`node: ${node.type} with ${this.adj_list[node.id]}`); 
         }
     }
 

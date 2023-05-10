@@ -1,34 +1,32 @@
-/** @format */
+import { InventoryItem, User } from 'db/models/user';
+import { Adventure } from 'lib/states/rougue/adventure';
+import { User as StateUser } from 'lib/states/user';
+import { RedisStore } from 'lib/store';
+import { Notify, WrappedState } from 'lib/util';
+import { businessLogger as logger } from 'lib/logger';
 
-import { InventoryItem, User } from '../../db/models/user';
-import { Adventure } from '../states/rougue/adventure';
-import { User as StateUser } from '../states/user';
-import { RedisStore } from '../store';
-import { Notify, WrappedState, WrappedCMD } from '../util';
-
-import { advRepo, invetoryItemRepo, store } from './shared';
-import { userRepo } from './shared';
+import { advRepo, invetoryItemRepo, store, userRepo } from './shared';
 
 export async function loginHandler(
   params: {
-    username?: string;
-    password?: string;
-    [key: string]: any;
+    username?: string
+    password?: string
+    [key: string]: any
   },
   seq: number,
-  caller: string
+  caller: string,
 ) {
   const username = params.username;
   const password = params.password;
 
-  if (username == null || password == null) {
+  if (username == null || password == null)
     return [Notify('LOGIN', seq, 'missing username or password', caller)];
-  }
 
   const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
   try {
     await store.acquireLock(RESOURCE_OCCUPIED);
-  } catch {
+  }
+  catch {
     return [Notify('LOGIN', seq, 'acquire user lock failed', caller)];
   }
 
@@ -71,7 +69,7 @@ export async function loginHandler(
 
     const userState = new StateUser(user);
     await store.setUser(username, userState);
-    console.log('getting inside auth: ', await store.getUser(username));
+    logger.info(`getting inside auth: ${await store.getUser(username)}`);
 
     await store.releaseLock(RESOURCE_OCCUPIED);
     return [
@@ -86,7 +84,8 @@ export async function loginHandler(
   if (!user.verify(password)) {
     await store.releaseLock(RESOURCE_OCCUPIED);
     return [Notify('LOGIN', seq, 'wrong password of username', caller)];
-  } else {
+  }
+  else {
     const userState = new StateUser(user);
     userState.confirmations2dump = [];
     if (userState.adventure) {
@@ -100,7 +99,7 @@ export async function loginHandler(
         if (dbAdv) {
           adv = Adventure.from(dbAdv.config);
           await store.setAdventure(adv.id, adv);
-          console.log(adv.recruits);
+          logger.info(adv.recruits);
         }
       }
     }
@@ -116,11 +115,11 @@ export async function loginHandler(
         });
       }
     }
-    console.log('AAAA Setting user');
+    logger.info('AAAA Setting user');
     await store.setUser(username, userState);
 
     await store.releaseLock(RESOURCE_OCCUPIED);
-    console.log('AAAA Login Hnadler');
+    logger.info('AAAA Login Handler');
     return [
       WrappedState('LOGIN', seq, await store.dumpState(username), caller),
     ];

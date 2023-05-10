@@ -2,6 +2,7 @@ import {WebSocketServer, WebSocket} from 'ws';
 import { randomString } from "./util";
 import {EventEmitter} from "events";
 import { Receipt, State } from './interfaces';
+import { workerLogger as logger } from './logger';
 
 export interface IncommingMsg {
     action: string,
@@ -65,7 +66,7 @@ export class Network extends EventEmitter {
                 // clearInterval(pingPongInterval);
                 delete this.clients[clientID];
 
-                console.log(`Client ${clientID} disconnected with code ${code}`);
+                logger.info(`Client ${clientID} disconnected with code ${code}`);
             })
 
         })

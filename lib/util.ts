@@ -1,28 +1,6 @@
 import axios, { responseEncoding } from 'axios';
-import os from 'os';
-import path from 'path';
 import {dntpAddr} from '../config';
 import { CMD, Receipt, State, Wrapped_Message} from './interfaces';
-
-import pino from "pino";
-
-const transport = pino.transport({
-    targets: [
-        {
-            target: 'pino/file',
-            options: { destination: path.join(os.tmpdir(), 'plasmid.log'), append: true },
-            level: process.env.NODE_ENV === 'development' ? 'debug' : 'info'
-        },
-        {
-            target: 'pino-pretty',
-            options: { colorize: true, translateTime: "yyyy-mm-dd'T'HH:MM:sso" },
-            level: process.env.NODE_ENV === 'development' ? 'debug' : 'info'
-        }
-    ]
-})
-export const logger = pino({
-    name: 'plasmid-main',
-},transport);
 
 const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 

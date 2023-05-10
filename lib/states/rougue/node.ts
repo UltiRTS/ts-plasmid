@@ -1,7 +1,8 @@
 import { BlobOptions } from "buffer";
 import { json } from "stream/consumers";
-import { Game } from "../../../db/models/game";
-import { GameRoom } from "../../states/room";
+import { Game } from "db/models/game";
+import { GameRoom } from "lib/states/room";
+import { businessLogger as logger } from 'lib/logger';
 
 export class Node {
     id: number = -1
@@ -41,7 +42,7 @@ export class Node {
         try {
             return Object.assign(new Node(), JSON.parse(str));
         } catch(e) {
-            console.log('simple node from: ', e);
+            logger.info('simple node from: ', e);
             return null;
         }
     }
@@ -99,7 +100,7 @@ export class CombatNode extends Node {
             else node.game = game;
             return node;
         } catch(e) {
-            console.log('combat node from: ', e);
+            logger.error({ error: e }, `combat node from: ${e}`);
             return null;
         }
     }
@@ -124,7 +125,7 @@ export class DecisionNode extends Node {
         try {
             return Object.assign(new DecisionNode(), JSON.parse(str));
         } catch(e) {
-            console.log('decision node from: ', e);
+            logger.error({ error: e }, `decision node from: ${e}`);
             return null;
         }
     }
@@ -140,7 +141,7 @@ export class StoreNode extends Node {
         try {
             return Object.assign(new StoreNode(), JSON.parse(str));
         } catch(e) {
-            console.log('store node from: ', e);
+            logger.error({ error: e }, `store node from: '${e}`)
             return null;
         }
     }
@@ -156,7 +157,7 @@ export class ExitNode extends Node {
         try {
             return Object.assign(new ExitNode(), JSON.parse(str));
         } catch(e) {
-            console.log('exit node from: ', e);
+            logger.error({ error: e }, `exit node from: '${e}`)
             return null;
         }
     }

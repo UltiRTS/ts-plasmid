@@ -4,6 +4,7 @@ import { Adventure } from "../states/rougue/adventure";
 import { RedisStore } from "../store";
 import { Notify, WrappedState, userLevel } from "../util";
 import { advRepo, confirmRepo, store, userRepo } from "./shared";
+import { businessLogger as logger } from "lib/logger";
 
 export async function addFriendHandler(params: {
     friendName?: string
@@ -64,8 +65,7 @@ export async function addFriendHandler(params: {
             await store.setUser(friendName, friendIncache);
             await store.releaseLock(FRIEND_LOCK);
         } catch(e) {
-            console.log(e);
-            console.log('acquire lock falied in add friend');
+            logger.error({ error: e}, 'acquire lock falied in add friend');
         }
     }
 
@@ -268,12 +268,12 @@ export async function confirmHandler(params: {
                     userInCache.confirmations2dump = userInCache.confirmations2dump.filter(c => {
                         return c.id !== confirmation.id && c.claimed === false
                     })
-                    console.log(userInCache.confirmations2dump);
+                    logger.info(userInCache.confirmations2dump);
 
                     await store.setUser(userInCache.username, userInCache);
                     await store.releaseLock(USER_LOCK);
                 } catch(e) {
-                    console.log('acquire user lock failed in claim');
+                    logger.error('acquire user lock failed in claim');
                 }
             }
             // END in cache claimed
@@ -339,7 +339,7 @@ export async function confirmHandler(params: {
                             await store.setUser(userInCache.username, userInCache);
                             await store.releaseLock(USER_LOCK);
                         } catch(e) {
-                            console.log('acquire user lock failed in claim');
+                            logger.error('acquire user lock failed in claim');
                         }
                     }
                 }
@@ -357,7 +357,7 @@ export async function confirmHandler(params: {
                             await store.setUser(friendInCache.username, friendInCache);
                             await store.releaseLock(USER_LOCK);
                         } catch(e) {
-                            console.log('acquire friend lock failed in claim');
+                            logger.error('acquire friend lock failed in claim');
                         }
                     }
                 }

@@ -3,6 +3,7 @@ import { Notify, WrappedState, userLevel } from "../util";
 import { RedisStore } from "../store";
 import { Confirmation } from "../../db/models/confirmation";
 import {Confirmation2Dump, ConfirmationContentAdvRecruit} from '../interfaces';
+import { businessLogger as logger } from "lib/logger";
 
 export async function gameStartedHandler(params: {
     gameName?: string
@@ -24,7 +25,7 @@ export async function gameStartedHandler(params: {
     try {
         await store.acquireLock(GAME_LOCK);
     } catch(e) {
-        console.log('internal: trying to acquire lock failed');
+        logger.error('internal: trying to acquire lock failed');
         return []
     }
 
@@ -65,7 +66,7 @@ export async function gameEndedHandler(params: {
     try {
         await store.acquireLock(GAME_LOCK);
     } catch(e) {
-        console.log('interal: trying to acquire lock failed');
+        logger.error('interal: trying to acquire lock failed');
         return []
     }
 
