@@ -2,5 +2,6 @@
   "extends": "@antfu",
   "rules": {
     // your rules...
+    "@typescript-eslint/semi": ["error", "always"]
   }
 }
