@@ -107,6 +107,7 @@
     "compilerOptions": {
       "module": "CommonJS",
       "esModuleInterop": true
-    }
+    },
+    "require": ["tsconfig-paths/register"]
   }
 }

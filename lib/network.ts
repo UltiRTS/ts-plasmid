@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import http from 'node:http';
 import type { WebSocket } from 'ws';
 import { WebSocketServer } from 'ws';
 import { randomString } from './util';
@@ -21,13 +22,21 @@ export interface Notification {
 }
 
 export class Network extends EventEmitter {
+  httpServer: http.Server;
   server: WebSocketServer;
   clients: { [id: string]: WebSocket };
 
   constructor(port: number, options = {}) {
     super(options);
 
-    this.server = new WebSocketServer({ port });
+    this.httpServer = http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('okay');
+    });
+
+    this.httpServer.listen(port);
+
+    this.server = new WebSocketServer({ server: this.httpServer });
     this.clients = {};
 
     this.server.on('connection', (ws, req) => {
