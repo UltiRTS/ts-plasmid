@@ -1,9 +1,8 @@
 version: '3'
 services:
   plasmid:
-    build: .
+    image: ghcr.io/ultirts/ts-plasmid:latest
     ports:
-      - '5000:5000'
       - '8081:8081'
     environment:
       - PLASMID_DB_HOST=mysql
@@ -16,6 +15,24 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, http://localhost:8081, -O, /dev/null]
+      timeout: 3s
+      retries: 10
+  autohost:
+    image: ghcr.io/ultirts/ts-autohost:latest
+    ports:
+      - '3000-3100:3000-3100'
+      - '7000-7100:7000-7100'
+      - '3000-3100:3000-3100/udp'
+      - '7000-7100:7000-7100/udp'
+      - '5000:5000'
+    environment:
+      - PLASMID_SERVER_HOST=plasmid
+      - PLASMID_SERVER_PORT=5000
+    depends_on:
+      plasmid:
         condition: service_healthy
   mysql:
     image: mysql:5.7
