@@ -12,3 +12,8 @@ dist/
 # data and log files
 data/
 log/
+
+# docker-compose volumes
+mysql/
+maps/
+games/

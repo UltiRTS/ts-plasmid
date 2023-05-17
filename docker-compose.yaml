@@ -1,7 +1,7 @@
 version: '3'
 services:
   plasmid:
-    image: ghcr.io/ultirts/ts-plasmid:latest
+    image: ghcr.io/ultirts/ts-plasmid:nightly
     ports:
       - '8081:8081'
     environment:
@@ -21,7 +21,7 @@ services:
       timeout: 3s
       retries: 10
   autohost:
-    image: ghcr.io/ultirts/ts-autohost:latest
+    image: ghcr.io/ultirts/ts-autohost:nightly
     ports:
       - '3000-3100:3000-3100'
       - '7000-7100:7000-7100'
@@ -34,6 +34,9 @@ services:
     depends_on:
       plasmid:
         condition: service_healthy
+    volumes:
+      - ./maps:/autohost/engine/maps
+      - ./games:/autohost/engine/games
   mysql:
     image: mysql:5.7
     environment:
@@ -43,6 +46,8 @@ services:
       - MYSQL_PASSWORD=Diy.2002
     ports:
       - '3306:3306'
+    volumes:
+      - ./mysql:/var/lib/mysql
     healthcheck:
       test: mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
       timeout: 20s

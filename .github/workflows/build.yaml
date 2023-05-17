@@ -10,7 +10,8 @@ on:
       - .gitignore
       - '.github/**'
       - '!.github/workflows/build.yaml'
-
+      - Dockerfile
+      - docker-compose.yaml
 defaults:
   run:
     shell: bash
