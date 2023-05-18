@@ -43,11 +43,13 @@ function main() {
   logger.info('starting main feature...');
 
   logger.debug('registering network event handlers...');
+  let workerIndex = 0;
   network.on('message', (clientID: string, data: IncommingMsg) => {
     clientID2seq[clientID] = data.seq;
     seq2clientID[data.seq] = clientID;
 
-    const workerId = randomInt(4);
+    const workerId = workerIndex;
+    workerIndex = (workerIndex + 1) % workers.length;
 
     // if action is login and the user is not logged in, set the clientID to username
     if (
