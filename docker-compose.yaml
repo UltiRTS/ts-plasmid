@@ -2,6 +2,7 @@ version: '3'
 services:
   plasmid:
     image: ghcr.io/ultirts/ts-plasmid:nightly
+    pull_policy: always
     ports:
       - '8081:8081'
     environment:
@@ -22,6 +23,7 @@ services:
       retries: 10
   autohost:
     image: ghcr.io/ultirts/ts-autohost:nightly
+    pull_policy: always
     ports:
       - '3000-3100:3000-3100'
       - '7000-7100:7000-7100'
