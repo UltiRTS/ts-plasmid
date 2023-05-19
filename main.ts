@@ -3,7 +3,6 @@
 import 'reflect-metadata';
 import os from 'node:os';
 import path from 'node:path';
-import { randomInt } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
 import { TypeORMError } from 'typeorm';
 import { mainLogger as logger } from 'lib/logger';
@@ -44,12 +43,16 @@ function main() {
 
   logger.debug('registering network event handlers...');
   let workerIndex = 0;
+
+  const postMessageToWorker = (value: any) => {
+    const workerId = workerIndex;
+    workerIndex = (workerIndex + 1) % workers.length;
+    workers[workerId].postMessage(value);
+  };
+
   network.on('message', (clientID: string, data: IncommingMsg) => {
     clientID2seq[clientID] = data.seq;
     seq2clientID[data.seq] = clientID;
-
-    const workerId = workerIndex;
-    workerIndex = (workerIndex + 1) % workers.length;
 
     // if action is login and the user is not logged in, set the clientID to username
     if (
@@ -79,7 +82,7 @@ function main() {
     data.caller = clientID2username[clientID];
     data.type = 'client';
 
-    workers[workerId].postMessage(data);
+    postMessageToWorker(data);
 
     // clear temporary caller set
     if (data.action === 'LOGIN') {
@@ -125,10 +128,10 @@ function main() {
         },
         payload: {},
       };
-      workers[randomInt(4)].postMessage(leaveAdvMsg);
+      postMessageToWorker(leaveAdvMsg);
     }
 
-    workers[randomInt(4)].postMessage(leaveGameMsg);
+    postMessageToWorker(leaveGameMsg);
 
     if (!user)
       return;
@@ -143,7 +146,7 @@ function main() {
           chatName: room,
         },
       };
-      workers[randomInt(4)].postMessage(leaveChatMsg);
+      postMessageToWorker(leaveChatMsg);
     }
   });
 
@@ -169,7 +172,7 @@ function main() {
         payload: {},
       };
 
-      workers[randomInt(4)].postMessage(internalMsg);
+      postMessageToWorker(internalMsg);
     },
   );
 
@@ -185,7 +188,7 @@ function main() {
       payload: {},
     };
 
-    workers[randomInt(4)].postMessage(internalMsg);
+    postMessageToWorker(internalMsg);
   });
 
   autohostMgr.on('midJoined', (params: { title?: string; player?: string }) => {
@@ -200,7 +203,7 @@ function main() {
       payload: {},
     };
 
-    workers[randomInt(4)].postMessage(internalMsg);
+    postMessageToWorker(internalMsg);
   });
   logger.info('autohost event handlers registered');
   initializeWorkers();
@@ -318,7 +321,7 @@ function handlCmd(msg: Wrapped_Message) {
             caller: msg.client,
           },
         };
-        workers[randomInt(4)].postMessage(leaveChatMsg);
+        sendToWorker(leaveChatMsg);
         break;
       }
     }
