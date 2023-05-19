@@ -30,6 +30,7 @@ import { AppDataSource } from './db/datasource';
 
 const network = new Network(8081);
 const workers: Worker[] = [];
+let workerIndex = 0;
 const store = new RedisStore();
 
 const clientID2seq: { [key: string]: number } = {};
@@ -38,17 +39,16 @@ const clientID2username: { [key: string]: string } = {};
 const username2clientID: { [key: string]: string } = {};
 
 const autohostMgr = new AutohostManager([], { port: 5000 });
+
+function postMessageToWorker(value: any) {
+  workers[workerIndex].postMessage(value);
+  workerIndex = (workerIndex + 1) % workers.length;
+}
+
 function main() {
   logger.info('starting main feature...');
 
   logger.debug('registering network event handlers...');
-  let workerIndex = 0;
-
-  const postMessageToWorker = (value: any) => {
-    const workerId = workerIndex;
-    workerIndex = (workerIndex + 1) % workers.length;
-    workers[workerId].postMessage(value);
-  };
 
   network.on('message', (clientID: string, data: IncommingMsg) => {
     clientID2seq[clientID] = data.seq;
@@ -321,7 +321,7 @@ function handlCmd(msg: Wrapped_Message) {
             caller: msg.client,
           },
         };
-        sendToWorker(leaveChatMsg);
+        postMessageToWorker(leaveChatMsg);
         break;
       }
     }
