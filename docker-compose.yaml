@@ -1,3 +1,5 @@
+# @format
+
 version: '3'
 services:
   plasmid:
@@ -25,10 +27,10 @@ services:
     image: ghcr.io/ultirts/ts-autohost:nightly
     pull_policy: always
     ports:
-      - '3000-3100:3000-3100'
-      - '7000-7100:7000-7100'
-      - '3000-3100:3000-3100/udp'
-      - '7000-7100:7000-7100/udp'
+      - '3000-3005:3000-3005'
+      - '7000-7005:7000-7005'
+      - '3000-3005:3000-3005/udp'
+      - '7000-7005:7000-7005/udp'
       - '5000:5000'
     environment:
       - PLASMID_SERVER_HOST=plasmid
