@@ -5,8 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { TypeORMError } from 'typeorm';
+import { Liquibase, LiquibaseLogLevels } from 'liquibase';
+import type { LiquibaseConfig } from 'liquibase';
+
 import { mainLogger as logger } from 'lib/logger';
-import { AutohostManager } from './lib/autohost';
+import { AutohostManager } from 'lib/autohost';
 import type {
   CMD,
   CMD_Adventure_recruit,
@@ -14,19 +17,20 @@ import type {
   CMD_Autohost_Midjoin,
   CMD_Autohost_Start_Game,
   Wrapped_Message,
-} from './lib/interfaces';
-
+} from 'lib/interfaces';
 import type {
   IncommingMsg,
   Notification,
-} from './lib/network';
+} from 'lib/network';
 import {
   Network,
   wrapReceipt,
   wrapState,
-} from './lib/network';
-import { RedisStore } from './lib/store';
-import { AppDataSource } from './db/datasource';
+} from 'lib/network';
+import { RedisStore } from 'lib/store';
+import { AppDataSource } from 'db/datasource';
+
+import { dbconf } from 'config';
 
 const network = new Network(8081);
 const workers: Worker[] = [];
@@ -151,6 +155,7 @@ function main() {
   });
 
   logger.info('registering autohost event handlers...');
+
   autohostMgr.on(
     'gameStarted',
     (msg: {
@@ -389,15 +394,24 @@ function initializeWorkers() {
 }
 
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     logger.info('db initialized');
-    if (process.env.NODE_ENV !== 'production')
-      AppDataSource.synchronize();
+    const liquibaseConfig: LiquibaseConfig = {
+      url: `jdbc:mariadb://${dbconf.host}:${dbconf.port}/${dbconf.database}?useSSL=false&allowPublicKeyRetrieval=true`,
+      username: dbconf.user,
+      password: dbconf.password,
+      changeLogFile: 'db/liquibase/plasmid.xml',
+      classpath: 'node_modules/liquibase/dist/drivers/mariadb-java-client-2.5.3.jar',
+      logLevel: process.env.NODE_ENV === 'development' ? LiquibaseLogLevels.Info : LiquibaseLogLevels.Warning,
+    };
+    const liquibase = new Liquibase(liquibaseConfig);
+    logger.info('synchronizing database schema...');
+    await liquibase.update({});
+    logger.info('database schema synchronized');
   })
   .then(main)
   .catch((e) => {
     if (e instanceof TypeORMError)
       logger.error({ error: e }, 'db failed');
-
     logger.error({ error: e }, 'unexpected error');
   });

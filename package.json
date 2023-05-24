@@ -1,6 +1,6 @@
 {
   "name": "ts-plasmid",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "description": "",
   "author": {
     "name": "UltiRTS"
@@ -14,13 +14,15 @@
     "autohost": "npm run build && node dist/tests/autohost.test.js",
     "dev": "redis-cli flushall; dotenv -c development nodemon main.ts",
     "dev-noflush": "dotenv -c development nodemon main.ts",
-    "build": "tsc && tsc-alias",
+    "build": "npm run clean && tsc && tsc-alias",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "clean": "rimraf dist/"
   },
   "dependencies": {
     "async-mutex": "^0.3.2",
     "axios": "^0.27.2",
+    "liquibase": "^4.4.0",
     "mysql": "^2.18.1",
     "pino": "^8.8.0",
     "pino-pretty": "^10.0.0",
@@ -38,6 +40,7 @@
     "dotenv-cli": "^7.2.1",
     "eslint": "^8.40.0",
     "nodemon": "^2.0.20",
+    "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.6",
