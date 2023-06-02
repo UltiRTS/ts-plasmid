@@ -45,34 +45,9 @@ export async function loginHandler(
   });
 
   if (user == null) {
-    const user = new User();
-    user.username = username;
-    user.confirmations = [];
-    user.friends = [];
-    user.chats = [];
-    user.marks = [];
-    user.adventures = [];
-    const testItem = new InventoryItem();
-    testItem.name = 'test';
-    testItem.qty = 1;
-    testItem.description = 'test';
-    await invetoryItemRepo.save(testItem);
-
-    user.inventory = [testItem];
-
-    const creds = User.saltNhash(password);
-    user.salt = creds.salt;
-    user.hash = creds.hash;
-
-    await userRepo.save(user);
-
-    const userState = new StateUser(user);
-    await store.setUser(username, userState);
-    logger.info(`getting inside auth: ${await store.getUser(username)}`);
-
     await store.releaseLock(RESOURCE_OCCUPIED);
     return [
-      WrappedState('LOGIN', seq, await store.dumpState(username), caller),
+      Notify('LOGIN', seq, 'Account not found, proceed to register?', caller),
     ];
   }
 
