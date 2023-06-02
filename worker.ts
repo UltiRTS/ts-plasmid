@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { parentPort, threadId } from 'node:worker_threads';
 import type { IncommingMsg } from './lib/network';
 import { AppDataSource } from './db/datasource';
-import { loginHandler } from './lib/worker/auth';
+import { loginHandler, registerHandler } from './lib/worker/auth';
 import type { Wrapped_Message } from './lib/interfaces';
 import {
   delAI,
@@ -75,6 +75,8 @@ const clientsHandlers: {
       friendName?: string
       floorIn?: number
       nodeTo?: number
+      bio?: string
+      machineID?: string
       [key: string]: any
     },
     seq: number,
@@ -82,6 +84,7 @@ const clientsHandlers: {
   ) => Promise<Wrapped_Message[]>
 } = {
   LOGIN: loginHandler,
+  REGISTER: registerHandler,
   JOINGAME: joinGameHandler,
   SETTEAM: setTeam,
   SETMAP: setMap,

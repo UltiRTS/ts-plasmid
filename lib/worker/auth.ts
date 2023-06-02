@@ -16,8 +16,7 @@ export async function loginHandler(
   seq: number,
   caller: string,
 ) {
-  const username = params.username;
-  const password = params.password;
+  const { username, password } = params;
 
   if (username == null || password == null)
     return [Notify('LOGIN', seq, 'missing username or password', caller)];
@@ -124,4 +123,33 @@ export async function loginHandler(
       WrappedState('LOGIN', seq, await store.dumpState(username), caller),
     ];
   }
+}
+
+export async function registerHandler(params: {
+  username?: string
+  password?: string
+  // bio: string
+  // machineID: string
+  [key: string]: any
+}, seq: number, caller: string) {
+  const { username, password } = params;
+  if (!username || !password)
+    return [Notify('REGISTER', seq, 'missing username or password', caller)];
+
+  const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
+  const creds = User.saltNhash(password);
+  const user = userRepo.create({
+    username,
+    salt: creds.salt,
+    hash: creds.hash,
+  });
+  await userRepo.save(user);
+  const userState = new StateUser(user);
+  await store.setUser(username, userState);
+  logger.info(`getting inside auth: ${await store.getUser(username)}`);
+
+  await store.releaseLock(RESOURCE_OCCUPIED);
+  return [
+    WrappedState('REGISTER', seq, await store.dumpState(username), caller),
+  ];
 }
