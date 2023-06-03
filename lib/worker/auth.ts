@@ -58,8 +58,7 @@ export async function loginHandler(
   if (!user.verify(password)) {
     await store.releaseLock(RESOURCE_OCCUPIED);
     return [Notify('LOGIN', seq, 'wrong password of username', caller)];
-  }
-  else {
+  } else {
     const userState = new StateUser(user);
     userState.confirmations2dump = [];
     if (userState.adventure) {
@@ -108,17 +107,37 @@ export async function registerHandler(params: {
   [key: string]: any
 }, seq: number, caller: string) {
   const { username, password } = params;
+  logger.info(`User registering: ${username}`);
   if (!username || !password)
     return [Notify('REGISTER', seq, 'missing username or password', caller)];
 
   const RESOURCE_OCCUPIED = RedisStore.LOCK_RESOURCE(username, 'user');
+  try {
+    await store.acquireLock(RESOURCE_OCCUPIED);
+  }
+  catch {
+    return [Notify('LOGIN', seq, 'acquire user lock failed', caller)];
+  }
   const creds = User.saltNhash(password);
   const user = userRepo.create({
     username,
     salt: creds.salt,
     hash: creds.hash,
+    confirmations: [],
+    friends :[],
+    chats: [],
+    marks: [],
+    adventures: [],
   });
-  await userRepo.save(user);
+  try {
+    await userRepo.save(user);
+  } catch (e) {
+    if (e instanceof Error) {
+      logger.error(`Error: ${e.message}`);
+      return [Notify('REGISTER', seq, e.message, caller)];
+    }
+  }
+  logger.info(`User registered: ${username}`);
   const userState = new StateUser(user);
   await store.setUser(username, userState);
   logger.info(`getting inside auth: ${await store.getUser(username)}`);

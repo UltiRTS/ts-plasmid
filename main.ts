@@ -71,16 +71,15 @@ function main() {
       store.setOnline(Object.keys(username2clientID));
     }
 
-    if (!['LOGIN'].includes(data.action)) {
-      if (!(clientID in clientID2username)) {
-        network.emit('postMessage', seq2clientID[data.seq], {
-          action: 'NOTIFY',
-          seq: data.seq,
-          message: 'please login',
-          from: data.action,
-        } as Notification);
-        return;
-      }
+    if (!['LOGIN', 'REGISTER'].includes(data.action) && !(clientID in clientID2username)) {
+      logger.error(`clientID ${clientID} not logged in, action "${data.action}" rejected`);
+      network.emit('postMessage', seq2clientID[data.seq], {
+        action: 'NOTIFY',
+        seq: data.seq,
+        message: 'please login',
+        from: data.action,
+      } as Notification);
+      return;
     }
 
     data.caller = clientID2username[clientID];
