@@ -413,5 +413,6 @@ AppDataSource.initialize()
   .catch((e) => {
     if (e instanceof TypeORMError)
       logger.error({ error: e }, 'db failed');
-    logger.error({ error: e }, 'unexpected error');
+    logger.error({ error: e, stackTrace: e.stackTrace }, 'unexpected error');
+    process.exit(1);
   });
